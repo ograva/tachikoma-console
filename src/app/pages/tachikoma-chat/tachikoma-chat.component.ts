@@ -85,9 +85,20 @@ export class TachikomaChatComponent implements AfterViewChecked {
     }
   ];
 
+  private getCleanKey(): string {
+    return this.apiKey.replace(/[^\x00-\x7F]/g, "").trim();
+  }
+
   constructor() {
     const storedKey = localStorage.getItem('gemini_api_key');
-    if (storedKey) this.apiKey = storedKey;
+    if (storedKey) {
+      // Sanitize on load in case a dirty key was stored before fix
+      this.apiKey = storedKey.replace(/[^\x00-\x7F]/g, "").trim();
+      // Re-save cleaned version if it was dirty
+      if (this.apiKey !== storedKey && this.apiKey) {
+        localStorage.setItem('gemini_api_key', this.apiKey);
+      }
+    }
   }
 
   ngAfterViewChecked() {
@@ -100,17 +111,59 @@ export class TachikomaChatComponent implements AfterViewChecked {
     } catch(err) { }
   }
 
-  saveKey() {
-    if (this.apiKey.trim()) {
-      localStorage.setItem('gemini_api_key', this.apiKey.trim());
+  async saveKey() {
+    const cleanKey = this.getCleanKey();
+    if (cleanKey) {
+      this.apiKey = cleanKey;
+      localStorage.setItem('gemini_api_key', cleanKey);
+      
+      // List available models
+      await this.listAvailableModels();
+      
       alert('LINK ESTABLISHED. KEY SAVED.');
+    } else {
+      alert('INVALID KEY DETECTED');
+    }
+  }
+
+  async listAvailableModels() {
+    try {
+      const cleanKey = this.getCleanKey();
+      if (!cleanKey) return;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      console.log('=== AVAILABLE GEMINI MODELS ===');
+      if (data.models) {
+        data.models.forEach((model: any) => {
+          console.log(`Model: ${model.name}`);
+          console.log(`  Display Name: ${model.displayName}`);
+          console.log(`  Supported Methods: ${model.supportedGenerationMethods?.join(', ')}`);
+          console.log(`  Input Token Limit: ${model.inputTokenLimit}`);
+          console.log(`  Output Token Limit: ${model.outputTokenLimit}`);
+          console.log('---');
+        });
+      }
+    } catch (error) {
+      console.error('Error listing models:', error);
     }
   }
 
   async triggerProtocol() {
     if (!this.userInput.trim() || this.isProcessing) return;
-    if (!this.apiKey) {
-      alert("PLEASE ENTER API KEY");
+    
+    // Validate the CLEANED key to ensure it's not empty after sanitization
+    const cleanKey = this.getCleanKey();
+    if (!cleanKey) {
+      alert("PLEASE ENTER A VALID API KEY");
       return;
     }
 
@@ -118,55 +171,66 @@ export class TachikomaChatComponent implements AfterViewChecked {
     this.userInput = '';
     this.isProcessing = true;
 
-    // Add User Message
-    this.addMessage('USER', text, true);
+    try {
+      // Add User Message
+      this.addMessage('USER', text, true);
 
-    // Shuffle Logic/Ghost
-    let activeAgents = this.shuffle(this.agents.filter(a => a.id !== 'moderator'));
-    let conversationContext = `USER INPUT: "${text}"\n`;
+      // Shuffle Logic/Ghost
+      let activeAgents = this.shuffle(this.agents.filter(a => a.id !== 'moderator'));
+      console.log('Agent order:', activeAgents.map(a => a.name).join(' → '));
+      let conversationContext = `USER INPUT: "${text}"\n`;
 
-    // Process Chatter Agents
-    for (let i = 0; i < activeAgents.length; i++) {
-      const agent = activeAgents[i];
-      agent.status = 'thinking';
-      
-      let prompt = conversationContext;
-      if (i > 0) {
-        prompt += `\nCONTEXT_SO_FAR (Previous agents have spoken):\n${conversationContext}`;
+      // Process Chatter Agents
+      for (let i = 0; i < activeAgents.length; i++) {
+        const agent = activeAgents[i];
+        agent.status = 'thinking';
+        
+        let prompt = conversationContext;
+        if (i > 0) {
+          prompt += `\nCONTEXT_SO_FAR (Previous agents have spoken):\n${conversationContext}`;
+        }
+
+        try {
+          const response = await this.callGemini(prompt, agent.system, agent.temp);
+          agent.status = 'idle';
+
+          // Only check for SILENCE if this is NOT the first agent, and response is exactly "SILENCE"
+          const isSilent = i > 0 && response.trim().toUpperCase() === "SILENCE";
+          
+          if (isSilent) {
+            console.log(`${agent.name}: SILENCED (agent #${i + 1})`);
+          } else {
+            console.log(`${agent.name}: Speaking (agent #${i + 1}, length: ${response.length})`);
+            this.addMessage(agent.name, response, false, agent.id);
+            conversationContext += `\n${agent.name} SAID: "${response}"\n`;
+          }
+        } catch (error) {
+          agent.status = 'idle';
+          console.error(`${agent.name} Error:`, error);
+          this.addMessage(agent.name, `[SYSTEM ERROR: Unable to process]`, false, agent.id);
+        }
       }
 
+      // Process Moderator
+      const moderator = this.agents.find(a => a.id === 'moderator')!;
+      moderator.status = 'thinking';
+      const modPrompt = `${conversationContext}\n\nCONTEXT_SO_FAR: The user asked a question. The agents above responded (or stayed silent). Synthesize the final answer.`;
+      
       try {
-        const response = await this.callGemini(prompt, agent.system, agent.temp);
-        agent.status = 'idle';
-
-        if (response.includes("SILENCE")) {
-          console.log(`${agent.name}: SILENCED`);
-        } else {
-          this.addMessage(agent.name, response, false, agent.id);
-          conversationContext += `\n${agent.name} SAID: "${response}"\n`;
+        const modResponse = await this.callGemini(modPrompt, moderator.system, moderator.temp);
+        moderator.status = 'idle';
+        if (!modResponse.includes("SILENCE")) {
+          this.addMessage(moderator.name, modResponse, false, moderator.id);
         }
       } catch (error) {
-        agent.status = 'idle';
-        console.error(error);
+        moderator.status = 'idle';
+        console.error('Moderator Error:', error);
+        this.addMessage(moderator.name, `[SYSTEM ERROR: Unable to synthesize]`, false, moderator.id);
       }
+    } finally {
+      // Always reset processing state, even if errors occur
+      this.isProcessing = false;
     }
-
-    // Process Moderator
-    const moderator = this.agents.find(a => a.id === 'moderator')!;
-    moderator.status = 'thinking';
-    const modPrompt = `${conversationContext}\n\nCONTEXT_SO_FAR: The user asked a question. The agents above responded (or stayed silent). Synthesize the final answer.`;
-    
-    try {
-      const modResponse = await this.callGemini(modPrompt, moderator.system, moderator.temp);
-      moderator.status = 'idle';
-      if (!modResponse.includes("SILENCE")) {
-        this.addMessage(moderator.name, modResponse, false, moderator.id);
-      }
-    } catch (error) {
-      moderator.status = 'idle';
-    }
-
-    this.isProcessing = false;
   }
 
   addMessage(sender: string, text: string, isUser: boolean, agentId?: string) {
@@ -184,9 +248,16 @@ export class TachikomaChatComponent implements AfterViewChecked {
 
   async callGemini(prompt: string, systemInstruction: string, temp: number): Promise<string> {
     try {
-      const genAI = new GoogleGenerativeAI(this.apiKey);
+      const cleanKey = this.getCleanKey();
+      
+      // Validate cleaned key before API call
+      if (!cleanKey) {
+        throw new Error('API key is invalid or empty after sanitization');
+      }
+      
+      const genAI = new GoogleGenerativeAI(cleanKey);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-2.5-flash",
         systemInstruction: systemInstruction,
         generationConfig: {
           temperature: temp,
@@ -199,7 +270,7 @@ export class TachikomaChatComponent implements AfterViewChecked {
       return response.text();
     } catch (error: any) {
       console.error("Gemini API Error:", error);
-      return `ERROR: ${error.message || "Unknown API Error"}`;
+      throw error; // Re-throw to let caller handle
     }
   }
 

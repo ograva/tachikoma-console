@@ -1,7 +1,65 @@
-# Flexy Angular Admin Dashboard - AI Coding Guidelines
+# Tachikoma Console - AI Coding Guidelines
 
 ## Project Overview
-Flexy is an Angular 19 admin dashboard template featuring a two-layout architecture (Full/Blank), Material Design components, and ApexCharts integration. This is a **free version** with PRO features linked externally to `flexy-angular-main.netlify.app`.
+**Tachikoma Console** is a cyberpunk-themed Angular 19 admin dashboard with an integrated AI chat interface. Originally forked from Flexy Angular Admin, it features a **multi-agent AI system** powered by Google's Gemini API, a dark cyberpunk aesthetic, and Material Design components.
+
+## Core Features
+
+### Tachikoma Chat (Primary Feature)
+A **multi-agent AI chat interface** (`/tachikoma`) featuring three distinct AI personas powered by Google Gemini 2.0 Flash Exp:
+
+#### Agent System Architecture
+- **LOGIKOMA** (Analytical Agent)
+  - Temperature: 0.2 (low creativity, high precision)
+  - Role: Pure logic and data analysis
+  - Color: Cyan (`#00f3ff`)
+  - Icon: ◈
+
+- **GHOST-1** (Philosophical Agent)
+  - Temperature: 0.9 (high creativity, abstract thinking)
+  - Role: Questions assumptions, explores meaning
+  - Color: Magenta (`#ff00de`)
+  - Icon: ❖
+
+- **MODERATOR** (Synthesis Agent)
+  - Temperature: 0.5 (balanced)
+  - Role: Bridges logic and philosophy, provides final synthesis
+  - Color: Green (`#00ff41`)
+  - Icon: ⬢
+
+#### Chat Protocol Flow
+1. User submits query
+2. LOGIKOMA and GHOST-1 process in **randomized order** (prevents response bias)
+3. Each agent reads prior context and implements **SILENCE PROTOCOL**: If previous agent already covered their perspective, agent outputs "SILENCE" instead of repeating
+4. MODERATOR synthesizes all responses into final answer
+5. All messages rendered with **Markdown support** via `marked` library
+
+#### Technical Implementation
+- **Component**: `src/app/pages/tachikoma-chat/tachikoma-chat.component.ts`
+- **API Integration**: `@google/generative-ai` SDK
+- **State Management**: Component-level signals (Angular 19 pattern)
+- **Persistence**: API key stored in `localStorage` (key: `gemini_api_key`)
+- **Security**: API key sanitization via `getCleanKey()` regex to strip non-ASCII characters
+- **UI Framework**: Custom SCSS with cyberpunk theme, no Material Design used in chat
+
+#### Key Methods
+```typescript
+triggerProtocol()     // Main orchestration: shuffles agents, calls API sequentially
+callGemini()          // Google Generative AI API wrapper with error handling
+getCleanKey()         // Sanitizes API key (removes non-ISO-8859-1 characters)
+saveKey()             // Persists sanitized API key to localStorage
+addMessage()          // Adds message to chat feed with Markdown parsing
+```
+
+#### Styling Conventions
+- **Custom CSS Variables** in component SCSS:
+  - `--neon-green: #00ff41`
+  - `--neon-blue: #00f3ff`
+  - `--neon-pink: #ff00de`
+  - `--cyber-black: #0a0a0a`
+- **Fonts**: `JetBrains Mono` (body), `Share Tech Mono` (headers)
+- **Effects**: CRT scanlines overlay, glitch animations on hover
+- **Responsive**: 2-column layout on desktop (chat + status panel), single column on mobile
 
 ## Architecture
 
@@ -43,8 +101,9 @@ interface NavItem {
   external?: boolean;     // External link flag
 }
 ```
-- Free features route locally (e.g., `/ui-components/badge`)
-- PRO features link to `https://flexy-angular-main.netlify.app/...` with `external: true`
+- **Primary route**: `/tachikoma` - AI Chat interface (direct route in `app.routes.ts`)
+- Dashboard features route to `/dashboard` (lazy-loaded via `pages.routes.ts`)
+- Legacy PRO features link to `https://flexy-angular-main.netlify.app/...` with `external: true`
 
 ## Development Workflows
 
@@ -57,8 +116,8 @@ npm test           # Karma + Jasmine tests
 ```
 
 ### Build Configuration
-- Production budget: 12MB (unusually high - verify if intentional)
-- Output: `dist/Flexy` directory
+- Production budget: 12MB (high due to AI SDK and ApexCharts)
+- Output: `dist/tachikoma-console` directory
 - Netlify SPA redirect configured via `netlify.toml`
 
 ### Styling System
@@ -128,9 +187,12 @@ this.breakpointObserver.observe([MOBILE_VIEW, TABLET_VIEW])
 - **Don't** use RxJS BehaviorSubject for new state - use Angular signals
 - **Don't** create NgModules - use standalone component pattern
 - **Don't** modify `allowedCommonJsDependencies` without understanding bundle impact
+- **Don't** forget to sanitize API keys - use `getCleanKey()` pattern for external APIs
 - **Verify** PRO features aren't implemented locally - they should link externally
 
 ## External Dependencies
+- **@google/generative-ai**: Gemini API SDK for multi-agent AI chat
+- **marked**: Markdown parser for chat message rendering
 - **ApexCharts** (`ng-apexcharts`): Chart library for dashboards
 - **ngx-scrollbar**: Custom scrollbar styling
 - **ngx-translate**: i18n support (TranslateModule configured in app.config)
