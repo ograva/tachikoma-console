@@ -1,0 +1,101 @@
+<div class="tachikoma-container">
+    <div class="scanlines"></div>
+
+    <!-- Header -->
+    <header class="chat-header">
+        <div class="header-left">
+            <div class="version-badge">V2.5</div>
+            <div>
+                <h1 class="protocol-title glitch">TACHIKOMA PROTOCOL</h1>
+                <div class="sync-status">
+                    <span class="status-dot"></span>
+                    SYNC MODE: SECURE-LINK
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <input type="password" [(ngModel)]="apiKey" placeholder="Enter Gemini API Key" class="api-input" />
+            <button (click)="saveKey()" class="init-btn">INITIALIZE</button>
+        </div>
+    </header>
+
+    <!-- Main Chat Area -->
+    <main class="chat-main">
+        <!-- Left Panel: Chat Feed -->
+        <div class="chat-feed" #chatFeed>
+            <!-- Intro Message -->
+            <div class="intro-message">
+                <p>NEURAL LINK ESTABLISHED.</p>
+                <p>AGENTS: LOGIKOMA, GHOST-1, MODERATOR</p>
+                <p class="sub-intro">INITIATIVE IS RANDOMIZED PER QUERY.</p>
+            </div>
+
+            <!-- Messages -->
+            <div *ngFor="let msg of messages" class="message-wrapper" [ngClass]="{'user-msg': msg.isUser, 'agent-msg': !msg.isUser}">
+                
+                <!-- User Message -->
+                <div *ngIf="msg.isUser" class="user-bubble">
+                    <div class="msg-header">USER // AUTHENTICATED</div>
+                    <div class="msg-content" [innerHTML]="msg.html"></div>
+                </div>
+
+                <!-- Agent Message -->
+                <div *ngIf="!msg.isUser" class="agent-card" [ngClass]="msg.agentId || ''">
+                    <div class="agent-header">
+                        <span class="agent-icon">
+                            <ng-container [ngSwitch]="msg.agentId">
+                                <span *ngSwitchCase="'logikoma'">◈</span>
+                                <span *ngSwitchCase="'ghost'">❖</span>
+                                <span *ngSwitchCase="'moderator'">⬢</span>
+                            </ng-container>
+                        </span>
+                        <span class="agent-name">{{msg.sender}}</span>
+                    </div>
+                    <div class="msg-content" [innerHTML]="msg.html"></div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator (Generic for now, could be per agent) -->
+            <div *ngIf="isProcessing" class="processing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Active Status -->
+        <div class="status-panel">
+            <h3 class="panel-title">NEURAL ACTIVITY</h3>
+            
+            <div class="agent-status" *ngFor="let agent of agents">
+                <div class="status-row">
+                    <span [class]="'agent-label ' + agent.id">{{agent.name}}</span>
+                    <span [class]="'status-text ' + agent.id">{{agent.status === 'thinking' ? 'PROCESSING...' : 'IDLE'}}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-bar" [ngClass]="agent.id" [style.width]="agent.status === 'thinking' ? '100%' : '0%'"></div>
+                </div>
+            </div>
+
+            <div class="debug-stack">
+                <p>DEBUG STACK:</p>
+                <div class="memory-log">
+                    // System Ready<br>
+                    <ng-container *ngFor="let msg of messages">
+                        > PACKET RECEIVED: {{msg.timestamp}}<br>
+                    </ng-container>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="chat-footer">
+        <div class="input-wrapper">
+            <input type="text" [(ngModel)]="userInput" (keydown.enter)="triggerProtocol()"
+                class="chat-input"
+                placeholder="Send packet to the net...">
+            <button (click)="triggerProtocol()" class="send-btn">SEND</button>
+        </div>
+    </footer>
+</div>

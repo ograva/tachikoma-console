@@ -10,6 +10,11 @@ export const navItems: NavItem[] = [
     route: '/dashboard',
   },
   {
+    displayName: 'Tachikoma Chat',
+    iconName: 'message-chatbot',
+    route: '/tachikoma',
+  },
+  {
     navCap: 'Auth',
   },
   {

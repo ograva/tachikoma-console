@@ -1,57 +1,179 @@
 <div class="row">
-  <div class="col-12">
+  <!-- System Status Card -->
+  <div class="col-lg-12">
+    <mat-card class="cardWithShadow bg-light-primary overflow-hidden">
+      <mat-card-content class="p-32">
+        <div class="row justify-content-between align-items-center">
+          <div class="col-sm-6">
+            <h5 class="f-w-600 f-s-20 m-b-8 text-primary">
+              System Status: ONLINE
+            </h5>
+            <h2 class="f-w-700 f-s-28 m-b-24">
+              Tachikoma Protocol v2.5
+            </h2>
+            <div class="d-flex align-items-center gap-3">
+              <button mat-flat-button color="primary" (click)="navigateToProtocol()">
+                Launch Protocol Interface
+              </button>
+              <span class="text-success f-w-600 d-flex align-items-center gap-1">
+                <i-tabler name="circle-check" class="icon-20"></i-tabler>
+                Secure Link Established
+              </span>
+            </div>
+          </div>
+          <div class="col-sm-5">
+            <div class="text-center position-relative">
+              <!-- Placeholder for a cool image or icon -->
+              <i-tabler name="robot" class="icon-150 text-primary opacity-20"></i-tabler>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Agent Status Cards -->
+  <div class="col-lg-4">
     <mat-card class="cardWithShadow">
       <mat-card-content class="p-24">
-        <div class="text-center">
-          <h1 class="m-b-16 f-w-600">Welcome to Novus Flexy</h1>
-          <p class="m-b-24 f-s-18 text-muted">
-            A Modern Angular Admin Dashboard Template
-          </p>
+        <div class="d-flex align-items-center m-b-24">
+          <span class="rounded bg-light-info p-10 d-flex align-items-center justify-content-center">
+            <i-tabler name="brain" class="text-info icon-24"></i-tabler>
+          </span>
+          <div class="m-l-12">
+            <h4 class="mat-subtitle-1 f-s-16 f-w-600 m-b-0">Logikoma</h4>
+            <span class="f-s-12 text-muted">Analytical Engine</span>
+          </div>
+          <div class="m-l-auto">
+            <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Active</span>
+          </div>
         </div>
-
-        <div class="m-t-32">
-          <h3 class="m-b-16 f-w-500">About This Template</h3>
-          <p class="m-b-16">
-            Novus Flexy is a clean, professional admin dashboard template customized by <strong>Novus Apps</strong> 
-            for creating modern web applications. This template provides a solid foundation with essential 
-            features and a clean architecture that can be extended to meet your specific needs.
-          </p>
-
-          <h3 class="m-t-32 m-b-16 f-w-500">Technology Stack</h3>
-          <div class="row">
-            <div class="col-md-6">
-              <ul class="m-b-0">
-                <li class="m-b-8"><strong>Angular 19</strong> - Latest framework with standalone components</li>
-                <li class="m-b-8"><strong>Angular Material 19</strong> - Comprehensive UI component library</li>
-                <li class="m-b-8"><strong>TypeScript 5.6</strong> - Type-safe development</li>
-                <li class="m-b-8"><strong>SCSS</strong> - Advanced styling with Sass</li>
-              </ul>
-            </div>
-            <div class="col-md-6">
-              <ul class="m-b-0">
-                <li class="m-b-8"><strong>ESBuild</strong> - Lightning-fast application builder</li>
-                <li class="m-b-8"><strong>Tabler Icons</strong> - Beautiful icon library</li>
-                <li class="m-b-8"><strong>ApexCharts</strong> - Modern charting library</li>
-                <li class="m-b-8"><strong>Responsive Design</strong> - Mobile-first approach</li>
-              </ul>
-            </div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <h6 class="f-s-14 text-muted m-b-0">Processing Load</h6>
+            <h4 class="m-b-0 f-w-600 m-t-4">12%</h4>
           </div>
+          <div id="chart-logikoma"></div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
 
-          <h3 class="m-t-32 m-b-16 f-w-500">Getting Started</h3>
-          <p class="m-b-8">
-            This template includes a pre-configured layout with navigation, authentication pages, and a responsive sidebar. 
-            You can start building your application by:
-          </p>
-          <ul>
-            <li class="m-b-8">Adding new routes in <code>app.routes.ts</code></li>
-            <li class="m-b-8">Creating new components using Angular CLI</li>
-            <li class="m-b-8">Customizing the theme in <code>src/assets/scss/</code></li>
-            <li class="m-b-8">Extending the navigation in <code>sidebar-data.ts</code></li>
-          </ul>
-
-          <div class="m-t-32 text-center">
-            <p class="text-muted f-s-14">Built with ❤️ by Novus Apps</p>
+  <div class="col-lg-4">
+    <mat-card class="cardWithShadow">
+      <mat-card-content class="p-24">
+        <div class="d-flex align-items-center m-b-24">
+          <span class="rounded bg-light-error p-10 d-flex align-items-center justify-content-center">
+            <i-tabler name="ghost" class="text-error icon-24"></i-tabler>
+          </span>
+          <div class="m-l-12">
+            <h4 class="mat-subtitle-1 f-s-16 f-w-600 m-b-0">Ghost-1</h4>
+            <span class="f-s-12 text-muted">Emergent Consciousness</span>
           </div>
+          <div class="m-l-auto">
+            <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Active</span>
+          </div>
+        </div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <h6 class="f-s-14 text-muted m-b-0">Divergence</h6>
+            <h4 class="m-b-0 f-w-600 m-t-4">0.84</h4>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="col-lg-4">
+    <mat-card class="cardWithShadow">
+      <mat-card-content class="p-24">
+        <div class="d-flex align-items-center m-b-24">
+          <span class="rounded bg-light-success p-10 d-flex align-items-center justify-content-center">
+            <i-tabler name="shield-check" class="text-success icon-24"></i-tabler>
+          </span>
+          <div class="m-l-12">
+            <h4 class="mat-subtitle-1 f-s-16 f-w-600 m-b-0">Moderator</h4>
+            <span class="f-s-12 text-muted">System Control</span>
+          </div>
+          <div class="m-l-auto">
+            <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Active</span>
+          </div>
+        </div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <h6 class="f-s-14 text-muted m-b-0">Uptime</h6>
+            <h4 class="m-b-0 f-w-600 m-t-4">99.9%</h4>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Recent Activity Log -->
+  <div class="col-lg-12">
+    <mat-card class="cardWithShadow">
+      <mat-card-header class="d-flex justify-content-between align-items-center p-24">
+        <mat-card-title class="m-b-0">System Logs</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="p-24">
+        <div class="table-responsive">
+          <table class="table v-middle text-nowrap">
+            <thead>
+              <tr>
+                <th class="f-w-600">Timestamp</th>
+                <th class="f-w-600">Event</th>
+                <th class="f-w-600">Source</th>
+                <th class="f-w-600">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <span class="f-s-14">Just now</span>
+                </td>
+                <td>
+                  <h6 class="m-b-0 f-s-14 f-w-600">Dashboard Initialized</h6>
+                  <span class="f-s-12 text-muted">User session started</span>
+                </td>
+                <td>
+                  <span class="f-s-14">System Core</span>
+                </td>
+                <td>
+                  <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Success</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="f-s-14">2 mins ago</span>
+                </td>
+                <td>
+                  <h6 class="m-b-0 f-s-14 f-w-600">Neural Link Check</h6>
+                  <span class="f-s-12 text-muted">Latency: 12ms</span>
+                </td>
+                <td>
+                  <span class="f-s-14">Network</span>
+                </td>
+                <td>
+                  <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Stable</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="f-s-14">1 hour ago</span>
+                </td>
+                <td>
+                  <h6 class="m-b-0 f-s-14 f-w-600">Model Update</h6>
+                  <span class="f-s-12 text-muted">Gemini 2.0 Flash Exp</span>
+                </td>
+                <td>
+                  <span class="f-s-14">Updater</span>
+                </td>
+                <td>
+                  <span class="badge bg-light-info text-info rounded-pill f-s-12 f-w-600">Completed</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </mat-card-content>
     </mat-card>

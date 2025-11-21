@@ -17,6 +17,13 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./pages/pages.routes').then((m) => m.PagesRoutes),
       },
+      {
+        path: 'tachikoma',
+        loadComponent: () =>
+          import('./pages/tachikoma-chat/tachikoma-chat.component').then(
+            (m) => m.TachikomaChatComponent
+          ),
+      },
     ],
   },
   {

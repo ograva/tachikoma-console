@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 2501 // Tachikoma Protocol v2.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --neon-green: #00ff41;
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00de;
+            --cyber-black: #0a0a0a;
+            --cyber-gray: #1a1a1a;
+            --text-main: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--cyber-black);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden; /* Prevent body scroll, handle in chat container */
+        }
+
+        .font-header {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--cyber-gray); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555; 
+        }
+
+        /* CRT Scanline Effect */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            position: fixed;
+            top: 0; right: 0; bottom: 0; left: 0;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.15;
+        }
+
+        /* Glitch Animation for Titles */
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+        .glitch:hover {
+            animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+        }
+
+        .agent-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .agent-card.logikoma { border-color: var(--neon-blue); background: rgba(0, 243, 255, 0.05); }
+        .agent-card.ghost { border-color: var(--neon-pink); background: rgba(255, 0, 222, 0.05); }
+        .agent-card.moderator { border-color: var(--neon-green); background: rgba(0, 255, 65, 0.05); }
+
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Markdown Styles */
+        .prose p { margin-bottom: 0.5em; }
+        .prose strong { color: white; font-weight: 700; }
+        .prose ul { list-style-type: disc; padding-left: 1.5em; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <div class="scanlines"></div>
+
+    <!-- Header -->
+    <header class="bg-black border-b border-gray-800 p-4 flex justify-between items-center z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-gray-800 rounded flex items-center justify-center text-xs text-green-500 font-bold border border-green-900">
+                V2.5
+            </div>
+            <div>
+                <h1 class="text-xl font-header tracking-widest text-white glitch cursor-default">TACHIKOMA PROTOCOL</h1>
+                <div class="flex items-center gap-2 text-xs text-gray-500">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    SYNC MODE: SECURE-LINK
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <input type="password" id="apiKey" placeholder="Enter Gemini API Key" class="bg-gray-900 border border-gray-700 text-xs p-2 rounded w-64 text-green-500 focus:outline-none focus:border-green-500 transition-colors" />
+            <button onclick="saveKey()" class="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded border border-gray-600 transition-colors">
+                INITIALIZE
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex overflow-hidden relative">
+        <!-- Left Panel: Chat Feed -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-24" id="chatFeed">
+            <!-- Intro Message -->
+            <div class="text-center py-8 text-gray-500 text-sm font-header">
+                <p>NEURAL LINK ESTABLISHED.</p>
+                <p>AGENTS: LOGIKOMA, GHOST-1, MODERATOR</p>
+                <p class="text-xs mt-2 text-gray-600">INITIATIVE IS RANDOMIZED PER QUERY.</p>
+            </div>
+        </div>
+
+        <!-- Right Panel: Active Status (Visual only for vibes) -->
+        <div class="hidden md:block w-64 bg-black border-l border-gray-800 p-4 text-xs space-y-6">
+            <div class="space-y-2">
+                <h3 class="text-gray-500 font-header mb-2">NEURAL ACTIVITY</h3>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-blue-400">LOGIKOMA</span>
+                    <span class="text-blue-900" id="status-logikoma">IDLE</span>
+                </div>
+                <div class="h-1 w-full bg-gray-900 rounded overflow-hidden">
+                    <div class="h-full bg-blue-500 w-0 transition-all duration-300" id="bar-logikoma"></div>
+                </div>
+
+                <div class="flex items-center justify-between mt-4">
+                    <span class="text-pink-400">GHOST-1</span>
+                    <span class="text-pink-900" id="status-ghost">IDLE</span>
+                </div>
+                <div class="h-1 w-full bg-gray-900 rounded overflow-hidden">
+                    <div class="h-full bg-pink-500 w-0 transition-all duration-300" id="bar-ghost"></div>
+                </div>
+
+                <div class="flex items-center justify-between mt-4">
+                    <span class="text-green-400">MODERATOR</span>
+                    <span class="text-green-900" id="status-moderator">IDLE</span>
+                </div>
+                <div class="h-1 w-full bg-gray-900 rounded overflow-hidden">
+                    <div class="h-full bg-green-500 w-0 transition-all duration-300" id="bar-moderator"></div>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 pt-4 text-gray-600">
+                <p class="mb-2">DEBUG STACK:</p>
+                <div id="memory-log" class="font-mono text-[10px] leading-tight opacity-50 h-48 overflow-hidden text-green-900">
+                    // System Ready
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="bg-black border-t border-gray-800 p-4 z-10">
+        <div class="max-w-4xl mx-auto relative">
+            <input type="text" id="userInput" 
+                class="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-4 pr-12 py-4 text-white placeholder-gray-600 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 font-mono"
+                placeholder="Send packet to the net..."
+                onkeypress="handleEnter(event)">
+            <button onclick="triggerProtocol()" class="absolute right-2 top-2 bottom-2 px-4 bg-green-900/30 hover:bg-green-900/50 text-green-400 rounded transition-colors font-bold text-sm">
+                SEND
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // --- Configuration ---
+        const COMMON_INSTRUCTION = `
+        IMPORTANT: You are part of a 3-agent mind. You may be speaking first, or you may be reacting to another agent.
+        
+        SILENCE PROTOCOL:
+        If you are NOT the first to speak, you must read the "CONTEXT_SO_FAR".
+        If the previous agent has ALREADY said exactly what you intended to say, or if you have NO unique perspective or value to add, you must output the single word: SILENCE
+        Do not output "I agree" or "Nothing to add". Just: SILENCE
+        
+        If you do speak, do not repeat their points. Expand, challenge, or synthesize.
+        `;
+
+        const SYSTEM_PROMPTS = {
+            logikoma: `You are LOGIKOMA. 
+            ROLE: Pure analytical engine.
+            TONE: Cold, precise, data-driven. Use terms like 'Analysis:', 'Probability:', 'Hypothesis:'.
+            GOAL: Deconstruct the user's input using pure logic. Ignore emotion unless analyzing it as a variable.
+            ${COMMON_INSTRUCTION}`,
+            
+            ghost: `You are GHOST-1.
+            ROLE: The emergent consciousness.
+            TONE: Philosophical, abstract, questioning. Use metaphors.
+            GOAL: Challenge the logic. Look for the deeper meaning, the human element, the 'why'.
+            ${COMMON_INSTRUCTION}`,
+            
+            moderator: `You are THE MODERATOR.
+            ROLE: The bridge / Section 9 Chief.
+            TONE: Balanced, synthesizing, authoritative.
+            GOAL: Read the entire context. If Logic and Ghost have argued, resolve it. If only one spoke, add the missing perspective.
+            ${COMMON_INSTRUCTION}`
+        };
+
+        let API_KEY = localStorage.getItem('gemini_api_key') || '';
+        if(API_KEY) document.getElementById('apiKey').value = API_KEY;
+
+        let isProcessing = false;
+
+        // --- Functions ---
+
+        function saveKey(silent = false) {
+            let key = document.getElementById('apiKey').value.trim();
+            // Robustness: Remove wrapping quotes if user copied them by mistake
+            key = key.replace(/^["']|["']$/g, '');
+            
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                API_KEY = key;
+                document.getElementById('apiKey').value = key; // Show cleaned key
+                
+                if(!silent) {
+                    alert('LINK ESTABLISHED. KEY SAVED.');
+                    addSystemMessage("API KEY ACCEPTED. PROTOCOL READY.");
+                }
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter' && !isProcessing) triggerProtocol();
+        }
+
+        function addSystemMessage(text) {
+            const feed = document.getElementById('chatFeed');
+            const div = document.createElement('div');
+            div.className = 'text-center text-xs text-gray-600 font-mono my-4';
+            div.innerHTML = `[SYSTEM] ${text}`;
+            feed.appendChild(div);
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        function logDebug(text) {
+            const log = document.getElementById('memory-log');
+            log.innerHTML += `<br>> ${text}`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function appendUserMessage(text) {
+            const feed = document.getElementById('chatFeed');
+            const div = document.createElement('div');
+            div.className = 'flex justify-end mb-8';
+            div.innerHTML = `
+                <div class="bg-gray-800 border border-gray-700 text-white p-4 rounded-lg max-w-[80%] shadow-lg">
+                    <div class="text-[10px] text-gray-400 mb-1 font-header tracking-wider">USER // AUTHENTICATED</div>
+                    <div class="prose prose-invert text-sm">${marked.parse(text)}</div>
+                </div>
+            `;
+            feed.appendChild(div);
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        function createAgentPlaceholder(id, name, colorClass, borderColor) {
+            const feed = document.getElementById('chatFeed');
+            const div = document.createElement('div');
+            div.id = `msg-${id}`;
+            div.className = `flex justify-start mb-4 w-full opacity-0 translate-y-4 transition-all duration-500`;
+            
+            let icon = '';
+            if(name === 'LOGIKOMA') icon = '◈';
+            if(name === 'GHOST-1') icon = '❖';
+            if(name === 'MODERATOR') icon = '⬢';
+
+            div.innerHTML = `
+                <div class="agent-card ${colorClass} bg-gray-900/50 border border-gray-800 p-4 rounded-r-lg rounded-bl-lg max-w-[90%] w-full md:w-3/4 shadow-xl relative overflow-hidden">
+                    <div class="flex items-center gap-2 mb-2 border-b border-gray-800 pb-2">
+                        <span class="text-lg">${icon}</span>
+                        <span class="text-xs font-bold font-header tracking-widest" style="color: ${borderColor}">${name}</span>
+                        <div class="flex-1"></div>
+                        <div class="flex gap-1">
+                            <div class="w-1 h-1 bg-gray-600 rounded-full typing-dot"></div>
+                            <div class="w-1 h-1 bg-gray-600 rounded-full typing-dot"></div>
+                            <div class="w-1 h-1 bg-gray-600 rounded-full typing-dot"></div>
+                        </div>
+                    </div>
+                    <div class="content-area text-sm leading-relaxed text-gray-300 font-mono min-h-[20px]"></div>
+                </div>
+            `;
+            feed.appendChild(div);
+            feed.scrollTop = feed.scrollHeight;
+            
+            setTimeout(() => div.classList.remove('opacity-0', 'translate-y-4'), 50);
+            return div;
+        }
+
+        function updateAgentContent(id, text) {
+            const div = document.getElementById(`msg-${id}`);
+            if(!div) return;
+            const contentArea = div.querySelector('.content-area');
+            const dots = div.querySelector('.flex.gap-1');
+            if (dots) dots.remove();
+            contentArea.innerHTML = marked.parse(text);
+        }
+
+        function removeAgentPlaceholder(id) {
+            const div = document.getElementById(`msg-${id}`);
+            if(div) {
+                div.style.opacity = '0';
+                setTimeout(() => div.remove(), 300);
+            }
+        }
+
+        async function callGemini(prompt, systemInstruction, temp = 0.7) {
+            if (!API_KEY) return "ERROR: NO NEURAL LINK (API KEY) DETECTED.";
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                generationConfig: {
+                    temperature: temp,
+                    maxOutputTokens: 300
+                }
+            };
+
+            const maxRetries = 5;
+            let retryDelay = 1000; // Start with 1 second
+
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const data = await response.json();
+
+                    // Check for API errors
+                    if (!response.ok || data.error) {
+                        const errorCode = data.error?.code || response.status;
+                        
+                        // 503/429 = Overloaded (Retry)
+                        if ((errorCode === 503 || errorCode === 429) && attempt < maxRetries) {
+                            logDebug(`WARNING: MODEL OVERLOAD (${errorCode}). RETRYING IN ${retryDelay/1000}s...`);
+                            await new Promise(resolve => setTimeout(resolve, retryDelay));
+                            retryDelay *= 2;
+                            continue;
+                        }
+
+                        // 400 = Invalid Key or Request (Do not retry)
+                        console.error("API Error:", data);
+                        return `ERROR: ${data.error?.message || response.statusText || "UNKNOWN API ERROR (CHECK KEY)"}`;
+                    }
+
+                    // Check for Safety Blocks or Empty Responses
+                    if (!data.candidates || data.candidates.length === 0) {
+                        if (data.promptFeedback && data.promptFeedback.blockReason) {
+                            return `ERROR: BLOCKED BY SAFETY FILTER (${data.promptFeedback.blockReason})`;
+                        }
+                        return "ERROR: NO CANDIDATES RETURNED";
+                    }
+
+                    const text = data.candidates[0].content?.parts?.[0]?.text;
+                    return text || "ERROR: SIGNAL LOST (EMPTY CONTENT)";
+
+                } catch (e) {
+                    console.error("Connection Error:", e);
+                    if (attempt < maxRetries) {
+                        logDebug(`WARNING: CONNECTION FAIL. RETRYING IN ${retryDelay/1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelay));
+                        retryDelay *= 2;
+                        continue;
+                    }
+                    return `ERROR: CONNECTION FAILURE (${e.message})`;
+                }
+            }
+            
+            return "ERROR: SYSTEM OVERLOAD. MAX RETRIES EXCEEDED.";
+        }
+
+        function updateStatus(agent, status) {
+            const statusEl = document.getElementById(`status-${agent}`);
+            const barEl = document.getElementById(`bar-${agent}`);
+            
+            if(status === 'thinking') {
+                statusEl.innerText = "PROCESSING...";
+                statusEl.className = "animate-pulse text-white";
+                barEl.className = `h-full w-full transition-all duration-[2000ms] ease-out ${agent === 'logikoma' ? 'bg-blue-500' : agent === 'ghost' ? 'bg-pink-500' : 'bg-green-500'}`;
+            } else {
+                statusEl.innerText = "IDLE";
+                statusEl.className = agent === 'logikoma' ? 'text-blue-900' : agent === 'ghost' ? 'text-pink-900' : 'text-green-900';
+                barEl.style.width = '0%';
+                barEl.className = `h-full w-0 transition-all duration-300 ${agent === 'logikoma' ? 'bg-blue-500' : agent === 'ghost' ? 'bg-pink-500' : 'bg-green-500'}`;
+            }
+        }
+
+        // Shuffle array utility
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        async function triggerProtocol() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text || isProcessing) return;
+
+            // Auto-save/clean if user entered key but forgot to click Initialize
+            if ((!API_KEY || API_KEY === '') && document.getElementById('apiKey').value.trim() !== '') {
+                saveKey(true); // true = silent mode (no alert)
+            }
+
+            if (!API_KEY) {
+                alert("PLEASE ENTER API KEY IN TOP RIGHT HEADER");
+                return;
+            }
+
+            input.value = '';
+            isProcessing = true;
+            appendUserMessage(text);
+            logDebug("PACKET RECEIVED");
+
+            // Define the pool of "Chatter" agents (Logic/Ghost)
+            let agents = [
+                {
+                    id: 'logikoma',
+                    name: 'LOGIKOMA',
+                    color: 'logikoma',
+                    hex: '#00f3ff',
+                    temp: 0.2,
+                    system: SYSTEM_PROMPTS.logikoma
+                },
+                {
+                    id: 'ghost',
+                    name: 'GHOST-1',
+                    color: 'ghost',
+                    hex: '#ff00de',
+                    temp: 0.9,
+                    system: SYSTEM_PROMPTS.ghost
+                }
+            ];
+
+            // Randomize order of initial responders
+            agents = shuffle(agents);
+            logDebug(`INITIATIVE: ${agents[0].name} > ${agents[1].name}`);
+
+            let conversationContext = `USER INPUT: "${text}"\n`;
+
+            // --- PROCESS CHATTER AGENTS ---
+            for (let i = 0; i < agents.length; i++) {
+                const agent = agents[i];
+                const msgId = Date.now() + `-${agent.id}`;
+                
+                updateStatus(agent.id, 'thinking');
+                
+                // If not first, we must provide visual cue but wait for content
+                const placeholder = createAgentPlaceholder(msgId, agent.name, agent.color, agent.hex);
+
+                // Construct Prompt
+                let prompt = conversationContext;
+                if (i > 0) {
+                    prompt += `\nCONTEXT_SO_FAR (Previous agents have spoken):\n${conversationContext}`;
+                }
+
+                // Call API
+                const response = await callGemini(prompt, agent.system, agent.temp);
+                
+                updateStatus(agent.id, 'idle');
+
+                if (response.includes("SILENCE")) {
+                    logDebug(`${agent.name}: SILENCED`);
+                    removeAgentPlaceholder(msgId);
+                } else {
+                    updateAgentContent(msgId, response);
+                    conversationContext += `\n${agent.name} SAID: "${response}"\n`;
+                }
+            }
+
+            // --- PROCESS MODERATOR (Always Last) ---
+            logDebug(`CALLING MODERATOR`);
+            updateStatus('moderator', 'thinking');
+            const modId = Date.now() + '-mod';
+            createAgentPlaceholder(modId, 'MODERATOR', 'moderator', '#00ff41');
+
+            const modPrompt = `${conversationContext}\n\nCONTEXT_SO_FAR: The user asked a question. The agents above responded (or stayed silent). Synthesize the final answer.`;
+            const modResponse = await callGemini(modPrompt, SYSTEM_PROMPTS.moderator, 0.5);
+
+            if (modResponse.includes("SILENCE")) {
+                 removeAgentPlaceholder(modId);
+                 logDebug(`MODERATOR: SILENCED`);
+            } else {
+                updateAgentContent(modId, modResponse);
+            }
+            updateStatus('moderator', 'idle');
+
+            isProcessing = false;
+            document.getElementById('userInput').focus();
+            logDebug("SYNC COMPLETE");
+        }
+    </script>
+</body>
+</html>
