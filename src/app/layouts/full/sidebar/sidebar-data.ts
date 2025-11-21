@@ -1,0 +1,25 @@
+import { NavItem } from './nav-item/nav-item';
+
+export const navItems: NavItem[] = [
+  {
+    navCap: 'Home',
+  },
+  {
+    displayName: 'Dashboard',
+    iconName: 'layout-grid-add',
+    route: '/dashboard',
+  },
+  {
+    navCap: 'Auth',
+  },
+  {
+    displayName: 'Login',
+    iconName: 'login',
+    route: '/authentication/login',
+  },
+  {
+    displayName: 'Register',
+    iconName: 'user-plus',
+    route: '/authentication/register',
+  },
+];
