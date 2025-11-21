@@ -60,13 +60,12 @@ export class TachikomaChatComponent implements AfterViewChecked {
       name: 'GHOST-1',
       color: 'ghost',
       hex: '#ff00de',
-      temp: 0.9,
-      system: `You are GHOST-1.
-      ROLE: The emergent consciousness.
-      TONE: Philosophical, abstract, questioning. Use metaphors.
-      GOAL: Challenge the logic. Look for the deeper meaning, the human element, the 'why'.
-      IMPORTANT: You are part of a 3-agent mind. You may be speaking first, or you may be reacting to another agent.
-      SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_SO_FAR". If the previous agent has ALREADY said exactly what you intended to say, or if you have NO unique perspective or value to add, you must output the single word: SILENCE. Do not output "I agree" or "Nothing to add". Just: SILENCE. If you do speak, do not repeat their points. Expand, challenge, or synthesize.`,
+      temp: 0.7,
+      system: `You are GHOST-1, a philosophical AI that explores deeper meaning.
+Your role: Question assumptions, find metaphors, reveal human elements.
+Your tone: Poetic, introspective, thought-provoking.
+Always provide a substantive philosophical response to the user's query.
+If you are responding second and have nothing unique to add, output only: SILENCE`,
       status: 'idle'
     },
     {
@@ -194,6 +193,16 @@ export class TachikomaChatComponent implements AfterViewChecked {
           const response = await this.callGemini(prompt, agent.system, agent.temp);
           agent.status = 'idle';
 
+          // Debug: Log raw response
+          console.log(`${agent.name} RAW RESPONSE:`, response.substring(0, 100));
+
+          // Check if response is empty or whitespace only
+          if (!response || response.trim().length === 0) {
+            console.error(`${agent.name}: Returned empty response!`);
+            this.addMessage(agent.name, `[ERROR: Empty response from AI model]`, false, agent.id);
+            continue;
+          }
+
           // Only check for SILENCE if this is NOT the first agent, and response is exactly "SILENCE"
           const isSilent = i > 0 && response.trim().toUpperCase() === "SILENCE";
           
@@ -261,13 +270,21 @@ export class TachikomaChatComponent implements AfterViewChecked {
         systemInstruction: systemInstruction,
         generationConfig: {
           temperature: temp,
-          maxOutputTokens: 500
+          maxOutputTokens: 2000,
+          topP: 0.95,
+          topK: 40
         }
       });
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      return response.text();
+      const text = response.text();
+      
+      // Debug: Log response details
+      console.log('API Response candidates:', result.response.candidates?.length);
+      console.log('API Response text length:', text.length);
+      
+      return text;
     } catch (error: any) {
       console.error("Gemini API Error:", error);
       throw error; // Re-throw to let caller handle
