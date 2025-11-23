@@ -49,4 +49,16 @@ html {
       }
     }
   }
+  
+  // Dark theme card enhancements
+  &.dark-theme {
+    .mat-mdc-card {
+      background: var(--mat-sys-surface);
+      border: 1px solid var(--mat-sys-outline);
+      
+      &:hover {
+        border-color: var(--mat-sys-outline-variant);
+      }
+    }
+  }
 }

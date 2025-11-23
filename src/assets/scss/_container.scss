@@ -11,19 +11,29 @@ body {
   line-height: 1.334rem;
   overflow-x: hidden;
   color: var(--mat-sys-on-background);
+  
+  // Dark theme body
+  html.dark-theme & {
+    background-color: var(--mat-sys-background);
+  }
 }
 
 .mainWrapper {
   display: flex;
-  min-height: calc(100vh - 72px);
+  min-height: 100vh;
   width: 100%;
   flex: 1;
-  margin-top: 72px;
+  margin-top: 0;
+  
+  // Dark theme background
+  html.dark-theme & {
+    background-color: var(--mat-sys-background);
+  }
 }
 
 @media (max-width: 991px){
   .mainWrapper{
-    margin-top: 154px;
+    margin-top: 0;
   }
 }
 
@@ -43,8 +53,12 @@ body {
 .pageWrapper {
   padding: 24px;
   min-height: calc(100vh - 70px);
-
   margin: 0 auto;
+  
+  // Dark theme background
+  html.dark-theme & {
+    background-color: var(--mat-sys-background);
+  }
 
   &.maxWidth {
     max-width: $boxedWidth;

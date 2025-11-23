@@ -1,0 +1,175 @@
+<div class="profiles-container">
+    <div class="header-section">
+        <h1>TACHIKOMA PROFILES</h1>
+        <p class="subtitle">Configure AI personas for multi-agent chat protocol</p>
+
+        <div class="action-buttons">
+            <button mat-raised-button color="primary" (click)="startAddNew()" [disabled]="isAddingNew()">
+                <mat-icon>add</mat-icon> NEW AGENT
+            </button>
+            <button mat-stroked-button color="warn" (click)="resetToDefaults()">
+                <mat-icon>restore</mat-icon> RESET TO DEFAULTS
+            </button>
+        </div>
+    </div>
+
+    <!-- Add New Form -->
+    <mat-card *ngIf="isAddingNew()" class="profile-form new-profile">
+        <mat-card-header>
+            <mat-card-title>CREATE NEW AGENT</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+            <div class="form-grid">
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Start with Template (Optional)</mat-label>
+                    <mat-select (selectionChange)="applyTemplate($event.value)" placeholder="Select a template">
+                        <mat-option [value]="null">Custom (blank)</mat-option>
+                        <mat-option value="LOGIKOMA">LOGIKOMA - Analytical Engine</mat-option>
+                        <mat-option value="GHOST-1">GHOST-1 - Philosophical Explorer</mat-option>
+                        <mat-option value="MODERATOR">MODERATOR - Chief Synthesizer</mat-option>
+                        <mat-option value="NEUTRAL">NEUTRAL - Balanced Contributor</mat-option>
+                    </mat-select>
+                    <mat-hint>Pre-populate with a default profile</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Agent Name</mat-label>
+                    <input matInput [(ngModel)]="newProfile.name" placeholder="e.g. LOGIKOMA">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Color Name</mat-label>
+                    <input matInput [(ngModel)]="newProfile.color" placeholder="e.g. logikoma">
+                    <mat-hint>CSS class name for styling</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Hex Color</mat-label>
+                    <input matInput type="color" [(ngModel)]="newProfile.hex">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Temperature (0-1)</mat-label>
+                    <input matInput type="number" [(ngModel)]="newProfile.temp" min="0" max="1" step="0.1">
+                    <mat-hint>Lower = focused, Higher = creative</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>Role</mat-label>
+                    <mat-select [(ngModel)]="newProfile.role">
+                        <mat-option value="chatter">Chatter (Random Order)</mat-option>
+                        <mat-option value="moderator">Moderator (Speaks Last)</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Silence Protocol</mat-label>
+                    <mat-select [(ngModel)]="newProfile.silenceProtocol">
+                        <mat-option *ngFor="let option of silenceProtocolOptions" [value]="option.value">
+                            {{option.label}}
+                        </mat-option>
+                    </mat-select>
+                    <mat-hint>How the agent decides when to stay silent</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>System Prompt</mat-label>
+                    <textarea matInput [(ngModel)]="newProfile.system" rows="8"
+                        placeholder="Define the agent's personality, role, and behavior..."></textarea>
+                </mat-form-field>
+            </div>
+        </mat-card-content>
+        <mat-card-actions>
+            <button mat-raised-button color="primary" (click)="saveNew()">SAVE</button>
+            <button mat-button (click)="cancelEdit()">CANCEL</button>
+        </mat-card-actions>
+    </mat-card>
+
+    <!-- Profiles List -->
+    <div class="profiles-list">
+        <mat-card *ngFor="let profile of profiles()" class="profile-card"
+            [class.editing]="editingProfile()?.id === profile.id">
+
+            <!-- View Mode -->
+            <div *ngIf="editingProfile()?.id !== profile.id" class="view-mode">
+                <mat-card-header>
+                    <div class="profile-header">
+                        <div class="name-badge" [style.background-color]="profile.hex">
+                            {{ profile.name }}
+                        </div>
+                        <span class="role-badge">{{ getRoleLabel(profile.role) }}</span>
+                        <span class="temp-badge">Temp: {{ profile.temp }}</span>
+                    </div>
+                </mat-card-header>
+                <mat-card-content>
+                    <div class="system-preview">{{ profile.system }}</div>
+                </mat-card-content>
+                <mat-card-actions>
+                    <button mat-icon-button (click)="startEdit(profile)" matTooltip="Edit">
+                        <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deleteProfile(profile.id)" matTooltip="Delete">
+                        <mat-icon>delete</mat-icon>
+                    </button>
+                </mat-card-actions>
+            </div>
+
+            <!-- Edit Mode -->
+            <div *ngIf="editingProfile()?.id === profile.id" class="edit-mode">
+                <mat-card-header>
+                    <mat-card-title>EDIT: {{ editingProfile()!.name }}</mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                    <div class="form-grid">
+                        <mat-form-field appearance="outline" class="full-width">
+                            <mat-label>Agent Name</mat-label>
+                            <input matInput [(ngModel)]="editingProfile()!.name">
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                            <mat-label>Color Name</mat-label>
+                            <input matInput [(ngModel)]="editingProfile()!.color">
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                            <mat-label>Hex Color</mat-label>
+                            <input matInput type="color" [(ngModel)]="editingProfile()!.hex">
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                            <mat-label>Temperature</mat-label>
+                            <input matInput type="number" [(ngModel)]="editingProfile()!.temp" min="0" max="1"
+                                step="0.1">
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                            <mat-label>Role</mat-label>
+                            <mat-select [(ngModel)]="editingProfile()!.role">
+                                <mat-option value="chatter">Chatter (Random Order)</mat-option>
+                                <mat-option value="moderator">Moderator (Speaks Last)</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="full-width">
+                            <mat-label>Silence Protocol</mat-label>
+                            <mat-select [(ngModel)]="editingProfile()!.silenceProtocol">
+                                <mat-option *ngFor="let option of silenceProtocolOptions" [value]="option.value">
+                                    {{option.label}}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="full-width">
+                            <mat-label>System Prompt</mat-label>
+                            <textarea matInput [(ngModel)]="editingProfile()!.system" rows="8"></textarea>
+                        </mat-form-field>
+                    </div>
+                </mat-card-content>
+                <mat-card-actions>
+                    <button mat-raised-button color="primary" (click)="saveEdit()">SAVE</button>
+                    <button mat-button (click)="cancelEdit()">CANCEL</button>
+                </mat-card-actions>
+            </div>
+        </mat-card>
+    </div>
+</div>

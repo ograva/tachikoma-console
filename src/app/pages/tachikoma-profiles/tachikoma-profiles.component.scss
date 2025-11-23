@@ -1,0 +1,169 @@
+.profiles-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.header-section {
+  margin-bottom: 32px;
+  
+  h1 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2rem;
+    color: var(--neon-green, #00ff41);
+    text-shadow: 0 0 10px currentColor;
+    margin-bottom: 8px;
+  }
+  
+  .subtitle {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+    
+    button {
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+.profile-form {
+  margin-bottom: 24px;
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid var(--neon-blue, #00f3ff);
+  
+  &.new-profile {
+    border-color: var(--neon-green, #00ff41);
+  }
+  
+  mat-card-title {
+    color: var(--neon-green, #00ff41);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+    
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.profiles-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 20px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-card {
+  background: rgba(10, 10, 10, 0.9);
+  border: 1px solid #333;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: var(--neon-blue, #00f3ff);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+  }
+  
+  &.editing {
+    border-color: var(--neon-pink, #ff00de);
+    box-shadow: 0 0 20px rgba(255, 0, 222, 0.3);
+  }
+  
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    
+    .name-badge {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.2rem;
+      font-weight: bold;
+      padding: 6px 12px;
+      border-radius: 4px;
+      color: #000;
+    }
+    
+    .role-badge,
+    .temp-badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  }
+  
+  .system-preview {
+    font-size: 0.85rem;
+    color: #aaa;
+    white-space: pre-wrap;
+    max-height: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: linear-gradient(transparent, rgba(10, 10, 10, 0.9));
+    }
+  }
+  
+  mat-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 16px;
+  }
+}
+
+// Material overrides for cyberpunk theme
+::ng-deep {
+  .profiles-container {
+    mat-form-field {
+      width: 100%;
+      
+      .mat-mdc-text-field-wrapper {
+        background: rgba(0, 0, 0, 0.5);
+      }
+      
+      .mat-mdc-form-field-focus-overlay {
+        background-color: rgba(0, 243, 255, 0.1);
+      }
+    }
+    
+    textarea {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+    
+    input[type="color"] {
+      height: 40px;
+      cursor: pointer;
+    }
+  }
+}

@@ -1,12 +1,19 @@
 <mat-toolbar class="topbar gap-10">
 
   <!-- Hamburger Menu -->
-  
+
   <button mat-icon-button (click)="toggleMobileNav.emit()" class="d-flex justify-content-center">
     <i-tabler name="menu-2" class="icon-20 d-flex"></i-tabler>
   </button>
 
   <span class="flex-1-auto"></span>
+
+  <!-- --------------------------------------------------------------- -->
+  <!-- Theme Toggle -->
+  <!-- --------------------------------------------------------------- -->
+  <button mat-icon-button (click)="toggleTheme()" matTooltip="Toggle Theme" class="d-flex align-items-center">
+    <i-tabler [name]="isDarkTheme() ? 'sun' : 'moon'" class="icon-20 d-flex"></i-tabler>
+  </button>
 
   <!-- --------------------------------------------------------------- -->
   <!-- profile Dropdown -->

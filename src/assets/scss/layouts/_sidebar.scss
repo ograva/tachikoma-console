@@ -8,6 +8,12 @@
   overflow-x: hidden;
   border-right: 1px solid $borderColor;
   border-radius: 0px !important;
+  
+  // Dark theme sidebar
+  html.dark-theme & {
+    background: var(--cyber-black);
+    border-right-color: var(--mat-sys-outline);
+  }
 }
 
 .branding {
@@ -53,6 +59,18 @@
       &:hover::before {
         background-color: var(--mat-sys-secondary);
       }
+      
+      // Dark theme menu hover
+      html.dark-theme & {
+        &:hover::before {
+          background-color: rgba(0, 243, 255, 0.15);
+        }
+        
+        &:hover {
+          border: 1px solid rgba(0, 243, 255, 0.3);
+          box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        }
+      }
 
       &.activeMenu {
         background-color: var(--mat-sys-secondary);
@@ -63,6 +81,21 @@
 
         .mat-mdc-list-item-icon {
           color: $white !important;
+        }
+        
+        // Dark theme active menu
+        html.dark-theme & {
+          background: rgba(0, 243, 255, 0.2);
+          border: 1px solid var(--neon-blue);
+          box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+          
+          .mdc-list-item__primary-text {
+            color: var(--neon-blue) !important;
+          }
+
+          .mat-mdc-list-item-icon {
+            color: var(--neon-blue) !important;
+          }
         }
       }
 

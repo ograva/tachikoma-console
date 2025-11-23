@@ -2,16 +2,30 @@ html .dark-theme {
     color-scheme: dark;
     --mat-sys-corner-small: 7px;
     --mat-sys-corner-medium: 20px;
-    --mat-sys-background: #111827;
-    --mat-sys-surface-bright: #1f2937;
-    --mat-sys-surface: #1f2937;
-    --mat-sys-surface-container: #1f2937;
-    --mat-sys-surface-container-low: #1f2937;
-    --mat-sys-on-background: #e5e7eb;
-    --mat-sys-outline: #374151;
-    --mat-sys-outline-variant: #374151;
-    --mdc-outlined-text-field-hover-outline-color: #4b5563;
-    --mdc-checkbox-unselected-hover-state-layer-color: #4b5563;
-    --mat-menu-item-hover-state-layer-color: #374151;
-    --mat-standard-button-toggle-state-layer-color: #374151;
+    
+    // Cyberpunk-themed dark backgrounds
+    --mat-sys-background: #0a0a0a;
+    --mat-sys-surface-bright: #1a1a1a;
+    --mat-sys-surface: #141414;
+    --mat-sys-surface-container: #1a1a1a;
+    --mat-sys-surface-container-low: #0f0f0f;
+    
+    // Text colors with cyberpunk tint
+    --mat-sys-on-background: #e0e0e0;
+    --mat-sys-on-surface: #e0e0e0;
+    
+    // Borders with subtle glow
+    --mat-sys-outline: #2a2a2a;
+    --mat-sys-outline-variant: #333333;
+    --mdc-outlined-text-field-hover-outline-color: #00f3ff;
+    --mdc-checkbox-unselected-hover-state-layer-color: #00f3ff;
+    --mat-menu-item-hover-state-layer-color: rgba(0, 243, 255, 0.1);
+    --mat-standard-button-toggle-state-layer-color: rgba(0, 243, 255, 0.1);
+    
+    // Cyberpunk accent colors
+    --neon-green: #00ff41;
+    --neon-blue: #00f3ff;
+    --neon-pink: #ff00de;
+    --cyber-black: #0a0a0a;
+    --cyber-gray: #1a1a1a;
   }

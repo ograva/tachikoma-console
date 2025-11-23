@@ -24,6 +24,13 @@ export const routes: Routes = [
             (m) => m.TachikomaChatComponent
           ),
       },
+      {
+        path: 'tachikoma-profiles',
+        loadComponent: () =>
+          import(
+            './pages/tachikoma-profiles/tachikoma-profiles.component'
+          ).then((m) => m.TachikomaProfilesComponent),
+      },
     ],
   },
   {

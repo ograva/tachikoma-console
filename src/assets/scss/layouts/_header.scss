@@ -6,6 +6,13 @@ html .topbar {
   z-index: 9;
   height: $header-height;
   background-color: var(--mat-sys-background);
+  
+  // Dark theme header
+  &.dark-theme .topbar,
+  html.dark-theme & {
+    background-color: var(--cyber-black);
+    border-bottom: 1px solid var(--mat-sys-outline);
+  }
 }
 
 .topbar-dd {

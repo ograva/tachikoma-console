@@ -1,5 +1,4 @@
-
-<mat-sidenav-container class="mainWrapper orange_theme light-theme" autosize autoFocus dir="ltr">
+<mat-sidenav-container class="mainWrapper orange_theme" autosize autoFocus dir="ltr">
   <!-- ============================================================== -->
   <!-- Vertical Sidebar -->
   <!-- ============================================================== -->
@@ -17,7 +16,7 @@
       </ng-scrollbar>
     </div>
   </mat-sidenav>
-  
+
   <!-- ============================================================== -->
   <!-- Main Content -->
   <!-- ============================================================== -->
@@ -25,9 +24,9 @@
     <!-- ============================================================== -->
     <!-- VerticalHeader -->
     <!-- ============================================================== -->
-    
+
     <app-header [showToggle]="!isOver" (toggleMobileNav)="sidenav.toggle()"></app-header>
-    
+
     <main class="pageWrapper maxWidth">
       <!-- ============================================================== -->
       <!-- Outlet -->

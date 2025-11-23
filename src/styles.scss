@@ -5,3 +5,71 @@ body {
     height: 100%;
     margin: 0;
 }
+
+// Dark theme global enhancements
+html.dark-theme {
+    body {
+        background-color: var(--mat-sys-background);
+        color: var(--mat-sys-on-background);
+    }
+    
+    // Mat sidenav dark theme
+    .mat-drawer-container {
+        background-color: var(--mat-sys-background);
+        color: var(--mat-sys-on-background);
+    }
+    
+    .mat-drawer-content,
+    .mat-sidenav-content {
+        background-color: var(--mat-sys-background);
+    }
+    
+    // Custom scrollbar for dark theme
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: var(--cyber-black);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 5px;
+        
+        &:hover {
+            background: #444;
+        }
+    }
+    
+    // Form inputs dark theme
+    .mat-mdc-form-field {
+        .mat-mdc-text-field-wrapper {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .mat-mdc-input-element {
+            color: var(--mat-sys-on-background);
+        }
+    }
+    
+    // Tables dark theme
+    .mat-mdc-table {
+        background: var(--mat-sys-surface);
+        
+        .mat-mdc-row:hover {
+            background: rgba(0, 243, 255, 0.05);
+        }
+    }
+    
+    // Menu dark theme
+    .mat-mdc-menu-panel {
+        background: var(--mat-sys-surface-container);
+    }
+    
+    // Dialog dark theme
+    .mat-mdc-dialog-container {
+        background: var(--mat-sys-surface);
+    }
+}

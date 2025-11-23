@@ -15,6 +15,11 @@ export const navItems: NavItem[] = [
     route: '/tachikoma',
   },
   {
+    displayName: 'Tachikomas',
+    iconName: 'settings',
+    route: '/tachikoma-profiles',
+  },
+  {
     navCap: 'Auth',
   },
   {
