@@ -106,7 +106,7 @@
                     <mat-icon>history</mat-icon>
                 </button>
                 <!-- Chat Feed -->
-                <div class="chat-feed" #chatFeed>
+                <div class="chat-feed" #chatFeed (scroll)="onScroll()">
                     <!-- Intro Message -->
                     <div class="intro-message">
                         <p>NEURAL LINK ESTABLISHED.</p>
@@ -247,9 +247,8 @@
         <div class="input-wrapper">
             <input #fileInput type="file" multiple hidden (change)="onFileSelected($event)"
                 accept=".txt,.md,.json,.csv,.xml,.log,text/*">
-            <button mat-icon-button (click)="fileInput.click()" class="attach-btn" 
-                    matTooltip="Upload file(s) for shared context"
-                    [disabled]="isUploadingFile()">
+            <button mat-icon-button (click)="fileInput.click()" class="attach-btn"
+                matTooltip="Upload file(s) for shared context" [disabled]="isUploadingFile()">
                 <mat-icon *ngIf="!isUploadingFile()">attach_file</mat-icon>
                 <mat-icon *ngIf="isUploadingFile()" class="spinning">sync</mat-icon>
             </button>

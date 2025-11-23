@@ -72,8 +72,14 @@ export class TachikomaChatComponent implements AfterViewChecked {
   historyDrawerOpened = signal<boolean>(false);
 
   // File context for all agents
-  uploadedFiles = signal<Array<{name: string, content: string, type: string}>>([]);
+  uploadedFiles = signal<
+    Array<{ name: string; content: string; type: string }>
+  >([]);
   isUploadingFile = signal<boolean>(false);
+
+  // Auto-scroll control
+  private shouldAutoScroll = true;
+  private readonly SCROLL_THRESHOLD = 150; // pixels from bottom to consider "at bottom"
 
   get isInitialized(): boolean {
     return this.apiKey.length > 0;
@@ -109,7 +115,7 @@ export class TachikomaChatComponent implements AfterViewChecked {
   }
 
   ngAfterViewChecked() {
-    this.scrollToBottom();
+    this.smartScroll();
   }
 
   loadAgents(): void {
@@ -222,7 +228,7 @@ export class TachikomaChatComponent implements AfterViewChecked {
   }
 
   toggleHistoryDrawer(): void {
-    this.historyDrawerOpened.update(v => !v);
+    this.historyDrawerOpened.update((v) => !v);
   }
 
   async onFileSelected(event: Event): Promise<void> {
@@ -233,12 +239,14 @@ export class TachikomaChatComponent implements AfterViewChecked {
 
     try {
       const filesArray = Array.from(input.files);
-      const filePromises = filesArray.map(file => this.readFileContent(file));
+      const filePromises = filesArray.map((file) => this.readFileContent(file));
       const fileContents = await Promise.all(filePromises);
 
-      this.uploadedFiles.update(existing => [...existing, ...fileContents]);
-      
-      console.log(`📎 ${fileContents.length} file(s) uploaded and available to all agents`);
+      this.uploadedFiles.update((existing) => [...existing, ...fileContents]);
+
+      console.log(
+        `📎 ${fileContents.length} file(s) uploaded and available to all agents`
+      );
     } catch (error) {
       console.error('Error reading files:', error);
       alert('Error reading file(s). Please try again.');
@@ -248,29 +256,33 @@ export class TachikomaChatComponent implements AfterViewChecked {
     }
   }
 
-  private readFileContent(file: File): Promise<{name: string, content: string, type: string}> {
+  private readFileContent(
+    file: File
+  ): Promise<{ name: string; content: string; type: string }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         const content = e.target?.result as string;
         resolve({
           name: file.name,
           content: content,
-          type: file.type
+          type: file.type,
         });
       };
-      
+
       reader.onerror = () => reject(reader.error);
-      
+
       // Read as text for most file types
-      if (file.type.startsWith('text/') || 
-          file.name.endsWith('.txt') || 
-          file.name.endsWith('.md') || 
-          file.name.endsWith('.json') ||
-          file.name.endsWith('.csv') ||
-          file.name.endsWith('.xml') ||
-          file.name.endsWith('.log')) {
+      if (
+        file.type.startsWith('text/') ||
+        file.name.endsWith('.txt') ||
+        file.name.endsWith('.md') ||
+        file.name.endsWith('.json') ||
+        file.name.endsWith('.csv') ||
+        file.name.endsWith('.xml') ||
+        file.name.endsWith('.log')
+      ) {
         reader.readAsText(file);
       } else {
         // For other types, try to read as text anyway
@@ -280,7 +292,7 @@ export class TachikomaChatComponent implements AfterViewChecked {
   }
 
   removeFile(index: number): void {
-    this.uploadedFiles.update(files => files.filter((_, i) => i !== index));
+    this.uploadedFiles.update((files) => files.filter((_, i) => i !== index));
   }
 
   clearAllFiles(): void {
@@ -325,8 +337,40 @@ export class TachikomaChatComponent implements AfterViewChecked {
     return agent?.hex || '#888888';
   }
 
-  scrollToBottom(): void {
+  smartScroll(): void {
     try {
+      const element = this.chatFeed.nativeElement;
+      const isNearBottom = this.isUserNearBottom();
+
+      // Only auto-scroll if user is already near the bottom
+      if (isNearBottom || this.shouldAutoScroll) {
+        element.scrollTop = element.scrollHeight;
+      }
+    } catch (err) {}
+  }
+
+  private isUserNearBottom(): boolean {
+    try {
+      const element = this.chatFeed.nativeElement;
+      const scrollPosition = element.scrollTop + element.clientHeight;
+      const scrollHeight = element.scrollHeight;
+
+      // User is "near bottom" if within SCROLL_THRESHOLD pixels from bottom
+      return scrollHeight - scrollPosition < this.SCROLL_THRESHOLD;
+    } catch (err) {
+      return true; // Default to true if can't determine
+    }
+  }
+
+  onScroll(): void {
+    // Update shouldAutoScroll based on user's scroll position
+    this.shouldAutoScroll = this.isUserNearBottom();
+  }
+
+  scrollToBottom(): void {
+    // Force scroll to bottom (used when user sends a message)
+    try {
+      this.shouldAutoScroll = true;
       this.chatFeed.nativeElement.scrollTop =
         this.chatFeed.nativeElement.scrollHeight;
     } catch (err) {}
@@ -399,6 +443,9 @@ export class TachikomaChatComponent implements AfterViewChecked {
     try {
       // Add User Message
       this.addMessage('USER', text, true);
+
+      // Force scroll to bottom when user sends a message
+      this.scrollToBottom();
 
       // Build full conversation history for context
       let conversationHistory = this.buildConversationHistory();
@@ -554,7 +601,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
   buildConversationHistory(): string {
     // Build a text representation of the conversation history
     let history = '';
-    
+
     // Include uploaded files context if any
     if (this.uploadedFiles().length > 0) {
       history += 'UPLOADED FILES (shared context for all agents):\n';
@@ -565,11 +612,11 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       }
       history += '\n';
     }
-    
+
     // Include the running summary if it exists
     if (this.conversationSummary) {
       history += `CONVERSATION SUMMARY (from earlier exchanges):\n${this.conversationSummary}\n\n`;
-    }    // Get recent messages (last 6 messages to keep context manageable)
+    } // Get recent messages (last 6 messages to keep context manageable)
     const recentMessages = this.messages.slice(-6);
 
     if (recentMessages.length === 0) {
