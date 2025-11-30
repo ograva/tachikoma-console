@@ -23,8 +23,9 @@ export interface AuthUser {
   providedIn: 'root',
 })
 export class AuthService implements OnDestroy {
-  private auth = inject(Auth);
+  private auth: Auth | null = null;
   private unsubscribe: Unsubscribe | null = null;
+  private firebaseConfigured = false;
 
   // Signals for reactive state
   private userSignal = signal<AuthUser | null>(null);
@@ -38,13 +39,30 @@ export class AuthService implements OnDestroy {
   readonly error = computed(() => this.errorSignal());
 
   constructor() {
-    this.initAuthListener();
+    try {
+      this.auth = inject(Auth);
+      this.firebaseConfigured = true;
+      this.initAuthListener();
+    } catch (error) {
+      console.warn('Firebase Auth not configured. Authentication features will be disabled.');
+      this.loadingSignal.set(false);
+      this.firebaseConfigured = false;
+    }
+  }
+
+  /**
+   * Check if Firebase is properly configured
+   */
+  isFirebaseConfigured(): boolean {
+    return this.firebaseConfigured;
   }
 
   /**
    * Initialize auth state listener - called once on app startup
    */
   initAuthListener(): void {
+    if (!this.auth) return;
+    
     this.loadingSignal.set(true);
 
     this.unsubscribe = onAuthStateChanged(
@@ -77,6 +95,9 @@ export class AuthService implements OnDestroy {
     email: string,
     password: string
   ): Promise<UserCredential> {
+    if (!this.auth) {
+      throw new Error('Firebase Auth not configured');
+    }
     try {
       this.loadingSignal.set(true);
       this.errorSignal.set(null);
@@ -101,6 +122,9 @@ export class AuthService implements OnDestroy {
     email: string,
     password: string
   ): Promise<UserCredential> {
+    if (!this.auth) {
+      throw new Error('Firebase Auth not configured');
+    }
     try {
       this.loadingSignal.set(true);
       this.errorSignal.set(null);
@@ -122,6 +146,9 @@ export class AuthService implements OnDestroy {
    * Sign in with Google
    */
   async signInWithGoogle(): Promise<UserCredential> {
+    if (!this.auth) {
+      throw new Error('Firebase Auth not configured');
+    }
     try {
       this.loadingSignal.set(true);
       this.errorSignal.set(null);
@@ -140,6 +167,9 @@ export class AuthService implements OnDestroy {
    * Sign out
    */
   async logout(): Promise<void> {
+    if (!this.auth) {
+      return;
+    }
     try {
       this.loadingSignal.set(true);
       this.errorSignal.set(null);

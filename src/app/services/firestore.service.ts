@@ -32,19 +32,34 @@ export interface SyncableData {
   providedIn: 'root',
 })
 export class FirestoreService {
-  private firestore = inject(Firestore);
+  private firestore: Firestore | null = null;
   private authService = inject(AuthService);
   private offlineEnabled = false;
+  private firestoreConfigured = false;
 
   constructor() {
-    this.enableOfflineSupport();
+    try {
+      this.firestore = inject(Firestore);
+      this.firestoreConfigured = true;
+      this.enableOfflineSupport();
+    } catch (error) {
+      console.warn('Firestore not configured. Cloud storage features will be disabled.');
+      this.firestoreConfigured = false;
+    }
+  }
+
+  /**
+   * Check if Firestore is properly configured
+   */
+  isFirestoreConfigured(): boolean {
+    return this.firestoreConfigured;
   }
 
   /**
    * Enable Firestore offline persistence
    */
   private async enableOfflineSupport(): Promise<void> {
-    if (this.offlineEnabled) return;
+    if (this.offlineEnabled || !this.firestore) return;
 
     try {
       await enableIndexedDbPersistence(this.firestore);
@@ -114,15 +129,19 @@ export class FirestoreService {
     collectionName: string,
     data: T
   ): Promise<void> {
-    const userId = this.authService.getCurrentUserId();
-    if (!userId) {
-      // Just store in localStorage for anonymous users
-      this.updateLocalStorageDocument(collectionName, data);
+    // 1. Update localStorage first for immediate access
+    this.updateLocalStorageDocument(collectionName, data);
+
+    // Skip Firestore if not configured
+    if (!this.firestore || !this.firestoreConfigured) {
       return;
     }
 
-    // 1. Update localStorage first for immediate access
-    this.updateLocalStorageDocument(collectionName, data);
+    const userId = this.authService.getCurrentUserId();
+    if (!userId) {
+      // Just store in localStorage for anonymous users
+      return;
+    }
 
     // 2. Forward to Firestore
     try {
@@ -165,6 +184,11 @@ export class FirestoreService {
   async getDocuments<T extends SyncableData>(
     collectionName: string
   ): Promise<T[]> {
+    // If Firestore not configured, return localStorage data
+    if (!this.firestore || !this.firestoreConfigured) {
+      return this.getFromLocalStorage<T>(collectionName);
+    }
+
     const userId = this.authService.getCurrentUserId();
 
     if (!userId) {
@@ -198,6 +222,12 @@ export class FirestoreService {
     collectionName: string,
     documentId: string
   ): Promise<T | null> {
+    // If Firestore not configured, return localStorage data
+    if (!this.firestore || !this.firestoreConfigured) {
+      const local = this.getFromLocalStorage<T>(collectionName);
+      return local.find((item) => item.id === documentId) || null;
+    }
+
     const userId = this.authService.getCurrentUserId();
 
     if (!userId) {
@@ -237,13 +267,17 @@ export class FirestoreService {
     collectionName: string,
     documentId: string
   ): Promise<void> {
-    const userId = this.authService.getCurrentUserId();
-
     // Remove from localStorage
     const existing = this.getFromLocalStorage<SyncableData>(collectionName);
     const filtered = existing.filter((item) => item.id !== documentId);
     this.storeInLocalStorage(collectionName, filtered);
 
+    // Skip Firestore if not configured
+    if (!this.firestore || !this.firestoreConfigured) {
+      return;
+    }
+
+    const userId = this.authService.getCurrentUserId();
     if (!userId) {
       return;
     }
@@ -267,6 +301,11 @@ export class FirestoreService {
    * Merges local data with cloud data, preferring newer versions
    */
   async syncOnLogin(): Promise<void> {
+    // Skip if Firestore not configured
+    if (!this.firestore || !this.firestoreConfigured) {
+      return;
+    }
+
     const userId = this.authService.getCurrentUserId();
     if (!userId) return;
 
@@ -286,6 +325,11 @@ export class FirestoreService {
    * Sync a specific collection between localStorage and Firestore
    */
   private async syncCollection(collectionName: string): Promise<void> {
+    // Skip if Firestore not configured
+    if (!this.firestore || !this.firestoreConfigured) {
+      return;
+    }
+
     const userId = this.authService.getCurrentUserId();
     if (!userId) return;
 
