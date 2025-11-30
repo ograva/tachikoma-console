@@ -19,6 +19,9 @@ import {
   ChatSession,
   ChatMessage as StoredChatMessage,
 } from '../../services/chat-storage.service';
+import { jsPDF } from 'jspdf';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface Agent {
   id: string;
@@ -80,6 +83,13 @@ export class TachikomaChatComponent implements AfterViewChecked {
   // Auto-scroll control
   private shouldAutoScroll = true;
   private readonly SCROLL_THRESHOLD = 150; // pixels from bottom to consider "at bottom"
+
+  // Export constants
+  private readonly MAX_FILENAME_LENGTH = 50;
+  private readonly PDF_MARGIN = 15;
+  private readonly PDF_LINE_HEIGHT = 6;
+  private readonly PDF_PAGE_BOTTOM_MARGIN = 30;
+  private readonly PDF_CONTENT_BOTTOM_MARGIN = 20;
 
   get isInitialized(): boolean {
     return this.apiKey.length > 0;
@@ -340,10 +350,9 @@ export class TachikomaChatComponent implements AfterViewChecked {
   smartScroll(): void {
     try {
       const element = this.chatFeed.nativeElement;
-      const isNearBottom = this.isUserNearBottom();
 
-      // Only auto-scroll if user is already near the bottom
-      if (isNearBottom || this.shouldAutoScroll) {
+      // Only auto-scroll if shouldAutoScroll is true (user hasn't scrolled up)
+      if (this.shouldAutoScroll) {
         element.scrollTop = element.scrollHeight;
       }
     } catch (err) {}
@@ -364,6 +373,7 @@ export class TachikomaChatComponent implements AfterViewChecked {
 
   onScroll(): void {
     // Update shouldAutoScroll based on user's scroll position
+    // This allows users to scroll up to read earlier messages
     this.shouldAutoScroll = this.isUserNearBottom();
   }
 
@@ -371,8 +381,15 @@ export class TachikomaChatComponent implements AfterViewChecked {
     // Force scroll to bottom (used when user sends a message)
     try {
       this.shouldAutoScroll = true;
-      this.chatFeed.nativeElement.scrollTop =
-        this.chatFeed.nativeElement.scrollHeight;
+      // Use setTimeout to ensure DOM has updated before scrolling
+      // This is necessary because the message is added to the array
+      // but the DOM hasn't re-rendered yet
+      setTimeout(() => {
+        if (this.chatFeed?.nativeElement) {
+          this.chatFeed.nativeElement.scrollTop =
+            this.chatFeed.nativeElement.scrollHeight;
+        }
+      }, 0);
     } catch (err) {}
   }
 
@@ -723,7 +740,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
         config: {
           systemInstruction: systemInstruction,
           temperature: temp,
-          maxOutputTokens: 2000,
+          maxOutputTokens: 8192,
           topP: 0.95,
           topK: 40,
         },
@@ -751,5 +768,208 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
+  }
+
+  // Export functionality
+  showExportMenu = signal<boolean>(false);
+
+  toggleExportMenu(): void {
+    this.showExportMenu.update((v) => !v);
+  }
+
+  closeExportMenu(): void {
+    this.showExportMenu.set(false);
+  }
+
+  private formatTimestamp(timestamp: number): string {
+    return new Date(timestamp).toLocaleString();
+  }
+
+  private getPlainTextTranscript(): string {
+    const currentChat = this.chatStorage.getCurrentChat();
+    const title = currentChat?.title || 'Chat Transcript';
+    const date = new Date().toLocaleString();
+
+    let transcript = `=== ${title} ===\n`;
+    transcript += `Exported: ${date}\n`;
+    transcript += `${'='.repeat(50)}\n\n`;
+
+    for (const msg of this.messages) {
+      const time = this.formatTimestamp(msg.timestamp);
+      const sender = msg.isUser ? 'USER' : msg.sender;
+      transcript += `[${time}] ${sender}:\n`;
+      transcript += `${msg.text}\n\n`;
+    }
+
+    return transcript;
+  }
+
+  exportAsText(): void {
+    const transcript = this.getPlainTextTranscript();
+    const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
+    const filename = this.getSafeFilename('txt');
+    saveAs(blob, filename);
+    this.closeExportMenu();
+  }
+
+  exportAsPdf(): void {
+    const doc = new jsPDF();
+    const currentChat = this.chatStorage.getCurrentChat();
+    const title = currentChat?.title || 'Chat Transcript';
+
+    // Set up document
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const maxLineWidth = pageWidth - this.PDF_MARGIN * 2;
+    let yPosition = 20;
+
+    // Title
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, this.PDF_MARGIN, yPosition);
+    yPosition += this.PDF_LINE_HEIGHT * 2;
+
+    // Export date
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Exported: ${new Date().toLocaleString()}`, this.PDF_MARGIN, yPosition);
+    yPosition += this.PDF_LINE_HEIGHT * 2;
+
+    // Messages
+    doc.setFontSize(10);
+
+    for (const msg of this.messages) {
+      const time = this.formatTimestamp(msg.timestamp);
+      const sender = msg.isUser ? 'USER' : msg.sender;
+
+      // Check if we need a new page
+      if (yPosition > doc.internal.pageSize.getHeight() - this.PDF_PAGE_BOTTOM_MARGIN) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      // Sender header
+      doc.setFont('helvetica', 'bold');
+      doc.text(`[${time}] ${sender}:`, this.PDF_MARGIN, yPosition);
+      yPosition += this.PDF_LINE_HEIGHT;
+
+      // Message content - split into lines
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(msg.text, maxLineWidth);
+
+      for (const line of lines) {
+        if (yPosition > doc.internal.pageSize.getHeight() - this.PDF_CONTENT_BOTTOM_MARGIN) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, this.PDF_MARGIN, yPosition);
+        yPosition += this.PDF_LINE_HEIGHT;
+      }
+
+      yPosition += this.PDF_LINE_HEIGHT; // Extra space between messages
+    }
+
+    const filename = this.getSafeFilename('pdf');
+    doc.save(filename);
+    this.closeExportMenu();
+  }
+
+  async exportAsWord(): Promise<void> {
+    const currentChat = this.chatStorage.getCurrentChat();
+    const title = currentChat?.title || 'Chat Transcript';
+
+    const paragraphs: Paragraph[] = [];
+
+    // Title
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: title,
+            bold: true,
+            size: 32,
+          }),
+        ],
+      })
+    );
+
+    // Export date
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `Exported: ${new Date().toLocaleString()}`,
+            size: 20,
+            italics: true,
+          }),
+        ],
+      })
+    );
+
+    // Empty line
+    paragraphs.push(new Paragraph({}));
+
+    // Messages
+    for (const msg of this.messages) {
+      const time = this.formatTimestamp(msg.timestamp);
+      const sender = msg.isUser ? 'USER' : msg.sender;
+
+      // Sender header
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `[${time}] ${sender}:`,
+              bold: true,
+              size: 22,
+            }),
+          ],
+        })
+      );
+
+      // Message content - split by newlines to preserve formatting
+      const textLines = msg.text.split('\n');
+      for (const line of textLines) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: line,
+                size: 22,
+              }),
+            ],
+          })
+        );
+      }
+
+      // Empty line between messages
+      paragraphs.push(new Paragraph({}));
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: paragraphs,
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const filename = this.getSafeFilename('docx');
+    saveAs(blob, filename);
+    this.closeExportMenu();
+  }
+
+  private getSafeFilename(extension: string): string {
+    const currentChat = this.chatStorage.getCurrentChat();
+    const title = currentChat?.title || 'chat-transcript';
+    // Sanitize filename: remove special characters, replace spaces with dashes
+    const safeName = title
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase()
+      .substring(0, this.MAX_FILENAME_LENGTH);
+    const timestamp = new Date().toISOString().slice(0, 10);
+    return `${safeName}-${timestamp}.${extension}`;
   }
 }

@@ -497,6 +497,124 @@
     }
 }
 
+/* Export Dropdown */
+.export-dropdown,
+.export-dropdown-mobile {
+    position: relative;
+    display: inline-block;
+}
+
+.export-btn {
+    background: transparent;
+    border: 1px solid #374151;
+    color: var(--neon-blue);
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+
+    &:hover {
+        background: rgba(0, 243, 255, 0.1);
+        border-color: var(--neon-blue);
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+}
+
+.export-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: rgba(10, 10, 10, 0.98);
+    border: 1px solid var(--neon-blue);
+    border-radius: 6px;
+    padding: 0.5rem 0;
+    min-width: 200px;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 243, 255, 0.3);
+    animation: fadeIn 0.15s ease;
+}
+
+.export-menu-mobile {
+    right: 0;
+    left: auto;
+}
+
+.export-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'JetBrains Mono', monospace;
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: var(--neon-blue);
+    }
+
+    &:hover {
+        background: rgba(0, 243, 255, 0.1);
+        color: var(--neon-blue);
+    }
+}
+
+/* Mobile action buttons */
+.mobile-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.mobile-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.mobile-action-btn {
+    background: transparent;
+    border: 1px solid #374151;
+    color: var(--neon-green);
+    padding: 0.35rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+
+    &:hover {
+        background: rgba(0, 255, 65, 0.1);
+        border-color: var(--neon-green);
+    }
+}
+
 /* Drawer Container */
 .chat-drawer-container {
     flex: 1;
