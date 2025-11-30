@@ -1,0 +1,145 @@
+<div class="profile-container">
+  <mat-card class="profile-card">
+    <mat-card-header>
+      <mat-card-title>
+        <div class="d-flex align-items-center gap-12">
+          <i-tabler name="user-circle" class="icon-24"></i-tabler>
+          <span>User Profile</span>
+        </div>
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content class="p-24">
+      <!-- Success/Error Messages -->
+      @if (successMessage()) {
+        <div class="alert alert-success m-b-16">
+          <i-tabler name="check" class="icon-18"></i-tabler>
+          {{ successMessage() }}
+        </div>
+      }
+      @if (errorMessage()) {
+        <div class="alert alert-error m-b-16">
+          <i-tabler name="alert-circle" class="icon-18"></i-tabler>
+          {{ errorMessage() }}
+        </div>
+      }
+
+      @if (isAuthenticated()) {
+        <!-- User Info Section -->
+        <div class="profile-section">
+          <div class="profile-avatar">
+            @if (user()?.photoURL) {
+              <img [src]="user()?.photoURL" alt="Profile" class="avatar-image" />
+            } @else {
+              <div class="avatar-placeholder">
+                <i-tabler name="user" class="icon-48"></i-tabler>
+              </div>
+            }
+          </div>
+
+          <div class="profile-info">
+            <!-- Email (read-only) -->
+            <div class="info-row">
+              <mat-label class="info-label">Email</mat-label>
+              <div class="info-value">{{ user()?.email || 'Not available' }}</div>
+            </div>
+
+            <!-- Display Name -->
+            <div class="info-row">
+              <mat-label class="info-label">Display Name</mat-label>
+              @if (editingDisplayName()) {
+                <div class="edit-row">
+                  <mat-form-field appearance="outline" class="edit-field">
+                    <input 
+                      matInput 
+                      [value]="displayNameInput()"
+                      (input)="displayNameInput.set($any($event.target).value)"
+                      placeholder="Enter display name"
+                    />
+                  </mat-form-field>
+                  <button mat-icon-button color="primary" (click)="saveDisplayName()" [disabled]="isLoading()">
+                    <i-tabler name="check" class="icon-18"></i-tabler>
+                  </button>
+                  <button mat-icon-button (click)="cancelEditDisplayName()">
+                    <i-tabler name="x" class="icon-18"></i-tabler>
+                  </button>
+                </div>
+              } @else {
+                <div class="info-value-with-edit">
+                  <span>{{ profile()?.displayName || 'Not set' }}</span>
+                  <button mat-icon-button (click)="startEditDisplayName()">
+                    <i-tabler name="edit" class="icon-16"></i-tabler>
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Chat Username -->
+            <div class="info-row highlight">
+              <mat-label class="info-label">
+                Chat Username
+                <span class="label-hint">(Used in Tachikoma Chat)</span>
+              </mat-label>
+              @if (editingChatUsername()) {
+                <div class="edit-row">
+                  <mat-form-field appearance="outline" class="edit-field">
+                    <input 
+                      matInput 
+                      [value]="chatUsernameInput()"
+                      (input)="chatUsernameInput.set($any($event.target).value)"
+                      placeholder="Enter chat username"
+                      maxlength="20"
+                    />
+                    <mat-hint>This name appears in chat messages</mat-hint>
+                  </mat-form-field>
+                  <button mat-icon-button color="primary" (click)="saveChatUsername()" [disabled]="isLoading()">
+                    <i-tabler name="check" class="icon-18"></i-tabler>
+                  </button>
+                  <button mat-icon-button (click)="cancelEditChatUsername()">
+                    <i-tabler name="x" class="icon-18"></i-tabler>
+                  </button>
+                </div>
+              } @else {
+                <div class="info-value-with-edit">
+                  <span class="username-preview">{{ profile()?.chatUsername || 'USER' }}</span>
+                  <button mat-icon-button (click)="startEditChatUsername()">
+                    <i-tabler name="edit" class="icon-16"></i-tabler>
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Account Created -->
+            @if (profile()?.createdAt) {
+              <div class="info-row">
+                <mat-label class="info-label">Member Since</mat-label>
+                <div class="info-value">{{ profile()?.createdAt | date:'mediumDate' }}</div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="profile-actions m-t-24">
+          <button mat-flat-button color="warn" (click)="logout()">
+            <i-tabler name="logout" class="icon-18 m-r-8"></i-tabler>
+            Logout
+          </button>
+        </div>
+      } @else {
+        <!-- Not Logged In -->
+        <div class="not-logged-in">
+          <div class="icon-container">
+            <i-tabler name="user-x" class="icon-64"></i-tabler>
+          </div>
+          <h3>Not Logged In</h3>
+          <p>Please log in to view and manage your profile.</p>
+          <button mat-flat-button color="primary" (click)="goToLogin()">
+            <i-tabler name="login" class="icon-18 m-r-8"></i-tabler>
+            Go to Login
+          </button>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

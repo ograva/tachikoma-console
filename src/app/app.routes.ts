@@ -31,6 +31,13 @@ export const routes: Routes = [
             './pages/tachikoma-profiles/tachikoma-profiles.component'
           ).then((m) => m.TachikomaProfilesComponent),
       },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./pages/profile/profile.component').then(
+            (m) => m.ProfileComponent
+          ),
+      },
     ],
   },
   {

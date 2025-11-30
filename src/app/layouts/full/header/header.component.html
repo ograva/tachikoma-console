@@ -19,24 +19,42 @@
   <!-- profile Dropdown -->
   <!-- --------------------------------------------------------------- -->
   <button mat-mini-fab [matMenuTriggerFor]="profilemenu" aria-label="Profile">
-    <img src="/assets/images/profile/user-1.jpg" class="rounded-circle object-cover d-block" width="35" />
+    @if (userPhotoURL()) {
+      <img [src]="userPhotoURL()" class="rounded-circle object-cover d-block" width="35" alt="User avatar" />
+    } @else {
+      <i-tabler name="user" class="icon-20 d-flex"></i-tabler>
+    }
   </button>
   <mat-menu #profilemenu="matMenu" class="cardWithShadow topbar-dd">
-    <button mat-menu-item>
-      <mat-icon class="d-flex align-items-center"><i-tabler name="user" class="icon-18 d-flex"></i-tabler></mat-icon>My
-      Profile
-    </button>
-    <button mat-menu-item>
-      <mat-icon class="d-flex align-items-center"><i-tabler name="mail" class="icon-18 d-flex"></i-tabler></mat-icon>My
-      Account
-    </button>
-    <button mat-menu-item>
-      <mat-icon class="d-flex align-items-center"><i-tabler name="list-check"
-          class="icon-18 d-flex"></i-tabler></mat-icon>My Task
-    </button>
+    @if (isAuthenticated()) {
+      <!-- Show user info when authenticated -->
+      <div class="p-x-16 p-y-8 user-info-header">
+        <div class="f-w-600">{{ displayName() || 'User' }}</div>
+        <div class="f-s-12 text-muted">{{ user()?.email }}</div>
+      </div>
+      <mat-divider></mat-divider>
+      
+      <button mat-menu-item (click)="goToProfile()">
+        <mat-icon class="d-flex align-items-center"><i-tabler name="user" class="icon-18 d-flex"></i-tabler></mat-icon>
+        My Profile
+      </button>
 
-    <div class="p-x-12 m-t-12">
-      <a [routerLink]="['/authentication/login']" mat-stroked-button class="w-100">Logout</a>
-    </div>
+      <div class="p-x-12 m-t-12">
+        <button mat-stroked-button class="w-100" (click)="logout()">
+          <i-tabler name="logout" class="icon-18 m-r-8"></i-tabler>
+          Logout
+        </button>
+      </div>
+    } @else {
+      <!-- Show login/register when not authenticated -->
+      <button mat-menu-item (click)="goToLogin()">
+        <mat-icon class="d-flex align-items-center"><i-tabler name="login" class="icon-18 d-flex"></i-tabler></mat-icon>
+        Login
+      </button>
+      <button mat-menu-item [routerLink]="['/authentication/register']">
+        <mat-icon class="d-flex align-items-center"><i-tabler name="user-plus" class="icon-18 d-flex"></i-tabler></mat-icon>
+        Register
+      </button>
+    }
   </mat-menu>
 </mat-toolbar>

@@ -19,17 +19,35 @@ export const navItems: NavItem[] = [
     iconName: 'settings',
     route: '/tachikoma-profiles',
   },
+];
+
+// Auth-related nav items - these will be dynamically shown/hidden
+export const authNavItems: NavItem[] = [
   {
-    navCap: 'Auth',
+    navCap: 'Account',
   },
   {
-    displayName: 'Login',
-    iconName: 'login',
-    route: '/authentication/login',
-  },
-  {
-    displayName: 'Register',
-    iconName: 'user-plus',
-    route: '/authentication/register',
+    displayName: 'Profile',
+    iconName: 'user',
+    route: '/profile',
   },
 ];
+
+export const loginNavItem: NavItem = {
+  displayName: 'Login',
+  iconName: 'login',
+  route: '/authentication/login',
+};
+
+export const logoutNavItem: NavItem = {
+  displayName: 'Logout',
+  iconName: 'logout',
+  route: '/authentication/login', // Will be handled by click, not route
+  isLogout: true, // Custom flag to identify this is a logout action
+};
+
+export const registerNavItem: NavItem = {
+  displayName: 'Register',
+  iconName: 'user-plus',
+  route: '/authentication/register',
+};

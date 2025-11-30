@@ -9,51 +9,59 @@
             </a>
           </div>
 
-          <div class="row m-t-24 custom-row">
-            <div class="col-12 col-sm-6">
-              <button mat-stroked-button class="w-100">
-                <div class="d-flex align-items-center">
-                  <img src="/assets/images/svgs/google-icon.svg" alt="google" width="16" class="m-r-8" />
-                  <span>
-                  Sign in with Google
-                </span>
-                </div>
-              </button>
+          <!-- Error Message -->
+          @if (errorMessage()) {
+            <div class="alert alert-error m-t-16 m-b-16">
+              {{ errorMessage() }}
             </div>
-            <div class="col-12 col-sm-6">
-              <button mat-stroked-button class="w-100 d-flex align-items-center">
-                <div class="d-flex align-items-center">
-                  <img src="/assets/images/svgs/facebook-icon.svg" alt="facebook" width="40" class="m-r-4" />
-                  Sign in with FB
+          }
+
+          <div class="row m-t-24 custom-row">
+            <div class="col-12">
+              <button mat-stroked-button class="w-100" (click)="signInWithGoogle()" [disabled]="isLoading()">
+                <div class="d-flex align-items-center justify-content-center">
+                  <img src="/assets/images/svgs/google-icon.svg" alt="google" width="16" class="m-r-8" />
+                  <span>Sign in with Google</span>
                 </div>
               </button>
             </div>
           </div>
 
-          <div class="or-border m-t-30">or sign in with</div>
+          <div class="or-border m-t-30">or sign in with email</div>
 
-          <form class="m-t-30">
-            <mat-label class="f-s-14 f-w-600 m-b-12 d-block">Username</mat-label>
+          <form class="m-t-30" [formGroup]="form" (ngSubmit)="submit()">
+            <mat-label class="f-s-14 f-w-600 m-b-12 d-block">Email</mat-label>
             <mat-form-field appearance="outline" class="w-100" color="primary">
-              <input matInput />
+              <input matInput formControlName="email" type="email" />
+              @if (f.email.touched && f.email.errors?.['required']) {
+                <mat-error>Email is required</mat-error>
+              }
+              @if (f.email.touched && f.email.errors?.['email']) {
+                <mat-error>Please enter a valid email</mat-error>
+              }
             </mat-form-field>
             <!-- password -->
             <mat-label class="f-s-14 f-w-600 m-b-12 d-block">Password</mat-label>
             <mat-form-field appearance="outline" class="w-100" color="primary">
-              <input matInput type="password" />
+              <input matInput type="password" formControlName="password" />
+              @if (f.password.touched && f.password.errors?.['required']) {
+                <mat-error>Password is required</mat-error>
+              }
             </mat-form-field>
 
             <div class="d-flex align-items-center m-b-12">
               <mat-checkbox color="primary">Remember this Device</mat-checkbox>
-              <a [routerLink]="['/']" class="text-primary f-w-600 text-decoration-none m-l-auto f-s-14">Forgot Password
-                ?</a>
+              <a [routerLink]="['/']" class="text-primary f-w-600 text-decoration-none m-l-auto f-s-14">Forgot Password?</a>
             </div>
-            <a [routerLink]="['/']" mat-flat-button color="primary" class="w-100">
+            <button mat-flat-button color="primary" class="w-100" type="submit" [disabled]="isLoading() || form.invalid">
+              @if (isLoading()) {
+                <mat-spinner diameter="20" class="m-r-8"></mat-spinner>
+              }
               Sign In
-            </a>
+            </button>
             <!-- input -->
           </form>
-          <span class="d-block f-w-500 text-center m-t-24">New to Flexy?
+          <span class="d-block f-w-500 text-center m-t-24">New to Tachikoma?
             <a [routerLink]="['/authentication/register']" class="text-decoration-none text-primary f-w-500 f-s-14">
               Create an account</a>
           </span>
