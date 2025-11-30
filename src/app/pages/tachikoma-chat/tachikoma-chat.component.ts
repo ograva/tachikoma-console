@@ -84,6 +84,13 @@ export class TachikomaChatComponent implements AfterViewChecked {
   private shouldAutoScroll = true;
   private readonly SCROLL_THRESHOLD = 150; // pixels from bottom to consider "at bottom"
 
+  // Export constants
+  private readonly MAX_FILENAME_LENGTH = 50;
+  private readonly PDF_MARGIN = 15;
+  private readonly PDF_LINE_HEIGHT = 6;
+  private readonly PDF_PAGE_BOTTOM_MARGIN = 30;
+  private readonly PDF_CONTENT_BOTTOM_MARGIN = 20;
+
   get isInitialized(): boolean {
     return this.apiKey.length > 0;
   }
@@ -374,6 +381,9 @@ export class TachikomaChatComponent implements AfterViewChecked {
     // Force scroll to bottom (used when user sends a message)
     try {
       this.shouldAutoScroll = true;
+      // Use setTimeout to ensure DOM has updated before scrolling
+      // This is necessary because the message is added to the array
+      // but the DOM hasn't re-rendered yet
       setTimeout(() => {
         if (this.chatFeed?.nativeElement) {
           this.chatFeed.nativeElement.scrollTop =
@@ -809,22 +819,20 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
 
     // Set up document
     const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const maxLineWidth = pageWidth - margin * 2;
+    const maxLineWidth = pageWidth - this.PDF_MARGIN * 2;
     let yPosition = 20;
-    const lineHeight = 6;
 
     // Title
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(title, margin, yPosition);
-    yPosition += lineHeight * 2;
+    doc.text(title, this.PDF_MARGIN, yPosition);
+    yPosition += this.PDF_LINE_HEIGHT * 2;
 
     // Export date
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Exported: ${new Date().toLocaleString()}`, margin, yPosition);
-    yPosition += lineHeight * 2;
+    doc.text(`Exported: ${new Date().toLocaleString()}`, this.PDF_MARGIN, yPosition);
+    yPosition += this.PDF_LINE_HEIGHT * 2;
 
     // Messages
     doc.setFontSize(10);
@@ -834,30 +842,30 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       const sender = msg.isUser ? 'USER' : msg.sender;
 
       // Check if we need a new page
-      if (yPosition > doc.internal.pageSize.getHeight() - 30) {
+      if (yPosition > doc.internal.pageSize.getHeight() - this.PDF_PAGE_BOTTOM_MARGIN) {
         doc.addPage();
         yPosition = 20;
       }
 
       // Sender header
       doc.setFont('helvetica', 'bold');
-      doc.text(`[${time}] ${sender}:`, margin, yPosition);
-      yPosition += lineHeight;
+      doc.text(`[${time}] ${sender}:`, this.PDF_MARGIN, yPosition);
+      yPosition += this.PDF_LINE_HEIGHT;
 
       // Message content - split into lines
       doc.setFont('helvetica', 'normal');
       const lines = doc.splitTextToSize(msg.text, maxLineWidth);
 
       for (const line of lines) {
-        if (yPosition > doc.internal.pageSize.getHeight() - 20) {
+        if (yPosition > doc.internal.pageSize.getHeight() - this.PDF_CONTENT_BOTTOM_MARGIN) {
           doc.addPage();
           yPosition = 20;
         }
-        doc.text(line, margin, yPosition);
-        yPosition += lineHeight;
+        doc.text(line, this.PDF_MARGIN, yPosition);
+        yPosition += this.PDF_LINE_HEIGHT;
       }
 
-      yPosition += lineHeight; // Extra space between messages
+      yPosition += this.PDF_LINE_HEIGHT; // Extra space between messages
     }
 
     const filename = this.getSafeFilename('pdf');
@@ -960,7 +968,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       .replace(/[^a-zA-Z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .toLowerCase()
-      .substring(0, 50);
+      .substring(0, this.MAX_FILENAME_LENGTH);
     const timestamp = new Date().toISOString().slice(0, 10);
     return `${safeName}-${timestamp}.${extension}`;
   }
