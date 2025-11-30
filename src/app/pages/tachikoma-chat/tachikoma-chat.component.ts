@@ -8,7 +8,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { marked } from 'marked';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import {
   AgentProfileService,
@@ -715,11 +715,13 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
         throw new Error('API key is invalid or empty after sanitization');
       }
 
-      const genAI = new GoogleGenerativeAI(cleanKey);
-      const model = genAI.getGenerativeModel({
+      const ai = new GoogleGenAI({ apiKey: cleanKey });
+
+      const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        systemInstruction: systemInstruction,
-        generationConfig: {
+        contents: prompt,
+        config: {
+          systemInstruction: systemInstruction,
           temperature: temp,
           maxOutputTokens: 2000,
           topP: 0.95,
@@ -727,14 +729,12 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
         },
       });
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const text = response.text ?? '';
 
       // Debug: Log response details
       console.log(
         'API Response candidates:',
-        result.response.candidates?.length
+        response.candidates?.length
       );
       console.log('API Response text length:', text.length);
 
