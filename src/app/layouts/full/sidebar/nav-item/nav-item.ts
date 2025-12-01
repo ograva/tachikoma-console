@@ -8,4 +8,5 @@ export interface NavItem {
     chipContent?: string;
     chipClass?: string;
     external?: boolean;
+    isLogout?: boolean;  // Flag to identify logout action
 }

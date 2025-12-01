@@ -1,8 +1,9 @@
 import { BreakpointObserver, MediaMatcher } from '@angular/cdk/layout';
-import { Component, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, ViewChild, ViewEncapsulation, inject, computed, effect } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { MatSidenav, MatSidenavContent } from '@angular/material/sidenav';
 import { CoreService } from 'src/app/services/core.service';
+import { AuthService } from 'src/app/services/auth.service';
 
 import { filter } from 'rxjs/operators';
 import { NavigationEnd, Router } from '@angular/router';
@@ -15,7 +16,14 @@ import { TablerIconsModule } from 'angular-tabler-icons';
 import { HeaderComponent } from './header/header.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { AppNavItemComponent } from './sidebar/nav-item/nav-item.component';
-import { navItems } from './sidebar/sidebar-data';
+import { NavItem } from './sidebar/nav-item/nav-item';
+import { 
+  navItems, 
+  authNavItems, 
+  loginNavItem, 
+  logoutNavItem, 
+  registerNavItem 
+} from './sidebar/sidebar-data';
 
 
 const MOBILE_VIEW = 'screen and (max-width: 768px)';
@@ -39,7 +47,26 @@ const TABLET_VIEW = 'screen and (min-width: 769px) and (max-width: 1024px)';
   encapsulation: ViewEncapsulation.None
 })
 export class FullComponent implements OnInit {
-  navItems = navItems;
+  private authService = inject(AuthService);
+
+  // Computed nav items based on auth state
+  dynamicNavItems = computed<NavItem[]>(() => {
+    const isAuthenticated = this.authService.isAuthenticated();
+    const items: NavItem[] = [...navItems];
+    
+    if (isAuthenticated) {
+      // Add auth-related items and logout
+      items.push(...authNavItems);
+      items.push(logoutNavItem);
+    } else {
+      // Add login/register when not authenticated
+      items.push({ navCap: 'Auth' });
+      items.push(loginNavItem);
+      items.push(registerNavItem);
+    }
+    
+    return items;
+  });
 
   @ViewChild('leftsidenav')
   public sidenav: MatSidenav;

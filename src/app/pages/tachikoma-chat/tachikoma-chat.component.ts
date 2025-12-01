@@ -4,6 +4,7 @@ import {
   ViewChild,
   signal,
   AfterViewChecked,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +20,7 @@ import {
   ChatSession,
   ChatMessage as StoredChatMessage,
 } from '../../services/chat-storage.service';
+import { UserProfileService } from '../../services/user-profile.service';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
@@ -57,6 +59,8 @@ import { MaterialModule } from '../../material.module';
 export class TachikomaChatComponent implements AfterViewChecked {
   @ViewChild('chatFeed') chatFeed!: ElementRef;
 
+  private userProfileService = inject(UserProfileService);
+
   apiKey = '';
   userInput = '';
   isProcessing = false;
@@ -64,6 +68,11 @@ export class TachikomaChatComponent implements AfterViewChecked {
   conversationSummary = ''; // Running summary of the conversation
   messagesSinceLastSummary = 0; // Counter for when to trigger summary
   readonly SUMMARY_INTERVAL = 6; // Summarize every 6 exchanges (user + agent responses)
+
+  // Get chat username from profile service
+  get chatUsername(): string {
+    return this.userProfileService.getChatUsername();
+  }
 
   // Agents State - now loaded dynamically
   agents: Agent[] = [];
@@ -458,8 +467,8 @@ export class TachikomaChatComponent implements AfterViewChecked {
     this.isProcessing = true;
 
     try {
-      // Add User Message
-      this.addMessage('USER', text, true);
+      // Add User Message with custom username from profile
+      this.addMessage(this.chatUsername, text, true);
 
       // Force scroll to bottom when user sends a message
       this.scrollToBottom();

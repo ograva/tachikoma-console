@@ -5,10 +5,12 @@ import {
   OnChanges,
   Output,
   EventEmitter,
+  inject,
 } from '@angular/core';
 import { NavItem } from './nav-item';
 import { Router } from '@angular/router';
 import { NavService } from '../../../../services/nav.service';
+import { AuthService } from '../../../../services/auth.service';
 
 import { TranslateModule } from '@ngx-translate/core';
 import { TablerIconsModule } from 'angular-tabler-icons';
@@ -31,6 +33,8 @@ export class AppNavItemComponent implements OnChanges {
   @HostBinding('attr.aria-expanded') ariaExpanded = this.expanded;
   @Input() depth: any;
 
+  private authService = inject(AuthService);
+
   constructor(public navService: NavService, public router: Router) {}
 
   ngOnChanges() {
@@ -42,6 +46,12 @@ export class AppNavItemComponent implements OnChanges {
   }
 
   onItemSelected(item: NavItem) {
+    // Handle logout action
+    if (item.isLogout) {
+      this.handleLogout();
+      return;
+    }
+
     if (!item.children || !item.children.length) {
       this.router.navigate([item.route]);
     }
@@ -58,6 +68,15 @@ export class AppNavItemComponent implements OnChanges {
       if (window.innerWidth < 1024) {
         this.notify.emit();
       }
+    }
+  }
+
+  async handleLogout(): Promise<void> {
+    try {
+      await this.authService.logout();
+      this.router.navigate(['/authentication/login']);
+    } catch (error) {
+      console.error('Logout failed:', error);
     }
   }
 
