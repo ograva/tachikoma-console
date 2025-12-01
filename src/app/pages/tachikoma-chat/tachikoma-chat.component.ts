@@ -3,7 +3,6 @@ import {
   ElementRef,
   ViewChild,
   signal,
-  AfterViewChecked,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -56,7 +55,7 @@ import { MaterialModule } from '../../material.module';
   templateUrl: './tachikoma-chat.component.html',
   styleUrls: ['./tachikoma-chat.component.scss'],
 })
-export class TachikomaChatComponent implements AfterViewChecked {
+export class TachikomaChatComponent {
   @ViewChild('chatFeed') chatFeed!: ElementRef;
 
   private userProfileService = inject(UserProfileService);
@@ -89,9 +88,8 @@ export class TachikomaChatComponent implements AfterViewChecked {
   >([]);
   isUploadingFile = signal<boolean>(false);
 
-  // Auto-scroll control
-  private shouldAutoScroll = true;
-  private readonly SCROLL_THRESHOLD = 150; // pixels from bottom to consider "at bottom"
+  // Auto-scroll has been removed to prevent automatic scrolling when new messages arrive.
+  // User scroll position is now preserved - they can manually scroll to see new messages.
 
   // Export constants
   private readonly MAX_FILENAME_LENGTH = 50;
@@ -131,10 +129,6 @@ export class TachikomaChatComponent implements AfterViewChecked {
         localStorage.setItem('gemini_api_key', this.apiKey);
       }
     }
-  }
-
-  ngAfterViewChecked() {
-    this.smartScroll();
   }
 
   loadAgents(): void {
@@ -356,40 +350,9 @@ export class TachikomaChatComponent implements AfterViewChecked {
     return agent?.hex || '#888888';
   }
 
-  smartScroll(): void {
-    try {
-      const element = this.chatFeed.nativeElement;
-
-      // Only auto-scroll if shouldAutoScroll is true (user hasn't scrolled up)
-      if (this.shouldAutoScroll) {
-        element.scrollTop = element.scrollHeight;
-      }
-    } catch (err) {}
-  }
-
-  private isUserNearBottom(): boolean {
-    try {
-      const element = this.chatFeed.nativeElement;
-      const scrollPosition = element.scrollTop + element.clientHeight;
-      const scrollHeight = element.scrollHeight;
-
-      // User is "near bottom" if within SCROLL_THRESHOLD pixels from bottom
-      return scrollHeight - scrollPosition < this.SCROLL_THRESHOLD;
-    } catch (err) {
-      return true; // Default to true if can't determine
-    }
-  }
-
-  onScroll(): void {
-    // Update shouldAutoScroll based on user's scroll position
-    // This allows users to scroll up to read earlier messages
-    this.shouldAutoScroll = this.isUserNearBottom();
-  }
-
   scrollToBottom(): void {
     // Force scroll to bottom (used when user sends a message)
     try {
-      this.shouldAutoScroll = true;
       // Use setTimeout to ensure DOM has updated before scrolling
       // This is necessary because the message is added to the array
       // but the DOM hasn't re-rendered yet
