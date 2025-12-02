@@ -96,7 +96,9 @@ export class AuthService implements OnDestroy {
     password: string
   ): Promise<UserCredential> {
     if (!this.auth) {
-      throw new Error('Firebase Auth not configured');
+      const errorMsg = 'Firebase Auth not configured. Please contact the administrator.';
+      this.errorSignal.set(errorMsg);
+      throw new Error(errorMsg);
     }
     try {
       this.loadingSignal.set(true);
@@ -108,7 +110,10 @@ export class AuthService implements OnDestroy {
       );
       return result;
     } catch (error: any) {
-      this.errorSignal.set(this.getErrorMessage(error.code));
+      const errorCode = this.getErrorCode(error);
+      const errorMessage = this.getErrorMessage(errorCode);
+      console.error('Email Sign-In error:', error);
+      this.errorSignal.set(errorMessage);
       throw error;
     } finally {
       this.loadingSignal.set(false);
@@ -123,7 +128,9 @@ export class AuthService implements OnDestroy {
     password: string
   ): Promise<UserCredential> {
     if (!this.auth) {
-      throw new Error('Firebase Auth not configured');
+      const errorMsg = 'Firebase Auth not configured. Please contact the administrator.';
+      this.errorSignal.set(errorMsg);
+      throw new Error(errorMsg);
     }
     try {
       this.loadingSignal.set(true);
@@ -135,7 +142,10 @@ export class AuthService implements OnDestroy {
       );
       return result;
     } catch (error: any) {
-      this.errorSignal.set(this.getErrorMessage(error.code));
+      const errorCode = this.getErrorCode(error);
+      const errorMessage = this.getErrorMessage(errorCode);
+      console.error('Email Registration error:', error);
+      this.errorSignal.set(errorMessage);
       throw error;
     } finally {
       this.loadingSignal.set(false);
@@ -147,7 +157,9 @@ export class AuthService implements OnDestroy {
    */
   async signInWithGoogle(): Promise<UserCredential> {
     if (!this.auth) {
-      throw new Error('Firebase Auth not configured');
+      const errorMsg = 'Firebase Auth not configured. Please contact the administrator.';
+      this.errorSignal.set(errorMsg);
+      throw new Error(errorMsg);
     }
     try {
       this.loadingSignal.set(true);
@@ -156,7 +168,10 @@ export class AuthService implements OnDestroy {
       const result = await signInWithPopup(this.auth, provider);
       return result;
     } catch (error: any) {
-      this.errorSignal.set(this.getErrorMessage(error.code));
+      const errorCode = this.getErrorCode(error);
+      const errorMessage = this.getErrorMessage(errorCode);
+      console.error('Google Sign-In error:', error);
+      this.errorSignal.set(errorMessage);
       throw error;
     } finally {
       this.loadingSignal.set(false);
@@ -197,6 +212,13 @@ export class AuthService implements OnDestroy {
   }
 
   /**
+   * Extract error code from Firebase error object
+   */
+  private getErrorCode(error: any): string {
+    return error.code || error.message || 'unknown-error';
+  }
+
+  /**
    * Convert Firebase error codes to user-friendly messages
    */
   private getErrorMessage(code: string): string {
@@ -216,11 +238,27 @@ export class AuthService implements OnDestroy {
       case 'auth/network-request-failed':
         return 'Network error. Please check your connection.';
       case 'auth/popup-closed-by-user':
-        return 'Sign-in cancelled.';
+      case 'auth/cancelled-popup-request':
+        return 'Sign-in popup was closed. Please try again.';
       case 'auth/invalid-credential':
         return 'Invalid credentials. Please check your email and password.';
+      case 'auth/popup-blocked':
+        return 'Sign-in popup was blocked. Please allow popups and try again.';
+      case 'auth/operation-not-allowed':
+        return 'This sign-in method is not enabled. Please contact the administrator.';
+      case 'auth/unauthorized-domain':
+        return 'This domain is not authorized for sign-in. Please contact the administrator.';
+      case 'auth/invalid-api-key':
+        return 'Firebase configuration error. Please contact the administrator.';
+      case 'auth/configuration-not-found':
+        return 'Firebase is not properly configured. Please contact the administrator.';
+      case 'auth/account-exists-with-different-credential':
+        return 'An account already exists with this email using a different sign-in method.';
+      case 'auth/internal-error':
+        return 'An internal error occurred. Please check if Firebase is properly configured.';
       default:
-        return 'An error occurred. Please try again.';
+        console.warn('Unhandled Firebase auth error code:', code);
+        return `Authentication error: ${code || 'Unknown error'}. Please try again or contact support.`;
     }
   }
 
