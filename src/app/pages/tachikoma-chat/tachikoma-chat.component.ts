@@ -4,6 +4,7 @@ import {
   ViewChild,
   signal,
   inject,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,7 +20,8 @@ import {
   ChatSession,
   ChatMessage as StoredChatMessage,
 } from '../../services/chat-storage.service';
-import { UserProfileService } from '../../services/user-profile.service';
+import { UserProfileService, GeminiModel } from '../../services/user-profile.service';
+import { AuthService } from '../../services/auth.service';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
@@ -59,8 +61,10 @@ export class TachikomaChatComponent {
   @ViewChild('chatFeed') chatFeed!: ElementRef;
 
   private userProfileService = inject(UserProfileService);
+  private authService = inject(AuthService);
 
   apiKey = '';
+  selectedModel: GeminiModel = 'gemini-2.5-flash';
   userInput = '';
   isProcessing = false;
   messages: ChatMessage[] = [];
@@ -120,13 +124,46 @@ export class TachikomaChatComponent {
     // Load current chat or create new one
     this.loadCurrentChat();
 
-    const storedKey = localStorage.getItem('gemini_api_key');
-    if (storedKey) {
-      // Sanitize on load in case a dirty key was stored before fix
-      this.apiKey = storedKey.replace(/[^\x00-\x7F]/g, '').trim();
-      // Re-save cleaned version if it was dirty
-      if (this.apiKey !== storedKey && this.apiKey) {
-        localStorage.setItem('gemini_api_key', this.apiKey);
+    // Load API key and model from user profile if authenticated
+    // Otherwise, fallback to localStorage for backward compatibility
+    this.loadApiSettings();
+
+    // React to user profile changes (e.g., after login)
+    effect(() => {
+      const profile = this.userProfileService.profile();
+      if (profile && this.authService.isAuthenticated()) {
+        // Update API key and model from profile when it changes
+        if (profile.geminiApiKey) {
+          this.apiKey = profile.geminiApiKey;
+        }
+        if (profile.geminiModel) {
+          this.selectedModel = profile.geminiModel;
+        }
+      }
+    });
+  }
+
+  /**
+   * Load API settings from user profile or localStorage
+   */
+  private loadApiSettings(): void {
+    // First, try to load from user profile (for authenticated users)
+    const profileKey = this.userProfileService.getGeminiApiKey();
+    const profileModel = this.userProfileService.getGeminiModel();
+
+    if (profileKey) {
+      this.apiKey = profileKey;
+      this.selectedModel = profileModel;
+    } else {
+      // Fallback to localStorage for backward compatibility
+      const storedKey = localStorage.getItem('gemini_api_key');
+      if (storedKey) {
+        // Sanitize on load in case a dirty key was stored before fix
+        this.apiKey = storedKey.replace(/[^\x00-\x7F]/g, '').trim();
+        // Re-save cleaned version if it was dirty
+        if (this.apiKey !== storedKey && this.apiKey) {
+          localStorage.setItem('gemini_api_key', this.apiKey);
+        }
       }
     }
   }
@@ -707,7 +744,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       const ai = new GoogleGenAI({ apiKey: cleanKey });
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: this.selectedModel,
         contents: prompt,
         config: {
           systemInstruction: systemInstruction,

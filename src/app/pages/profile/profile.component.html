@@ -119,6 +119,90 @@
           </div>
         </div>
 
+        <!-- AI Settings Section -->
+        <div class="ai-settings-section m-t-24">
+          <h3 class="section-title">
+            <i-tabler name="robot" class="icon-20 m-r-8"></i-tabler>
+            AI Settings
+          </h3>
+
+          <!-- Google AI API Key -->
+          <div class="info-row highlight">
+            <mat-label class="info-label">
+              Google AI API Key
+              <span class="label-hint">(Required for Tachikoma Chat)</span>
+            </mat-label>
+            @if (editingApiKey()) {
+              <div class="edit-row">
+                <mat-form-field appearance="outline" class="edit-field">
+                  <input 
+                    matInput 
+                    type="password"
+                    [value]="apiKeyInput()"
+                    (input)="apiKeyInput.set($any($event.target).value)"
+                    placeholder="Enter your Google AI API key"
+                  />
+                  <mat-hint>Your key will be validated before saving</mat-hint>
+                  @if (apiKeyValidationError()) {
+                    <mat-error>{{ apiKeyValidationError() }}</mat-error>
+                  }
+                </mat-form-field>
+                <button 
+                  mat-icon-button 
+                  color="primary" 
+                  (click)="saveApiKey()" 
+                  [disabled]="isLoading() || isValidatingApiKey()">
+                  @if (isValidatingApiKey()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <i-tabler name="check" class="icon-18"></i-tabler>
+                  }
+                </button>
+                <button mat-icon-button (click)="cancelEditApiKey()" [disabled]="isValidatingApiKey()">
+                  <i-tabler name="x" class="icon-18"></i-tabler>
+                </button>
+              </div>
+              @if (apiKeyValidationError()) {
+                <div class="validation-error m-t-8">
+                  <i-tabler name="alert-circle" class="icon-14"></i-tabler>
+                  {{ apiKeyValidationError() }}
+                </div>
+              }
+            } @else {
+              <div class="info-value-with-edit">
+                <span class="api-key-preview" [class.not-set]="!hasApiKey()">
+                  @if (hasApiKey()) {
+                    <i-tabler name="key" class="icon-14 m-r-4"></i-tabler>
+                    {{ getMaskedApiKey() }}
+                  } @else {
+                    Not set
+                  }
+                </span>
+                <button mat-icon-button (click)="startEditApiKey()">
+                  <i-tabler name="edit" class="icon-16"></i-tabler>
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Model Selection -->
+          <div class="info-row">
+            <mat-label class="info-label">
+              Gemini Model
+              <span class="label-hint">(Select your preferred AI model)</span>
+            </mat-label>
+            <mat-form-field appearance="outline" class="model-select">
+              <mat-select 
+                [value]="profile()?.geminiModel || 'gemini-2.5-flash'"
+                (selectionChange)="onModelChange($event.value)">
+                @for (model of geminiModels; track model.value) {
+                  <mat-option [value]="model.value">{{ model.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+
         <!-- Actions -->
         <div class="profile-actions m-t-24">
           <button mat-flat-button color="warn" (click)="logout()">

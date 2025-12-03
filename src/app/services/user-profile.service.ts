@@ -2,12 +2,22 @@ import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { FirestoreService, SyncableData } from './firestore.service';
 import { AuthService } from './auth.service';
 
+export type GeminiModel = 'gemini-2.0-flash' | 'gemini-2.5-flash' | 'gemini-3.0';
+
+export const GEMINI_MODELS: { value: GeminiModel; label: string }[] = [
+  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'gemini-3.0', label: 'Gemini 3.0' },
+];
+
 export interface UserProfile extends SyncableData {
   id: string;
   email: string;
   displayName: string;
   chatUsername: string;
   photoURL: string | null;
+  geminiApiKey?: string;
+  geminiModel?: GeminiModel;
   createdAt: number;
   updatedAt: number;
 }
@@ -16,6 +26,8 @@ const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'email'> = {
   displayName: '',
   chatUsername: 'USER',
   photoURL: null,
+  geminiApiKey: '',
+  geminiModel: 'gemini-2.5-flash',
   createdAt: Date.now(),
   updatedAt: Date.now(),
 };
@@ -45,6 +57,12 @@ export class UserProfileService {
       this.profileSignal()?.displayName ||
       this.authService.user()?.displayName ||
       ''
+  );
+  readonly geminiApiKey = computed(
+    () => this.profileSignal()?.geminiApiKey || ''
+  );
+  readonly geminiModel = computed(
+    () => this.profileSignal()?.geminiModel || 'gemini-2.5-flash'
   );
 
   constructor() {
@@ -185,6 +203,80 @@ export class UserProfileService {
    */
   getChatUsername(): string {
     return this.profileSignal()?.chatUsername || 'USER';
+  }
+
+  /**
+   * Get current Gemini API key
+   */
+  getGeminiApiKey(): string {
+    return this.profileSignal()?.geminiApiKey || '';
+  }
+
+  /**
+   * Get current Gemini model
+   */
+  getGeminiModel(): GeminiModel {
+    return this.profileSignal()?.geminiModel || 'gemini-2.5-flash';
+  }
+
+  /**
+   * Sanitize API key by removing non-ASCII characters
+   */
+  private sanitizeApiKey(key: string): string {
+    return key.replace(/[^\x00-\x7F]/g, '').trim();
+  }
+
+  /**
+   * Validate Gemini API key by making a test request
+   * @returns Promise<{ valid: boolean; error?: string }>
+   */
+  async validateGeminiApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
+    const cleanKey = this.sanitizeApiKey(apiKey);
+    
+    if (!cleanKey) {
+      return { valid: false, error: 'API key is empty or invalid' };
+    }
+
+    try {
+      // Test the API key by listing models
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+        return { valid: false, error: errorMessage };
+      }
+
+      return { valid: true };
+    } catch (error: any) {
+      return { valid: false, error: error.message || 'Failed to validate API key' };
+    }
+  }
+
+  /**
+   * Update Gemini API key (validates before saving)
+   * @throws Error if API key is invalid
+   */
+  async updateGeminiApiKey(apiKey: string): Promise<void> {
+    const cleanKey = this.sanitizeApiKey(apiKey);
+    
+    // Validate the key first
+    const validation = await this.validateGeminiApiKey(cleanKey);
+    if (!validation.valid) {
+      throw new Error(validation.error || 'Invalid API key');
+    }
+
+    // Save to profile
+    await this.updateProfile({ geminiApiKey: cleanKey });
+  }
+
+  /**
+   * Update Gemini model selection
+   */
+  async updateGeminiModel(model: GeminiModel): Promise<void> {
+    await this.updateProfile({ geminiModel: model });
   }
 
   /**
