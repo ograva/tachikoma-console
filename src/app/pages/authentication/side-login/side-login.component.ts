@@ -10,8 +10,15 @@ import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-side-login',
-  imports: [RouterModule, MaterialModule, FormsModule, ReactiveFormsModule, CommonModule],
+  imports: [
+    RouterModule,
+    MaterialModule,
+    FormsModule,
+    ReactiveFormsModule,
+    CommonModule,
+  ],
   templateUrl: './side-login.component.html',
+  styleUrls: ['./side-login.component.scss'],
 })
 export class AppSideLoginComponent {
   private router = inject(Router);
@@ -44,7 +51,9 @@ export class AppSideLoginComponent {
       );
       this.router.navigate(['/dashboard']);
     } catch (error: any) {
-      this.errorMessage.set(this.authService.error() || 'Login failed. Please try again.');
+      this.errorMessage.set(
+        this.authService.error() || 'Login failed. Please try again.'
+      );
     } finally {
       this.isLoading.set(false);
     }
@@ -58,7 +67,9 @@ export class AppSideLoginComponent {
       await this.authService.signInWithGoogle();
       this.router.navigate(['/dashboard']);
     } catch (error: any) {
-      this.errorMessage.set(this.authService.error() || 'Google sign-in failed. Please try again.');
+      this.errorMessage.set(
+        this.authService.error() || 'Google sign-in failed. Please try again.'
+      );
     } finally {
       this.isLoading.set(false);
     }

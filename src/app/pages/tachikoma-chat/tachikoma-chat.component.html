@@ -51,39 +51,42 @@
     <header class="chat-header">
         <div class="header-left">
             <div class="version-badge">V2.5</div>
-            <div>
+            <div class="header-title-section">
                 <h1 class="protocol-title glitch">TACHIKOMA PROTOCOL</h1>
                 <div class="sync-status">
                     <span class="status-dot"></span>
                     SYNC MODE: SECURE-LINK
                 </div>
             </div>
-        </div>
-
-        <!-- Desktop: Always show initialization form -->
-        <div class="header-right desktop-only">
-            <button (click)="showNewChatDialog()" class="new-chat-btn" matTooltip="New Chat">
-                <mat-icon>add</mat-icon>
-            </button>
-            <div class="export-dropdown" *ngIf="messages.length > 0" (click)="$event.stopPropagation()">
-                <button (click)="toggleExportMenu()" class="export-btn" matTooltip="Export Chat">
-                    <mat-icon>download</mat-icon>
+            <!-- Action buttons next to title - visible on all screens -->
+            <div class="header-actions">
+                <button (click)="showNewChatDialog()" class="new-chat-btn" matTooltip="New Chat">
+                    <mat-icon>add</mat-icon>
                 </button>
-                <div class="export-menu" *ngIf="showExportMenu()">
-                    <button class="export-menu-item" (click)="exportAsText()">
-                        <mat-icon>description</mat-icon>
-                        <span>Export as Text (.txt)</span>
+                <div class="export-dropdown" *ngIf="messages.length > 0" (click)="$event.stopPropagation()">
+                    <button (click)="toggleExportMenu()" class="export-btn" matTooltip="Export Chat">
+                        <mat-icon>download</mat-icon>
                     </button>
-                    <button class="export-menu-item" (click)="exportAsPdf()">
-                        <mat-icon>picture_as_pdf</mat-icon>
-                        <span>Export as PDF (.pdf)</span>
-                    </button>
-                    <button class="export-menu-item" (click)="exportAsWord()">
-                        <mat-icon>article</mat-icon>
-                        <span>Export as Word (.docx)</span>
-                    </button>
+                    <div class="export-menu" *ngIf="showExportMenu()">
+                        <button class="export-menu-item" (click)="exportAsText()">
+                            <mat-icon>description</mat-icon>
+                            <span>Export as Text (.txt)</span>
+                        </button>
+                        <button class="export-menu-item" (click)="exportAsPdf()">
+                            <mat-icon>picture_as_pdf</mat-icon>
+                            <span>Export as PDF (.pdf)</span>
+                        </button>
+                        <button class="export-menu-item" (click)="exportAsWord()">
+                            <mat-icon>article</mat-icon>
+                            <span>Export as Word (.docx)</span>
+                        </button>
+                    </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Desktop: Initialization form on the right -->
+        <div class="header-right desktop-only">
             <input type="password" [(ngModel)]="apiKey" placeholder="Enter Gemini API Key" class="api-input" />
             <button (click)="saveKey()" class="init-btn">INITIALIZE</button>
         </div>
@@ -97,34 +100,10 @@
             <button (click)="saveKey()" class="init-btn-mobile">INITIALIZE</button>
         </div>
 
-        <!-- Show status panel if initialized -->
-        <div *ngIf="isInitialized" class="mobile-status-section">
+        <!-- Show status panel during processing -->
+        <div *ngIf="isInitialized && showNeuralActivity()" class="mobile-status-section">
             <div class="mobile-header-row">
                 <h3 class="panel-title-mobile">NEURAL ACTIVITY</h3>
-                <div class="mobile-actions">
-                    <button (click)="showNewChatDialog()" class="mobile-action-btn" matTooltip="New Chat">
-                        <mat-icon>add</mat-icon>
-                    </button>
-                    <div class="export-dropdown-mobile" *ngIf="messages.length > 0" (click)="$event.stopPropagation()">
-                        <button (click)="toggleExportMenu()" class="mobile-action-btn" matTooltip="Export">
-                            <mat-icon>download</mat-icon>
-                        </button>
-                        <div class="export-menu export-menu-mobile" *ngIf="showExportMenu()">
-                            <button class="export-menu-item" (click)="exportAsText()">
-                                <mat-icon>description</mat-icon>
-                                <span>Text (.txt)</span>
-                            </button>
-                            <button class="export-menu-item" (click)="exportAsPdf()">
-                                <mat-icon>picture_as_pdf</mat-icon>
-                                <span>PDF (.pdf)</span>
-                            </button>
-                            <button class="export-menu-item" (click)="exportAsWord()">
-                                <mat-icon>article</mat-icon>
-                                <span>Word (.docx)</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
             <div class="agent-status-mobile" *ngFor="let agent of agents">
                 <div class="status-row-mobile">
@@ -197,8 +176,8 @@
                     </div>
                 </div>
 
-                <!-- Right Panel: Active Status -->
-                <div class="status-panel">
+                <!-- Right Panel: Active Status (only shown during processing) -->
+                <div class="status-panel" *ngIf="showNeuralActivity()">
                     <h3 class="panel-title">NEURAL ACTIVITY</h3>
 
                     <div class="agent-status" *ngFor="let agent of agents">

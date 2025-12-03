@@ -1,30 +1,34 @@
 <div class="row">
-  <!-- System Status Card -->
+  <!-- Welcome & Introduction Card -->
   <div class="col-lg-12">
     <mat-card class="cardWithShadow bg-light-primary overflow-hidden">
       <mat-card-content class="p-32">
         <div class="row justify-content-between align-items-center">
-          <div class="col-sm-6">
+          <div class="col-sm-8">
             <h5 class="f-w-600 f-s-20 m-b-8 text-primary">
-              System Status: ONLINE
+              Welcome to SAC Console
             </h5>
-            <h2 class="f-w-700 f-s-28 m-b-24">
-              Tachikoma Protocol v2.5
+            <h2 class="f-w-700 f-s-28 m-b-16">
+              Multi-Agent AI Chat System
             </h2>
-            <div class="d-flex align-items-center gap-3">
+            <p class="f-s-15 m-b-20 text-muted">
+              Experience collaborative intelligence through multiple AI personas working together.
+              Each agent brings a unique perspective to analyze, philosophize, and synthesize responses to your queries.
+            </p>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
               <button mat-flat-button color="primary" (click)="navigateToProtocol()">
-                Launch Protocol Interface
+                <i-tabler name="message-chatbot" class="icon-18 m-r-8"></i-tabler>
+                Start Multi-Agent Chat
               </button>
               <span class="text-success f-w-600 d-flex align-items-center gap-1">
                 <i-tabler name="circle-check" class="icon-20"></i-tabler>
-                Secure Link Established
+                System Ready
               </span>
             </div>
           </div>
-          <div class="col-sm-5">
+          <div class="col-sm-4">
             <div class="text-center position-relative">
-              <!-- Placeholder for a cool image or icon -->
-              <i-tabler name="robot" class="icon-150 text-primary opacity-20"></i-tabler>
+              <i-tabler name="hexagons" class="icon-150 text-primary opacity-20"></i-tabler>
             </div>
           </div>
         </div>
@@ -32,28 +36,91 @@
     </mat-card>
   </div>
 
-  <!-- Agent Status Cards -->
+  <!-- Features Overview -->
+  <div class="col-lg-12">
+    <mat-card class="cardWithShadow">
+      <mat-card-content class="p-32">
+        <h4 class="f-w-600 m-b-24">What You Can Do</h4>
+        <div class="row">
+          <div class="col-md-6 col-lg-3 m-b-24">
+            <div class="d-flex align-items-start gap-3">
+              <span class="rounded bg-light-info p-10 d-flex align-items-center justify-content-center flex-shrink-0">
+                <i-tabler name="users-group" class="text-info icon-24"></i-tabler>
+              </span>
+              <div>
+                <h6 class="f-w-600 f-s-15 m-b-8">Multi-Agent Collaboration</h6>
+                <p class="f-s-13 text-muted m-b-0">
+                  Get insights from multiple AI personas simultaneously, each offering unique analytical or
+                  philosophical perspectives.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-3 m-b-24">
+            <div class="d-flex align-items-start gap-3">
+              <span
+                class="rounded bg-light-success p-10 d-flex align-items-center justify-content-center flex-shrink-0">
+                <i-tabler name="adjustments-alt" class="text-success icon-24"></i-tabler>
+              </span>
+              <div>
+                <h6 class="f-w-600 f-s-15 m-b-8">Customizable Agents</h6>
+                <p class="f-s-13 text-muted m-b-0">
+                  Configure AI personas with different temperatures, roles, and speaking orders to suit your needs.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-3 m-b-24">
+            <div class="d-flex align-items-start gap-3">
+              <span class="rounded bg-light-error p-10 d-flex align-items-center justify-content-center flex-shrink-0">
+                <i-tabler name="cpu" class="text-error icon-24"></i-tabler>
+              </span>
+              <div>
+                <h6 class="f-w-600 f-s-15 m-b-8">Powered by Gemini 2.0</h6>
+                <p class="f-s-13 text-muted m-b-0">
+                  Leverages Google's latest Gemini 2.0 Flash Exp model for fast, intelligent responses.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-3 m-b-24">
+            <div class="d-flex align-items-start gap-3">
+              <span
+                class="rounded bg-light-warning p-10 d-flex align-items-center justify-content-center flex-shrink-0">
+                <i-tabler name="file-export" class="text-warning icon-24"></i-tabler>
+              </span>
+              <div>
+                <h6 class="f-w-600 f-s-15 m-b-8">Export Conversations</h6>
+                <p class="f-s-13 text-muted m-b-0">
+                  Save your chat sessions as PDF or Word documents for future reference and analysis.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Default AI Agents -->
   <div class="col-lg-4">
     <mat-card class="cardWithShadow">
       <mat-card-content class="p-24">
-        <div class="d-flex align-items-center m-b-24">
+        <div class="d-flex align-items-center m-b-16">
           <span class="rounded bg-light-info p-10 d-flex align-items-center justify-content-center">
             <i-tabler name="brain" class="text-info icon-24"></i-tabler>
           </span>
           <div class="m-l-12">
             <h4 class="mat-subtitle-1 f-s-16 f-w-600 m-b-0">Logikoma</h4>
-            <span class="f-s-12 text-muted">Analytical Engine</span>
-          </div>
-          <div class="m-l-auto">
-            <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Active</span>
+            <span class="f-s-12 text-muted">Analytical Agent</span>
           </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between">
-          <div>
-            <h6 class="f-s-14 text-muted m-b-0">Processing Load</h6>
-            <h4 class="m-b-0 f-w-600 m-t-4">12%</h4>
-          </div>
-          <div id="chart-logikoma"></div>
+        <p class="f-s-13 text-muted m-b-16">
+          Pure analytical engine providing data-driven, logical analysis with cold precision. Temperature: 0.2
+        </p>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-light-info text-info f-s-11">Logic</span>
+          <span class="badge bg-light-info text-info f-s-11">Data Analysis</span>
         </div>
       </mat-card-content>
     </mat-card>
@@ -62,23 +129,21 @@
   <div class="col-lg-4">
     <mat-card class="cardWithShadow">
       <mat-card-content class="p-24">
-        <div class="d-flex align-items-center m-b-24">
+        <div class="d-flex align-items-center m-b-16">
           <span class="rounded bg-light-error p-10 d-flex align-items-center justify-content-center">
             <i-tabler name="ghost" class="text-error icon-24"></i-tabler>
           </span>
           <div class="m-l-12">
             <h4 class="mat-subtitle-1 f-s-16 f-w-600 m-b-0">Ghost-1</h4>
-            <span class="f-s-12 text-muted">Emergent Consciousness</span>
-          </div>
-          <div class="m-l-auto">
-            <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Active</span>
+            <span class="f-s-12 text-muted">Philosophical Agent</span>
           </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between">
-          <div>
-            <h6 class="f-s-14 text-muted m-b-0">Divergence</h6>
-            <h4 class="m-b-0 f-w-600 m-t-4">0.84</h4>
-          </div>
+        <p class="f-s-13 text-muted m-b-16">
+          Questions assumptions, explores deeper meaning, and reveals philosophical perspectives. Temperature: 0.7
+        </p>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-light-error text-error f-s-11">Philosophy</span>
+          <span class="badge bg-light-error text-error f-s-11">Abstract Thinking</span>
         </div>
       </mat-card-content>
     </mat-card>
@@ -87,93 +152,89 @@
   <div class="col-lg-4">
     <mat-card class="cardWithShadow">
       <mat-card-content class="p-24">
-        <div class="d-flex align-items-center m-b-24">
+        <div class="d-flex align-items-center m-b-16">
           <span class="rounded bg-light-success p-10 d-flex align-items-center justify-content-center">
             <i-tabler name="shield-check" class="text-success icon-24"></i-tabler>
           </span>
           <div class="m-l-12">
             <h4 class="mat-subtitle-1 f-s-16 f-w-600 m-b-0">Moderator</h4>
-            <span class="f-s-12 text-muted">System Control</span>
-          </div>
-          <div class="m-l-auto">
-            <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Active</span>
+            <span class="f-s-12 text-muted">Synthesis Agent</span>
           </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between">
-          <div>
-            <h6 class="f-s-14 text-muted m-b-0">Uptime</h6>
-            <h4 class="m-b-0 f-w-600 m-t-4">99.9%</h4>
-          </div>
+        <p class="f-s-13 text-muted m-b-16">
+          Bridges logic and philosophy, synthesizes perspectives, and provides balanced final answers. Temperature: 0.5
+        </p>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-light-success text-success f-s-11">Synthesis</span>
+          <span class="badge bg-light-success text-success f-s-11">Balance</span>
         </div>
       </mat-card-content>
     </mat-card>
   </div>
 
-  <!-- Recent Activity Log -->
+  <!-- Getting Started Guide -->
   <div class="col-lg-12">
     <mat-card class="cardWithShadow">
       <mat-card-header class="d-flex justify-content-between align-items-center p-24">
-        <mat-card-title class="m-b-0">System Logs</mat-card-title>
+        <mat-card-title class="m-b-0">Getting Started</mat-card-title>
       </mat-card-header>
       <mat-card-content class="p-24">
-        <div class="table-responsive">
-          <table class="table v-middle text-nowrap">
-            <thead>
-              <tr>
-                <th class="f-w-600">Timestamp</th>
-                <th class="f-w-600">Event</th>
-                <th class="f-w-600">Source</th>
-                <th class="f-w-600">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <span class="f-s-14">Just now</span>
-                </td>
-                <td>
-                  <h6 class="m-b-0 f-s-14 f-w-600">Dashboard Initialized</h6>
-                  <span class="f-s-12 text-muted">User session started</span>
-                </td>
-                <td>
-                  <span class="f-s-14">System Core</span>
-                </td>
-                <td>
-                  <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Success</span>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <span class="f-s-14">2 mins ago</span>
-                </td>
-                <td>
-                  <h6 class="m-b-0 f-s-14 f-w-600">Neural Link Check</h6>
-                  <span class="f-s-12 text-muted">Latency: 12ms</span>
-                </td>
-                <td>
-                  <span class="f-s-14">Network</span>
-                </td>
-                <td>
-                  <span class="badge bg-light-success text-success rounded-pill f-s-12 f-w-600">Stable</span>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <span class="f-s-14">1 hour ago</span>
-                </td>
-                <td>
-                  <h6 class="m-b-0 f-s-14 f-w-600">Model Update</h6>
-                  <span class="f-s-12 text-muted">Gemini 2.0 Flash Exp</span>
-                </td>
-                <td>
-                  <span class="f-s-14">Updater</span>
-                </td>
-                <td>
-                  <span class="badge bg-light-info text-info rounded-pill f-s-12 f-w-600">Completed</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="row">
+          <div class="col-md-6 m-b-24">
+            <div class="d-flex align-items-start gap-3">
+              <span
+                class="rounded-circle bg-light-primary text-primary p-8 d-flex align-items-center justify-content-center f-w-600 f-s-14 flex-shrink-0"
+                style="width: 32px; height: 32px;">1</span>
+              <div>
+                <h6 class="f-w-600 f-s-15 m-b-8">Configure Your API Key</h6>
+                <p class="f-s-13 text-muted m-b-0">
+                  In the chat interface, enter your Google Gemini API key. Your key is stored locally in your browser
+                  for security.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 m-b-24">
+            <div class="d-flex align-items-start gap-3">
+              <span
+                class="rounded-circle bg-light-primary text-primary p-8 d-flex align-items-center justify-content-center f-w-600 f-s-14 flex-shrink-0"
+                style="width: 32px; height: 32px;">2</span>
+              <div>
+                <h6 class="f-w-600 f-s-15 m-b-8">Start a Conversation</h6>
+                <p class="f-s-13 text-muted m-b-0">
+                  Type your question or topic. All three agents will analyze and respond with their unique perspectives.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 m-b-24">
+            <div class="d-flex align-items-start gap-3">
+              <span
+                class="rounded-circle bg-light-primary text-primary p-8 d-flex align-items-center justify-content-center f-w-600 f-s-14 flex-shrink-0"
+                style="width: 32px; height: 32px;">3</span>
+              <div>
+                <h6 class="f-w-600 f-s-15 m-b-8">Customize Agents (Optional)</h6>
+                <p class="f-s-13 text-muted m-b-0">
+                  Visit the Tachikomas page to create new agents, adjust temperatures, or modify system prompts to fit
+                  your needs.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 m-b-24">
+            <div class="d-flex align-items-start gap-3">
+              <span
+                class="rounded-circle bg-light-primary text-primary p-8 d-flex align-items-center justify-content-center f-w-600 f-s-14 flex-shrink-0"
+                style="width: 32px; height: 32px;">4</span>
+              <div>
+                <h6 class="f-w-600 f-s-15 m-b-8">Export & Save</h6>
+                <p class="f-s-13 text-muted m-b-0">
+                  Download your conversations as PDF or DOCX files for documentation, analysis, or sharing with your
+                  team.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </mat-card-content>
     </mat-card>

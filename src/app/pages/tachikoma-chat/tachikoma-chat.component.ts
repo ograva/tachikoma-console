@@ -20,11 +20,16 @@ import {
   ChatSession,
   ChatMessage as StoredChatMessage,
 } from '../../services/chat-storage.service';
-import { UserProfileService, GeminiModel } from '../../services/user-profile.service';
+import {
+  UserProfileService,
+  GeminiModel,
+} from '../../services/user-profile.service';
 import { AuthService } from '../../services/auth.service';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
+import { MatDialog } from '@angular/material/dialog';
+import { ChatExplainerDialogComponent } from './chat-explainer-dialog.component';
 
 interface Agent {
   id: string;
@@ -67,6 +72,7 @@ export class TachikomaChatComponent {
   selectedModel: GeminiModel = 'gemini-2.5-flash';
   userInput = '';
   isProcessing = false;
+  showNeuralActivity = signal<boolean>(false); // Show/hide neural activity panel
   messages: ChatMessage[] = [];
   conversationSummary = ''; // Running summary of the conversation
   messagesSinceLastSummary = 0; // Counter for when to trigger summary
@@ -116,7 +122,8 @@ export class TachikomaChatComponent {
 
   constructor(
     private profileService: AgentProfileService,
-    private chatStorage: ChatStorageService
+    private chatStorage: ChatStorageService,
+    private dialog: MatDialog
   ) {
     // Load agent profiles from service
     this.loadAgents();
@@ -127,6 +134,9 @@ export class TachikomaChatComponent {
     // Load API key and model from user profile if authenticated
     // Otherwise, fallback to localStorage for backward compatibility
     this.loadApiSettings();
+
+    // Show explainer dialog on first visit
+    this.checkAndShowExplainer();
 
     // React to user profile changes (e.g., after login)
     effect(() => {
@@ -141,6 +151,32 @@ export class TachikomaChatComponent {
         }
       }
     });
+  }
+
+  /**
+   * Check if user has seen the explainer and show if first time
+   */
+  private checkAndShowExplainer(): void {
+    const hasSeenExplainer = localStorage.getItem(
+      'tachikoma_chat_explainer_seen'
+    );
+    if (!hasSeenExplainer) {
+      // Small delay to let the component render first
+      setTimeout(() => {
+        this.dialog
+          .open(ChatExplainerDialogComponent, {
+            width: '600px',
+            maxWidth: '90vw',
+            disableClose: false,
+            panelClass: 'chat-explainer-dialog',
+          })
+          .afterClosed()
+          .subscribe(() => {
+            // Mark as seen
+            localStorage.setItem('tachikoma_chat_explainer_seen', 'true');
+          });
+      }, 500);
+    }
   }
 
   /**
@@ -465,6 +501,7 @@ export class TachikomaChatComponent {
     const text = this.userInput.trim();
     this.userInput = '';
     this.isProcessing = true;
+    this.showNeuralActivity.set(true); // Show panel when processing starts
 
     try {
       // Add User Message with custom username from profile
@@ -593,6 +630,7 @@ export class TachikomaChatComponent {
     } finally {
       // Always reset processing state, even if errors occur
       this.isProcessing = false;
+      this.showNeuralActivity.set(false); // Hide panel when processing completes
     }
   }
 
@@ -758,10 +796,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       const text = response.text || '';
 
       // Debug: Log response details
-      console.log(
-        'API Response candidates:',
-        response.candidates?.length
-      );
+      console.log('API Response candidates:', response.candidates?.length);
       console.log('API Response text length:', text.length);
 
       return text;
@@ -840,7 +875,11 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
     // Export date
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Exported: ${new Date().toLocaleString()}`, this.PDF_MARGIN, yPosition);
+    doc.text(
+      `Exported: ${new Date().toLocaleString()}`,
+      this.PDF_MARGIN,
+      yPosition
+    );
     yPosition += this.PDF_LINE_HEIGHT * 2;
 
     // Messages
@@ -851,7 +890,10 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       const sender = msg.isUser ? 'USER' : msg.sender;
 
       // Check if we need a new page
-      if (yPosition > doc.internal.pageSize.getHeight() - this.PDF_PAGE_BOTTOM_MARGIN) {
+      if (
+        yPosition >
+        doc.internal.pageSize.getHeight() - this.PDF_PAGE_BOTTOM_MARGIN
+      ) {
         doc.addPage();
         yPosition = 20;
       }
@@ -866,7 +908,10 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       const lines = doc.splitTextToSize(msg.text, maxLineWidth);
 
       for (const line of lines) {
-        if (yPosition > doc.internal.pageSize.getHeight() - this.PDF_CONTENT_BOTTOM_MARGIN) {
+        if (
+          yPosition >
+          doc.internal.pageSize.getHeight() - this.PDF_CONTENT_BOTTOM_MARGIN
+        ) {
           doc.addPage();
           yPosition = 20;
         }

@@ -1,19 +1,19 @@
-<div class="blank-layout-container justify-content-center align-items-center bg-light">
+<div class="blank-layout-container justify-content-center align-items-center">
   <div class="position-relative row w-100 h-100 bg-gredient justify-content-center">
     <div class="col-lg-4 d-flex align-items-center">
       <mat-card class="cardWithShadow boxed-auth">
         <mat-card-content class="p-32">
           <div class="text-center">
             <a [routerLink]="['/dashboard']">
-              <img src="./assets/images/logos/dark-logo.svg" class="align-middle m-2" alt="logo" />
+              <img src="./assets/images/logos/sac-logo-white.png" class="align-middle m-2" alt="logo" />
             </a>
           </div>
 
           <!-- Error Message -->
           @if (errorMessage()) {
-            <div class="alert alert-error m-t-16 m-b-16">
-              {{ errorMessage() }}
-            </div>
+          <div class="alert alert-error m-t-16 m-b-16">
+            {{ errorMessage() }}
+          </div>
           }
 
           <div class="row m-t-24 custom-row">
@@ -34,10 +34,10 @@
             <mat-form-field appearance="outline" class="w-100" color="primary">
               <input matInput formControlName="email" type="email" />
               @if (f.email.touched && f.email.errors?.['required']) {
-                <mat-error>Email is required</mat-error>
+              <mat-error>Email is required</mat-error>
               }
               @if (f.email.touched && f.email.errors?.['email']) {
-                <mat-error>Please enter a valid email</mat-error>
+              <mat-error>Please enter a valid email</mat-error>
               }
             </mat-form-field>
             <!-- password -->
@@ -45,17 +45,19 @@
             <mat-form-field appearance="outline" class="w-100" color="primary">
               <input matInput type="password" formControlName="password" />
               @if (f.password.touched && f.password.errors?.['required']) {
-                <mat-error>Password is required</mat-error>
+              <mat-error>Password is required</mat-error>
               }
             </mat-form-field>
 
             <div class="d-flex align-items-center m-b-12">
               <mat-checkbox color="primary">Remember this Device</mat-checkbox>
-              <a [routerLink]="['/']" class="text-primary f-w-600 text-decoration-none m-l-auto f-s-14">Forgot Password?</a>
+              <a [routerLink]="['/']" class="text-primary f-w-600 text-decoration-none m-l-auto f-s-14">Forgot
+                Password?</a>
             </div>
-            <button mat-flat-button color="primary" class="w-100" type="submit" [disabled]="isLoading() || form.invalid">
+            <button mat-flat-button color="primary" class="w-100" type="submit"
+              [disabled]="isLoading() || form.invalid">
               @if (isLoading()) {
-                <mat-spinner diameter="20" class="m-r-8"></mat-spinner>
+              <mat-spinner diameter="20" class="m-r-8"></mat-spinner>
               }
               Sign In
             </button>
