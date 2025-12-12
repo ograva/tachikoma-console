@@ -30,6 +30,7 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
 import { MatDialog } from '@angular/material/dialog';
 import { ChatExplainerDialogComponent } from './chat-explainer-dialog.component';
+import { ApiKeySyncDialogComponent } from './api-key-sync-dialog.component';
 
 interface Agent {
   id: string;
@@ -151,6 +152,15 @@ export class TachikomaChatComponent {
         }
       }
     });
+
+    // React to authentication state changes
+    effect(() => {
+      const isAuth = this.authService.isAuthenticated();
+      if (isAuth) {
+        // User just logged in - check if we need to sync localStorage key to profile
+        this.checkAndSyncApiKey();
+      }
+    });
   }
 
   /**
@@ -180,18 +190,93 @@ export class TachikomaChatComponent {
   }
 
   /**
+   * Check if we need to sync API key from localStorage to user profile
+   * Called when user becomes authenticated
+   */
+  private async checkAndSyncApiKey(): Promise<void> {
+    // Only proceed if authenticated
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+
+    // Check if profile already has an API key
+    const profileKey = this.userProfileService.getGeminiApiKey();
+    if (profileKey) {
+      // Profile already has a key, no need to sync
+      return;
+    }
+
+    // Check if localStorage has an API key
+    const localStorageKey = localStorage.getItem('gemini_api_key');
+    if (!localStorageKey || !localStorageKey.trim()) {
+      // No key in localStorage to sync
+      return;
+    }
+
+    // Check if user has already declined syncing this key
+    const syncDeclined = localStorage.getItem('api_key_sync_declined');
+    if (syncDeclined === localStorageKey) {
+      // User previously declined syncing this specific key
+      return;
+    }
+
+    // Wait a bit for the UI to settle after login
+    setTimeout(() => {
+      this.dialog
+        .open(ApiKeySyncDialogComponent, {
+          width: '500px',
+          maxWidth: '90vw',
+          disableClose: false,
+        })
+        .afterClosed()
+        .subscribe(async (accepted: boolean) => {
+          if (accepted) {
+            // User wants to sync - save to profile
+            try {
+              const cleanKey = localStorageKey.replace(/[^\x00-\x7F]/g, '').trim();
+              await this.userProfileService.updateGeminiApiKey(cleanKey);
+              console.log('API key synced to user profile');
+              // Remove the declined flag if it exists
+              localStorage.removeItem('api_key_sync_declined');
+            } catch (error) {
+              console.error('Failed to sync API key to profile:', error);
+              alert('Failed to save API key to profile. Please try again from your Profile page.');
+            }
+          } else {
+            // User declined - remember this decision for this specific key
+            localStorage.setItem('api_key_sync_declined', localStorageKey);
+            console.log('User declined API key sync');
+          }
+        });
+    }, 1000);
+  }
+
+  /**
    * Load API settings from user profile or localStorage
    */
   private loadApiSettings(): void {
-    // First, try to load from user profile (for authenticated users)
-    const profileKey = this.userProfileService.getGeminiApiKey();
-    const profileModel = this.userProfileService.getGeminiModel();
+    if (this.authService.isAuthenticated()) {
+      // For authenticated users: Check profile first, then localStorage
+      const profileKey = this.userProfileService.getGeminiApiKey();
+      const profileModel = this.userProfileService.getGeminiModel();
 
-    if (profileKey) {
-      this.apiKey = profileKey;
-      this.selectedModel = profileModel;
+      if (profileKey) {
+        // API key exists in profile - use it
+        this.apiKey = profileKey;
+        this.selectedModel = profileModel;
+        console.log('API key loaded from user profile');
+      } else {
+        // No API key in profile - check localStorage
+        const storedKey = localStorage.getItem('gemini_api_key');
+        if (storedKey) {
+          // Sanitize on load
+          this.apiKey = storedKey.replace(/[^\x00-\x7F]/g, '').trim();
+          console.log('API key loaded from localStorage (authenticated user)');
+          // Note: We'll prompt to sync to profile after auth state stabilizes
+        }
+      }
     } else {
-      // Fallback to localStorage for backward compatibility
+      // For unauthenticated users: Only check localStorage
       const storedKey = localStorage.getItem('gemini_api_key');
       if (storedKey) {
         // Sanitize on load in case a dirty key was stored before fix
@@ -200,6 +285,7 @@ export class TachikomaChatComponent {
         if (this.apiKey !== storedKey && this.apiKey) {
           localStorage.setItem('gemini_api_key', this.apiKey);
         }
+        console.log('API key loaded from localStorage (unauthenticated user)');
       }
     }
   }
@@ -442,7 +528,22 @@ export class TachikomaChatComponent {
     const cleanKey = this.getCleanKey();
     if (cleanKey) {
       this.apiKey = cleanKey;
+      
+      // Always save to localStorage for unauthenticated users
       localStorage.setItem('gemini_api_key', cleanKey);
+
+      // If authenticated, also save to user profile
+      if (this.authService.isAuthenticated()) {
+        try {
+          await this.userProfileService.updateGeminiApiKey(cleanKey);
+          console.log('API key saved to both localStorage and user profile');
+        } catch (error) {
+          console.error('Failed to save API key to profile:', error);
+          // Still show success since localStorage save worked
+          alert('LINK ESTABLISHED. KEY SAVED TO LOCAL STORAGE.\n\nNote: Could not sync to profile. Please check your Profile page.');
+          return;
+        }
+      }
 
       // List available models
       await this.listAvailableModels();

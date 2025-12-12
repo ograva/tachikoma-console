@@ -188,6 +188,13 @@ export class AuthService implements OnDestroy {
     try {
       this.loadingSignal.set(true);
       this.errorSignal.set(null);
+      
+      // Clear API key from localStorage on logout
+      localStorage.removeItem('gemini_api_key');
+      // Also clear the sync declined flag
+      localStorage.removeItem('api_key_sync_declined');
+      console.log('API key cleared from localStorage on logout');
+      
       await signOut(this.auth);
     } catch (error: any) {
       this.errorSignal.set(this.getErrorMessage(error.code));
