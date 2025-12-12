@@ -220,7 +220,9 @@ export class TachikomaChatComponent {
       return;
     }
 
-    // Wait a bit for the UI to settle after login
+    // Use setTimeout to wait for the UI to settle after login and avoid showing
+    // multiple dialogs simultaneously (e.g., with the explainer dialog)
+    // The delay is intentionally generous to ensure a good user experience
     setTimeout(() => {
       this.dialog
         .open(ApiKeySyncDialogComponent, {
@@ -238,9 +240,10 @@ export class TachikomaChatComponent {
               console.log('API key synced to user profile');
               // Remove the declined flag if it exists
               localStorage.removeItem('api_key_sync_declined');
-            } catch (error) {
+            } catch (error: any) {
               console.error('Failed to sync API key to profile:', error);
-              alert('Failed to save API key to profile. Please try again from your Profile page.');
+              const errorMessage = error?.message || 'Unknown error';
+              alert(`Failed to save API key to profile: ${errorMessage}\n\nPlease try again from your Profile page or check your internet connection.`);
             }
           } else {
             // User declined - remember this decision for this specific key
@@ -537,10 +540,11 @@ export class TachikomaChatComponent {
         try {
           await this.userProfileService.updateGeminiApiKey(cleanKey);
           console.log('API key saved to both localStorage and user profile');
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to save API key to profile:', error);
-          // Still show success since localStorage save worked
-          alert('LINK ESTABLISHED. KEY SAVED TO LOCAL STORAGE.\n\nNote: Could not sync to profile. Please check your Profile page.');
+          const errorMessage = error?.message || 'Unknown error';
+          // Show warning since localStorage save worked but profile sync failed
+          alert(`⚠️ WARNING: KEY SAVED LOCALLY BUT PROFILE SYNC FAILED\n\nYour API key is saved locally and will work on this device.\n\nProfile sync error: ${errorMessage}\n\nTo sync to your profile, please visit the Profile page.`);
           return;
         }
       }
