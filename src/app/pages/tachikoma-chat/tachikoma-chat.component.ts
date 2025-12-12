@@ -525,10 +525,8 @@ export class TachikomaChatComponent {
         const agent = activeAgents[i];
         agent.status = 'thinking';
 
+        // Build prompt with current context (includes file content and agent responses so far)
         let prompt = conversationContext;
-        if (i > 0) {
-          prompt += `\nCONTEXT_SO_FAR (Previous agents have spoken):\n${conversationContext}`;
-        }
 
         try {
           const response = await this.callGemini(
@@ -792,6 +790,14 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
           topK: 40,
         },
       });
+
+      // Check if response was blocked by safety filters
+      if (response.promptFeedback?.blockReason) {
+        const blockReason = response.promptFeedback.blockReason;
+        const blockMessage = response.promptFeedback.blockReasonMessage || 'Content was blocked';
+        console.error('Content blocked by safety filters:', blockReason, blockMessage);
+        throw new Error(`Content blocked by safety filters: ${blockReason}. ${blockMessage}`);
+      }
 
       const text = response.text || '';
 
