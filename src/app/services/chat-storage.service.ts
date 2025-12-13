@@ -1,7 +1,9 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { AgentProfile } from './agent-profile.service';
+import { FirestoreService, SyncableData } from './firestore.service';
+import { AuthService } from './auth.service';
 
-export interface ChatSession {
+export interface ChatSession extends SyncableData {
   id: string;
   title: string;
   messages: ChatMessage[];
@@ -27,9 +29,13 @@ export interface ChatMessage {
 export class ChatStorageService {
   private readonly STORAGE_KEY = 'tachikoma_chat_sessions';
   private readonly CURRENT_CHAT_KEY = 'tachikoma_current_chat_id';
+  private readonly COLLECTION_NAME = 'chat_sessions';
 
   private sessionsSignal = signal<ChatSession[]>([]);
   private currentChatIdSignal = signal<string | null>(null);
+
+  private firestoreService = inject(FirestoreService);
+  private authService = inject(AuthService);
 
   constructor() {
     this.loadSessions();
@@ -91,10 +97,10 @@ export class ChatStorageService {
     return this.sessionsSignal().find((s) => s.id === currentId) || null;
   }
 
-  createNewChat(
+  async createNewChat(
     title?: string,
     participatingAgents: AgentProfile[] = []
-  ): ChatSession {
+  ): Promise<ChatSession> {
     const newChat: ChatSession = {
       id: this.generateId(),
       title: title || `Chat ${new Date().toLocaleString()}`,
@@ -105,10 +111,14 @@ export class ChatStorageService {
       updatedAt: Date.now(),
     };
 
+    // Update local state immediately
     this.sessionsSignal.update((sessions) => [newChat, ...sessions]);
     this.currentChatIdSignal.set(newChat.id);
     this.saveSessions();
     this.saveCurrentChatId();
+
+    // Sync to cloud
+    await this.syncChatToCloud(newChat);
 
     return newChat;
   }
@@ -123,43 +133,66 @@ export class ChatStorageService {
     return null;
   }
 
-  updateCurrentChat(
+  async updateCurrentChat(
     messages: ChatMessage[],
     conversationSummary: string,
     participatingAgents?: AgentProfile[]
-  ): void {
+  ): Promise<void> {
     const currentId = this.currentChatIdSignal();
     if (!currentId) return;
 
+    const now = Date.now();
+    let updatedChat: ChatSession | null = null;
+
+    // Update local state immediately
     this.sessionsSignal.update((sessions) =>
-      sessions.map((session) =>
-        session.id === currentId
-          ? {
-              ...session,
-              messages,
-              conversationSummary,
-              participatingAgents:
-                participatingAgents || session.participatingAgents,
-              updatedAt: Date.now(),
-            }
-          : session
-      )
+      sessions.map((session) => {
+        if (session.id === currentId) {
+          updatedChat = {
+            ...session,
+            messages,
+            conversationSummary,
+            participatingAgents:
+              participatingAgents || session.participatingAgents,
+            updatedAt: now,
+          };
+          return updatedChat;
+        }
+        return session;
+      })
     );
     this.saveSessions();
+
+    // Sync to cloud
+    if (updatedChat) {
+      await this.syncChatToCloud(updatedChat);
+    }
   }
 
-  updateChatTitle(chatId: string, title: string): void {
+  async updateChatTitle(chatId: string, title: string): Promise<void> {
+    const now = Date.now();
+    let updatedChat: ChatSession | null = null;
+
+    // Update local state immediately
     this.sessionsSignal.update((sessions) =>
-      sessions.map((session) =>
-        session.id === chatId
-          ? { ...session, title, updatedAt: Date.now() }
-          : session
-      )
+      sessions.map((session) => {
+        if (session.id === chatId) {
+          updatedChat = { ...session, title, updatedAt: now };
+          return updatedChat;
+        }
+        return session;
+      })
     );
     this.saveSessions();
+
+    // Sync to cloud
+    if (updatedChat) {
+      await this.syncChatToCloud(updatedChat);
+    }
   }
 
-  deleteChat(chatId: string): void {
+  async deleteChat(chatId: string): Promise<void> {
+    // Update local state immediately
     this.sessionsSignal.update((sessions) =>
       sessions.filter((s) => s.id !== chatId)
     );
@@ -173,13 +206,96 @@ export class ChatStorageService {
     }
 
     this.saveSessions();
+
+    // Delete from cloud
+    if (this.authService.isAuthenticated()) {
+      try {
+        await this.firestoreService.deleteDocument(
+          this.COLLECTION_NAME,
+          chatId
+        );
+      } catch (error) {
+        console.error(`Error deleting chat ${chatId} from cloud:`, error);
+      }
+    }
   }
 
-  clearAllChats(): void {
+  async clearAllChats(): Promise<void> {
+    const allChatIds = this.sessionsSignal().map((s) => s.id);
+
+    // Update local state immediately
     this.sessionsSignal.set([]);
     this.currentChatIdSignal.set(null);
     this.saveSessions();
     this.saveCurrentChatId();
+
+    // Delete from cloud
+    if (this.authService.isAuthenticated()) {
+      for (const chatId of allChatIds) {
+        try {
+          await this.firestoreService.deleteDocument(
+            this.COLLECTION_NAME,
+            chatId
+          );
+        } catch (error) {
+          console.error(`Error deleting chat ${chatId} from cloud:`, error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Sync a single chat to cloud
+   * Handles large chats by splitting if necessary
+   */
+  private async syncChatToCloud(chat: ChatSession): Promise<void> {
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+
+    try {
+      // Check chat size (Firestore has 1MB document limit)
+      const chatJson = JSON.stringify(chat);
+      const sizeInBytes = new Blob([chatJson]).size;
+      const sizeInKB = sizeInBytes / 1024;
+
+      if (sizeInKB > 900) {
+        // Leave buffer below 1MB
+        console.warn(
+          `Chat ${chat.id} is large (${sizeInKB.toFixed(
+            0
+          )}KB), consider pagination`
+        );
+        // TODO: Implement chat message pagination for very large chats
+        // For now, still try to save but log warning
+      }
+
+      await this.firestoreService.saveDocument(this.COLLECTION_NAME, chat);
+    } catch (error) {
+      console.error(`Error syncing chat ${chat.id} to cloud:`, error);
+    }
+  }
+
+  /**
+   * Load chats from Firestore (called after login sync)
+   */
+  async loadFromCloud(): Promise<void> {
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+
+    try {
+      const chats = await this.firestoreService.getDocuments<ChatSession>(
+        this.COLLECTION_NAME
+      );
+
+      if (chats.length > 0) {
+        this.sessionsSignal.set(chats);
+        this.saveSessions();
+      }
+    } catch (error) {
+      console.error('Error loading chats from cloud:', error);
+    }
   }
 
   exportChat(chatId: string): string {

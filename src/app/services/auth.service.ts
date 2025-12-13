@@ -20,6 +20,10 @@ export interface AuthUser {
   photoURL: string | null;
 }
 
+export type SyncCallback = (
+  strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud'
+) => Promise<void>;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -27,6 +31,8 @@ export class AuthService implements OnDestroy {
   private auth: Auth | null = null;
   private unsubscribe: Unsubscribe | null = null;
   private firebaseConfigured = false;
+  private syncCallback: SyncCallback | null = null;
+  private isFirstLogin = signal<boolean>(false);
 
   // Signals for reactive state
   private userSignal = signal<AuthUser | null>(null);
@@ -38,6 +44,7 @@ export class AuthService implements OnDestroy {
   readonly isAuthenticated = computed(() => this.userSignal() !== null);
   readonly isLoading = computed(() => this.loadingSignal());
   readonly error = computed(() => this.errorSignal());
+  readonly firstLogin = computed(() => this.isFirstLogin());
 
   constructor() {
     try {
@@ -51,6 +58,27 @@ export class AuthService implements OnDestroy {
       this.loadingSignal.set(false);
       this.firebaseConfigured = false;
     }
+  }
+
+  /**
+   * Register a callback to be called after successful login for data sync
+   */
+  setSyncCallback(callback: SyncCallback): void {
+    this.syncCallback = callback;
+  }
+
+  /**
+   * Check if this is the first login (to show sync dialog)
+   */
+  checkFirstLogin(): boolean {
+    return this.isFirstLogin();
+  }
+
+  /**
+   * Mark first login as handled
+   */
+  clearFirstLogin(): void {
+    this.isFirstLogin.set(false);
   }
 
   /**
@@ -112,6 +140,10 @@ export class AuthService implements OnDestroy {
         email,
         password
       );
+
+      // Check if we have local data to sync
+      this.checkForLocalData();
+
       return result;
     } catch (error: any) {
       const errorCode = this.getErrorCode(error);
@@ -145,6 +177,10 @@ export class AuthService implements OnDestroy {
         email,
         password
       );
+
+      // Check if we have local data to sync
+      this.checkForLocalData();
+
       return result;
     } catch (error: any) {
       const errorCode = this.getErrorCode(error);
@@ -172,6 +208,10 @@ export class AuthService implements OnDestroy {
       this.errorSignal.set(null);
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(this.auth, provider);
+
+      // Check if we have local data to sync
+      this.checkForLocalData();
+
       return result;
     } catch (error: any) {
       const errorCode = this.getErrorCode(error);
@@ -181,6 +221,30 @@ export class AuthService implements OnDestroy {
       throw error;
     } finally {
       this.loadingSignal.set(false);
+    }
+  }
+
+  /**
+   * Check if there's local data that needs syncing
+   */
+  private checkForLocalData(): void {
+    const hasLocalChats = localStorage.getItem('tachikoma_chat_sessions');
+    const hasLocalAgents = localStorage.getItem('tachikoma_agent_profiles');
+
+    if (hasLocalChats || hasLocalAgents) {
+      this.isFirstLogin.set(true);
+    }
+  }
+
+  /**
+   * Trigger sync with user-selected strategy
+   */
+  async syncData(
+    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud'
+  ): Promise<void> {
+    if (this.syncCallback) {
+      await this.syncCallback(strategy);
+      this.isFirstLogin.set(false);
     }
   }
 

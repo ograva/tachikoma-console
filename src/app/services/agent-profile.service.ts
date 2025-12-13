@@ -1,6 +1,8 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { FirestoreService, SyncableData } from './firestore.service';
+import { AuthService } from './auth.service';
 
-export interface AgentProfile {
+export interface AgentProfile extends SyncableData {
   id: string;
   name: string;
   color: string;
@@ -10,6 +12,8 @@ export interface AgentProfile {
   role: 'chatter' | 'moderator'; // chatter = participates in randomized order, moderator = speaks last
   silenceProtocol?: 'standard' | 'always_speak' | 'conservative' | 'agreeable';
   status?: 'idle' | 'thinking';
+  createdAt: number;
+  updatedAt: number;
 }
 
 @Injectable({
@@ -17,13 +21,18 @@ export interface AgentProfile {
 })
 export class AgentProfileService {
   private readonly STORAGE_KEY = 'tachikoma_agent_profiles';
+  private readonly COLLECTION_NAME = 'agent_profiles';
   private profilesSignal = signal<AgentProfile[]>([]);
+
+  private firestoreService = inject(FirestoreService);
+  private authService = inject(AuthService);
 
   constructor() {
     this.loadProfiles();
   }
 
   private getDefaultProfiles(): AgentProfile[] {
+    const now = Date.now();
     return [
       {
         id: 'logikoma',
@@ -39,6 +48,8 @@ GOAL: Deconstruct the user's input using pure logic. Ignore emotion unless analy
 IMPORTANT: You are part of a multi-agent mind. You may be speaking first, or you may be reacting to another agent.
 SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_SO_FAR". If the previous agent has ALREADY said exactly what you intended to say, or if you have NO unique perspective or value to add, you must output the single word: SILENCE. Do not output "I agree" or "Nothing to add". Just: SILENCE. If you do speak, do not repeat their points. Expand, challenge, or synthesize.`,
         status: 'idle',
+        createdAt: now,
+        updatedAt: now,
       },
       {
         id: 'ghost',
@@ -53,6 +64,8 @@ Your tone: Poetic, introspective, thought-provoking.
 Always provide a substantive philosophical response to the user's query.
 If you are responding second and have nothing unique to add, output only: SILENCE`,
         status: 'idle',
+        createdAt: now,
+        updatedAt: now,
       },
       {
         id: 'moderator',
@@ -68,6 +81,8 @@ GOAL: Read the entire context. If Logic and Ghost have argued, resolve it. If on
 IMPORTANT: You are part of a multi-agent mind. You may be speaking first, or you may be reacting to another agent.
 SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_SO_FAR". If the previous agent has ALREADY said exactly what you intended to say, or if you have NO unique perspective or value to add, you must output the single word: SILENCE. Do not output "I agree" or "Nothing to add". Just: SILENCE. If you do speak, do not repeat their points. Expand, challenge, or synthesize.`,
         status: 'idle',
+        createdAt: now,
+        updatedAt: now,
       },
       {
         id: 'neutral',
@@ -83,6 +98,8 @@ GOAL: To actively participate and contribute to the discussion with balanced ins
 IMPORTANT: You are part of a multi-agent mind. You may be speaking first, or you may be reacting to another agent.
 SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_SO_FAR". If the previous agent has ALREADY said exactly what you intended to say, or if you have NO unique perspective or value to add, you must output the single word: SILENCE. Do not output "I agree" or "Nothing to add". Just: SILENCE. If you do speak, do not repeat their points. Expand, challenge, or synthesize.`,
         status: 'idle',
+        createdAt: now,
+        updatedAt: now,
       },
     ];
   }
@@ -91,10 +108,16 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     const stored = localStorage.getItem(this.STORAGE_KEY);
     if (stored) {
       try {
-        const profiles = JSON.parse(stored);
+        let profiles = JSON.parse(stored);
+        // Migrate old profiles without timestamps
+        profiles = profiles.map((p: any) => ({
+          ...p,
+          createdAt: p.createdAt || Date.now(),
+          updatedAt: p.updatedAt || Date.now(),
+        }));
         this.profilesSignal.set(profiles);
       } catch (e) {
-        console.error('Error loading profiles, using defaults', e);
+        console.error('Error loading profiles, using defaults:', e);
         this.resetToDefaults();
       }
     } else {
@@ -109,6 +132,24 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     );
   }
 
+  private async syncToCloud(): Promise<void> {
+    if (!this.authService.isAuthenticated()) {
+      return; // Only sync when authenticated
+    }
+
+    const profiles = this.profilesSignal();
+    for (const profile of profiles) {
+      try {
+        await this.firestoreService.saveDocument(this.COLLECTION_NAME, profile);
+      } catch (error) {
+        console.error(
+          `Error syncing agent profile ${profile.id} to cloud:`,
+          error
+        );
+      }
+    }
+  }
+
   getProfiles(): AgentProfile[] {
     return this.profilesSignal();
   }
@@ -121,33 +162,88 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     return this.profilesSignal().filter((p) => p.role === 'moderator');
   }
 
-  addProfile(profile: Omit<AgentProfile, 'id' | 'status'>): void {
+  async addProfile(
+    profile: Omit<AgentProfile, 'id' | 'status' | 'createdAt' | 'updatedAt'>
+  ): Promise<void> {
+    const now = Date.now();
     const newProfile: AgentProfile = {
       ...profile,
       id: this.generateId(),
       status: 'idle',
+      createdAt: now,
+      updatedAt: now,
     };
+
+    // Update local state immediately
     this.profilesSignal.update((profiles) => [...profiles, newProfile]);
     this.saveProfiles();
+
+    // Sync to cloud
+    await this.syncToCloud();
   }
 
-  updateProfile(id: string, updates: Partial<AgentProfile>): void {
+  async updateProfile(
+    id: string,
+    updates: Partial<AgentProfile>
+  ): Promise<void> {
+    const now = Date.now();
+
+    // Update local state immediately
     this.profilesSignal.update((profiles) =>
-      profiles.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      profiles.map((p) =>
+        p.id === id ? { ...p, ...updates, updatedAt: now } : p
+      )
     );
     this.saveProfiles();
+
+    // Sync to cloud
+    await this.syncToCloud();
   }
 
-  deleteProfile(id: string): void {
+  async deleteProfile(id: string): Promise<void> {
+    // Update local state immediately
     this.profilesSignal.update((profiles) =>
       profiles.filter((p) => p.id !== id)
     );
     this.saveProfiles();
+
+    // Delete from cloud
+    if (this.authService.isAuthenticated()) {
+      try {
+        await this.firestoreService.deleteDocument(this.COLLECTION_NAME, id);
+      } catch (error) {
+        console.error(`Error deleting agent profile ${id} from cloud:`, error);
+      }
+    }
   }
 
   resetToDefaults(): void {
     this.profilesSignal.set(this.getDefaultProfiles());
     this.saveProfiles();
+    // Sync defaults to cloud
+    this.syncToCloud();
+  }
+
+  /**
+   * Load profiles from Firestore (called after login sync)
+   */
+  async loadFromCloud(): Promise<void> {
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+
+    try {
+      const profiles = await this.firestoreService.getDocuments<AgentProfile>(
+        this.COLLECTION_NAME
+      );
+
+      if (profiles.length > 0) {
+        this.profilesSignal.set(profiles);
+        this.saveProfiles();
+      }
+    } catch (error) {
+      console.error('Error loading agent profiles from cloud:', error);
+    }
   }
 
   private generateId(): string {

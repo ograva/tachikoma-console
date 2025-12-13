@@ -246,7 +246,7 @@ export class TachikomaChatComponent {
     this.showAgentSelector.set(true);
   }
 
-  createNewChat(title?: string): void {
+  async createNewChat(title?: string): Promise<void> {
     // Get selected agents
     const selectedAgents = this.availableAgents.filter((a) =>
       this.selectedAgentIds().has(a.id)
@@ -257,7 +257,7 @@ export class TachikomaChatComponent {
       return;
     }
 
-    const newChat = this.chatStorage.createNewChat(title, selectedAgents);
+    const newChat = await this.chatStorage.createNewChat(title, selectedAgents);
     this.messages = [];
     this.conversationSummary = '';
     this.messagesSinceLastSummary = 0;
@@ -393,12 +393,12 @@ export class TachikomaChatComponent {
     return this.chatStorage.getCurrentChatId();
   }
 
-  deleteChat(chatId: string): void {
-    this.chatStorage.deleteChat(chatId);
+  async deleteChat(chatId: string): Promise<void> {
+    await this.chatStorage.deleteChat(chatId);
     this.loadCurrentChat();
   }
 
-  private saveCurrentChat(): void {
+  private async saveCurrentChat(): Promise<void> {
     // Save with current participating agents
     const agentProfiles: AgentProfile[] = this.agents.map((a) => ({
       id: a.id,
@@ -409,8 +409,10 @@ export class TachikomaChatComponent {
       system: a.system,
       role: a.role,
       silenceProtocol: a.silenceProtocol,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     }));
-    this.chatStorage.updateCurrentChat(
+    await this.chatStorage.updateCurrentChat(
       this.messages,
       this.conversationSummary,
       agentProfiles
@@ -648,7 +650,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       const cleanTitle = title.replace(/["']/g, '').trim().substring(0, 60);
 
       if (cleanTitle) {
-        this.chatStorage.updateChatTitle(chatId, cleanTitle);
+        await this.chatStorage.updateChatTitle(chatId, cleanTitle);
         console.log('✨ Generated chat title:', cleanTitle);
       }
     } catch (error) {
@@ -656,7 +658,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       // Fallback to simple truncation if AI fails
       const fallbackTitle =
         firstMessage.substring(0, 50) + (firstMessage.length > 50 ? '...' : '');
-      this.chatStorage.updateChatTitle(chatId, fallbackTitle);
+      await this.chatStorage.updateChatTitle(chatId, fallbackTitle);
     }
   }
 
@@ -740,7 +742,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       this.messagesSinceLastSummary = 0;
 
       // Save updated summary
-      this.saveCurrentChat();
+      await this.saveCurrentChat();
 
       console.log('📝 Conversation summary updated:', summary);
     } catch (error) {
@@ -760,8 +762,10 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       timestamp: Date.now(),
     });
 
-    // Auto-save to storage
-    this.saveCurrentChat();
+    // Auto-save to storage (fire and forget)
+    this.saveCurrentChat().catch((err) =>
+      console.error('Error saving chat:', err)
+    );
   }
 
   async callGemini(
@@ -794,9 +798,16 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       // Check if response was blocked by safety filters
       if (response.promptFeedback?.blockReason) {
         const blockReason = response.promptFeedback.blockReason;
-        const blockMessage = response.promptFeedback.blockReasonMessage || 'Content was blocked';
-        console.error('Content blocked by safety filters:', blockReason, blockMessage);
-        throw new Error(`Content blocked by safety filters: ${blockReason}. ${blockMessage}`);
+        const blockMessage =
+          response.promptFeedback.blockReasonMessage || 'Content was blocked';
+        console.error(
+          'Content blocked by safety filters:',
+          blockReason,
+          blockMessage
+        );
+        throw new Error(
+          `Content blocked by safety filters: ${blockReason}. ${blockMessage}`
+        );
       }
 
       const text = response.text || '';

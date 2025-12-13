@@ -1,8 +1,12 @@
 import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { FirestoreService, SyncableData } from './firestore.service';
 import { AuthService } from './auth.service';
+import { EncryptionService } from './encryption.service';
 
-export type GeminiModel = 'gemini-2.0-flash' | 'gemini-2.5-flash' | 'gemini-3.0';
+export type GeminiModel =
+  | 'gemini-2.0-flash'
+  | 'gemini-2.5-flash'
+  | 'gemini-3.0';
 
 export const GEMINI_MODELS: { value: GeminiModel; label: string }[] = [
   { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
@@ -16,7 +20,8 @@ export interface UserProfile extends SyncableData {
   displayName: string;
   chatUsername: string;
   photoURL: string | null;
-  geminiApiKey?: string;
+  geminiApiKey?: string; // Encrypted in Firestore, plain in localStorage
+  geminiApiKeyEncrypted?: string; // Used only for Firestore storage
   geminiModel?: GeminiModel;
   createdAt: number;
   updatedAt: number;
@@ -38,6 +43,7 @@ const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'email'> = {
 export class UserProfileService {
   private firestoreService = inject(FirestoreService);
   private authService = inject(AuthService);
+  private encryptionService = inject(EncryptionService);
 
   private readonly COLLECTION_NAME = 'user_profile';
   private readonly LOCAL_PROFILE_KEY = 'tachikoma_user_profile';
@@ -120,6 +126,19 @@ export class UserProfileService {
       );
 
       if (existing) {
+        // Decrypt API key if present
+        if (existing.geminiApiKeyEncrypted) {
+          try {
+            existing.geminiApiKey = await this.encryptionService.decrypt(
+              existing.geminiApiKeyEncrypted,
+              userId
+            );
+          } catch (error) {
+            console.error('Error decrypting API key:', error);
+            existing.geminiApiKey = '';
+          }
+        }
+
         this.profileSignal.set(existing);
         this.saveToLocalStorage(existing);
       } else {
@@ -136,10 +155,7 @@ export class UserProfileService {
           updatedAt: Date.now(),
         };
 
-        await this.firestoreService.saveDocument(
-          this.COLLECTION_NAME,
-          newProfile
-        );
+        await this.saveProfileToFirestore(newProfile);
         this.profileSignal.set(newProfile);
         this.saveToLocalStorage(newProfile);
       }
@@ -149,6 +165,39 @@ export class UserProfileService {
       this.loadFromLocalStorage();
     } finally {
       this.loadingSignal.set(false);
+    }
+  }
+
+  /**
+   * Save profile to Firestore with encrypted API key
+   */
+  private async saveProfileToFirestore(profile: UserProfile): Promise<void> {
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+
+    try {
+      const userId = profile.id;
+      const profileToSave = { ...profile };
+
+      // Encrypt API key before saving to Firestore
+      if (profileToSave.geminiApiKey) {
+        profileToSave.geminiApiKeyEncrypted =
+          await this.encryptionService.encrypt(
+            profileToSave.geminiApiKey,
+            userId
+          );
+        // Remove plain API key from Firestore document
+        delete profileToSave.geminiApiKey;
+      }
+
+      await this.firestoreService.saveDocument(
+        this.COLLECTION_NAME,
+        profileToSave
+      );
+    } catch (error) {
+      console.error('Error saving profile to Firestore:', error);
+      throw error;
     }
   }
 
@@ -168,13 +217,13 @@ export class UserProfileService {
         updatedAt: Date.now(),
       };
 
-      // Save to localStorage first
+      // Save to localStorage first (plain text API key)
       this.saveToLocalStorage(updated);
       this.profileSignal.set(updated);
 
-      // Forward to Firestore if authenticated
+      // Forward to Firestore if authenticated (with encryption)
       if (this.authService.isAuthenticated()) {
-        await this.firestoreService.saveDocument(this.COLLECTION_NAME, updated);
+        await this.saveProfileToFirestore(updated);
       }
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -230,9 +279,11 @@ export class UserProfileService {
    * Validate Gemini API key by making a test request
    * @returns Promise<{ valid: boolean; error?: string }>
    */
-  async validateGeminiApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
+  async validateGeminiApiKey(
+    apiKey: string
+  ): Promise<{ valid: boolean; error?: string }> {
     const cleanKey = this.sanitizeApiKey(apiKey);
-    
+
     if (!cleanKey) {
       return { valid: false, error: 'API key is empty or invalid' };
     }
@@ -245,13 +296,18 @@ export class UserProfileService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+        const errorMessage =
+          errorData?.error?.message ||
+          `HTTP ${response.status}: ${response.statusText}`;
         return { valid: false, error: errorMessage };
       }
 
       return { valid: true };
     } catch (error: any) {
-      return { valid: false, error: error.message || 'Failed to validate API key' };
+      return {
+        valid: false,
+        error: error.message || 'Failed to validate API key',
+      };
     }
   }
 
@@ -261,7 +317,7 @@ export class UserProfileService {
    */
   async updateGeminiApiKey(apiKey: string): Promise<void> {
     const cleanKey = this.sanitizeApiKey(apiKey);
-    
+
     // Validate the key first
     const validation = await this.validateGeminiApiKey(cleanKey);
     if (!validation.valid) {

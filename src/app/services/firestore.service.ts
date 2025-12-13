@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
   collection,
-  doc,
+  doc as firestoreDoc,
   setDoc,
   getDoc,
   getDocs,
@@ -43,7 +43,9 @@ export class FirestoreService {
       this.firestoreConfigured = true;
       this.enableOfflineSupport();
     } catch (error) {
-      console.warn('Firestore not configured. Cloud storage features will be disabled.');
+      console.warn(
+        'Firestore not configured. Cloud storage features will be disabled.'
+      );
       this.firestoreConfigured = false;
     }
   }
@@ -145,7 +147,7 @@ export class FirestoreService {
 
     // 2. Forward to Firestore
     try {
-      const docRef = doc(
+      const docRef = firestoreDoc(
         this.firestore,
         `users/${userId}/${collectionName}`,
         data.id
@@ -237,7 +239,7 @@ export class FirestoreService {
     }
 
     try {
-      const docRef = doc(
+      const docRef = firestoreDoc(
         this.firestore,
         `users/${userId}/${collectionName}`,
         documentId
@@ -284,7 +286,7 @@ export class FirestoreService {
 
     // Delete from Firestore
     try {
-      const docRef = doc(
+      const docRef = firestoreDoc(
         this.firestore,
         `users/${userId}/${collectionName}`,
         documentId
@@ -297,25 +299,121 @@ export class FirestoreService {
   }
 
   /**
-   * Sync localStorage with Firestore on login
-   * Merges local data with cloud data, preferring newer versions
+   * Save multiple documents in a batch (for large chat sessions)
    */
-  async syncOnLogin(): Promise<void> {
-    // Skip if Firestore not configured
+  async saveBatch<T extends SyncableData>(
+    collectionName: string,
+    documents: T[]
+  ): Promise<void> {
+    // Update localStorage first
+    documents.forEach((doc) => {
+      this.updateLocalStorageDocument(collectionName, doc);
+    });
+
+    // Skip Firestore if not configured
     if (!this.firestore || !this.firestoreConfigured) {
       return;
     }
 
     const userId = this.authService.getCurrentUserId();
-    if (!userId) return;
+    if (!userId) {
+      return;
+    }
 
-    console.log('Starting sync on login...');
+    try {
+      const batch = writeBatch(this.firestore);
+
+      documents.forEach((item) => {
+        const docRef = firestoreDoc(
+          this.firestore!,
+          `users/${userId}/${collectionName}`,
+          item.id
+        );
+        batch.set(docRef, { ...item, userId });
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error saving batch to Firestore:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get paginated documents for large collections
+   */
+  async getDocumentsPaginated<T extends SyncableData>(
+    collectionName: string,
+    documentIds: string[]
+  ): Promise<T[]> {
+    // If Firestore not configured, return localStorage data
+    if (!this.firestore || !this.firestoreConfigured) {
+      const local = this.getFromLocalStorage<T>(collectionName);
+      return local.filter((item) => documentIds.includes(item.id));
+    }
+
+    const userId = this.authService.getCurrentUserId();
+    if (!userId) {
+      const local = this.getFromLocalStorage<T>(collectionName);
+      return local.filter((item) => documentIds.includes(item.id));
+    }
+
+    try {
+      const results: T[] = [];
+
+      // Fetch in chunks of 10 (Firestore 'in' query limit)
+      for (let i = 0; i < documentIds.length; i += 10) {
+        const chunk = documentIds.slice(i, i + 10);
+        const collRef = collection(
+          this.firestore,
+          `users/${userId}/${collectionName}`
+        );
+        const q = query(collRef, where('id', 'in', chunk));
+        const snapshot = await getDocs(q);
+
+        snapshot.docs.forEach((doc) => {
+          results.push(doc.data() as T);
+        });
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error fetching paginated documents:', error);
+      const local = this.getFromLocalStorage<T>(collectionName);
+      return local.filter((item) => documentIds.includes(item.id));
+    }
+  }
+
+  /**
+   * Sync localStorage with Firestore on login
+   * User chooses to merge or overwrite
+   */
+  async syncOnLogin(
+    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud'
+  ): Promise<void> {
+    // Skip if Firestore not configured
+    if (!this.firestore || !this.firestoreConfigured) {
+      console.warn('Firestore not configured, skipping sync');
+      return;
+    }
+
+    const userId = this.authService.getCurrentUserId();
+    if (!userId) {
+      console.warn('No user ID, skipping sync');
+      return;
+    }
+
+    console.log(`Starting sync on login with strategy: ${strategy}`);
 
     // Sync each collection
     const collections = ['chat_sessions', 'user_profile', 'agent_profiles'];
 
     for (const collectionName of collections) {
-      await this.syncCollection(collectionName);
+      try {
+        await this.syncCollection(collectionName, strategy);
+      } catch (error) {
+        console.error(`Error syncing ${collectionName}:`, error);
+      }
     }
 
     console.log('Sync completed');
@@ -324,7 +422,10 @@ export class FirestoreService {
   /**
    * Sync a specific collection between localStorage and Firestore
    */
-  private async syncCollection(collectionName: string): Promise<void> {
+  private async syncCollection(
+    collectionName: string,
+    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud'
+  ): Promise<void> {
     // Skip if Firestore not configured
     if (!this.firestore || !this.firestoreConfigured) {
       return;
@@ -334,12 +435,31 @@ export class FirestoreService {
     if (!userId) return;
 
     try {
-      // Get localStorage data (from anonymous storage key)
-      const anonymousKey = `firestore_anonymous_${collectionName}`;
+      // Get localStorage data (anonymous user data)
+      const anonymousKey = `tachikoma_${collectionName}`;
+      const localKey = `tachikoma_${collectionName}`;
+
+      // Check both possible keys
       const anonymousDataStr = localStorage.getItem(anonymousKey);
-      const anonymousData: SyncableData[] = anonymousDataStr
-        ? JSON.parse(anonymousDataStr)
-        : [];
+      const localDataStr = localStorage.getItem(localKey);
+
+      let localData: SyncableData[] = [];
+
+      if (anonymousDataStr) {
+        try {
+          const parsed = JSON.parse(anonymousDataStr);
+          localData = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.error(`Error parsing ${anonymousKey}:`, e);
+        }
+      } else if (localDataStr) {
+        try {
+          const parsed = JSON.parse(localDataStr);
+          localData = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.error(`Error parsing ${localKey}:`, e);
+        }
+      }
 
       // Get Firestore data
       const collRef = collection(
@@ -348,51 +468,95 @@ export class FirestoreService {
       );
       const snapshot = await getDocs(collRef);
       const firestoreData = new Map<string, SyncableData>();
-      snapshot.docs.forEach((doc) => {
-        const data = doc.data() as SyncableData;
+      snapshot.docs.forEach((docSnap) => {
+        const data = docSnap.data() as SyncableData;
         firestoreData.set(data.id, data);
       });
 
-      // Merge: prefer newer versions based on updatedAt
-      const merged = new Map<string, SyncableData>();
+      let finalData: SyncableData[] = [];
 
-      // Add all Firestore data
-      firestoreData.forEach((data, id) => {
-        merged.set(id, data);
-      });
+      // Apply sync strategy
+      switch (strategy) {
+        case 'cloud-to-local':
+          // Overwrite local with cloud data
+          finalData = Array.from(firestoreData.values());
+          console.log(
+            `${collectionName}: Overwriting local with ${finalData.length} cloud items`
+          );
+          break;
 
-      // Merge anonymous local data
-      for (const localItem of anonymousData) {
-        const existing = merged.get(localItem.id);
-        if (!existing || localItem.updatedAt > existing.updatedAt) {
-          merged.set(localItem.id, localItem);
+        case 'local-to-cloud':
+          // Overwrite cloud with local data
+          finalData = localData;
+          console.log(
+            `${collectionName}: Overwriting cloud with ${finalData.length} local items`
+          );
+
+          // Delete all existing cloud documents
+          const deleteBatch = writeBatch(this.firestore);
+          firestoreData.forEach((_, id) => {
+            const docRef = firestoreDoc(
+              this.firestore!,
+              `users/${userId}/${collectionName}`,
+              id
+            );
+            deleteBatch.delete(docRef);
+          });
+          await deleteBatch.commit();
+          break;
+
+        case 'merge':
+        default:
+          // Merge: prefer newer versions based on updatedAt
+          const merged = new Map<string, SyncableData>();
+
+          // Add all Firestore data
+          firestoreData.forEach((data, id) => {
+            merged.set(id, data);
+          });
+
+          // Merge local data (prefer newer)
+          for (const localItem of localData) {
+            const existing = merged.get(localItem.id);
+            if (!existing || localItem.updatedAt > existing.updatedAt) {
+              merged.set(localItem.id, localItem);
+            }
+          }
+
+          finalData = Array.from(merged.values());
+          console.log(`${collectionName}: Merged to ${finalData.length} items`);
+          break;
+      }
+
+      // Save final data to Firestore
+      if (finalData.length > 0) {
+        const batch = writeBatch(this.firestore);
+
+        for (const item of finalData) {
+          const docRef = firestoreDoc(
+            this.firestore,
+            `users/${userId}/${collectionName}`,
+            item.id
+          );
+          batch.set(docRef, { ...item, userId });
         }
+
+        await batch.commit();
       }
 
-      // Save merged data back to Firestore and localStorage
-      const batch = writeBatch(this.firestore);
-      const mergedArray = Array.from(merged.values());
+      // Update localStorage with final data
+      this.storeInLocalStorage(collectionName, finalData);
 
-      for (const item of mergedArray) {
-        const docRef = doc(
-          this.firestore,
-          `users/${userId}/${collectionName}`,
-          item.id
-        );
-        batch.set(docRef, { ...item, userId });
-      }
-
-      await batch.commit();
-
-      // Update localStorage with merged data
-      this.storeInLocalStorage(collectionName, mergedArray);
-
-      // Clear anonymous data after successful sync
+      // Clear old anonymous keys
       localStorage.removeItem(anonymousKey);
+      if (anonymousKey !== localKey) {
+        localStorage.removeItem(localKey);
+      }
 
-      console.log(`Synced ${collectionName}: ${mergedArray.length} items`);
+      console.log(`✓ Synced ${collectionName}: ${finalData.length} items`);
     } catch (error) {
-      console.error(`Error syncing ${collectionName}:`, error);
+      console.error(`✗ Error syncing ${collectionName}:`, error);
+      throw error;
     }
   }
 
