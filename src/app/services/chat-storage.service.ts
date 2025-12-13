@@ -208,12 +208,13 @@ export class ChatStorageService {
     this.saveSessions();
 
     // Delete from cloud
-    if (this.authService.isAuthenticated()) {
+    if (this.authService.isRealUser()) {
       try {
         await this.firestoreService.deleteDocument(
           this.COLLECTION_NAME,
           chatId
         );
+        console.log(`🗑️ Chat ${chatId} deleted from Firestore`);
       } catch (error) {
         console.error(`Error deleting chat ${chatId} from cloud:`, error);
       }
@@ -230,7 +231,7 @@ export class ChatStorageService {
     this.saveCurrentChatId();
 
     // Delete from cloud
-    if (this.authService.isAuthenticated()) {
+    if (this.authService.isRealUser()) {
       for (const chatId of allChatIds) {
         try {
           await this.firestoreService.deleteDocument(
@@ -241,6 +242,7 @@ export class ChatStorageService {
           console.error(`Error deleting chat ${chatId} from cloud:`, error);
         }
       }
+      console.log(`🗑️ Cleared ${allChatIds.length} chats from Firestore`);
     }
   }
 
@@ -249,10 +251,14 @@ export class ChatStorageService {
    * Handles large chats by splitting if necessary
    */
   private async syncChatToCloud(chat: ChatSession): Promise<void> {
-    if (!this.authService.isAuthenticated()) {
+    if (!this.authService.isRealUser()) {
+      console.log(
+        '💾 Chat saved locally (not syncing - user not authenticated)'
+      );
       return;
     }
 
+    console.log(`☁️ Syncing chat ${chat.id} to Firestore...`);
     try {
       // Check chat size (Firestore has 1MB document limit)
       const chatJson = JSON.stringify(chat);
@@ -271,8 +277,9 @@ export class ChatStorageService {
       }
 
       await this.firestoreService.saveDocument(this.COLLECTION_NAME, chat);
+      console.log(`✅ Chat ${chat.id} synced to Firestore successfully`);
     } catch (error) {
-      console.error(`Error syncing chat ${chat.id} to cloud:`, error);
+      console.error(`❌ Error syncing chat ${chat.id} to cloud:`, error);
     }
   }
 
@@ -280,10 +287,11 @@ export class ChatStorageService {
    * Load chats from Firestore (called after login sync)
    */
   async loadFromCloud(): Promise<void> {
-    if (!this.authService.isAuthenticated()) {
+    if (!this.authService.isRealUser()) {
       return;
     }
 
+    console.log('📥 Loading chats from Firestore...');
     try {
       const chats = await this.firestoreService.getDocuments<ChatSession>(
         this.COLLECTION_NAME
@@ -292,9 +300,12 @@ export class ChatStorageService {
       if (chats.length > 0) {
         this.sessionsSignal.set(chats);
         this.saveSessions();
+        console.log(`✅ Loaded ${chats.length} chats from Firestore`);
+      } else {
+        console.log('📭 No chats found in Firestore');
       }
     } catch (error) {
-      console.error('Error loading chats from cloud:', error);
+      console.error('❌ Error loading chats from cloud:', error);
     }
   }
 

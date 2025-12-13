@@ -172,11 +172,13 @@ export class UserProfileService {
    * Save profile to Firestore with encrypted API key
    */
   private async saveProfileToFirestore(profile: UserProfile): Promise<void> {
-    if (!this.authService.isAuthenticated()) {
+    if (!this.authService.isRealUser()) {
+      console.log('💾 User profile saved locally (not syncing - user not authenticated)');
       return;
     }
 
     try {
+      console.log('☁️ Syncing user profile to Firestore...');
       const userId = profile.id;
       const profileToSave = { ...profile };
 
@@ -195,8 +197,9 @@ export class UserProfileService {
         this.COLLECTION_NAME,
         profileToSave
       );
+      console.log('✅ User profile synced to Firestore');
     } catch (error) {
-      console.error('Error saving profile to Firestore:', error);
+      console.error('❌ Error saving profile to Firestore:', error);
       throw error;
     }
   }
@@ -220,13 +223,14 @@ export class UserProfileService {
       // Save to localStorage first (plain text API key)
       this.saveToLocalStorage(updated);
       this.profileSignal.set(updated);
+      console.log('💾 User profile saved to localStorage');
 
       // Forward to Firestore if authenticated (with encryption)
-      if (this.authService.isAuthenticated()) {
+      if (this.authService.isRealUser()) {
         await this.saveProfileToFirestore(updated);
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('❌ Error updating profile:', error);
       throw error;
     } finally {
       this.loadingSignal.set(false);

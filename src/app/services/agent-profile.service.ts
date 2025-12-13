@@ -133,21 +133,26 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
   }
 
   private async syncToCloud(): Promise<void> {
-    if (!this.authService.isAuthenticated()) {
-      return; // Only sync when authenticated
+    if (!this.authService.isRealUser()) {
+      console.log(
+        '💾 Agent profiles saved locally (not syncing - user not authenticated)'
+      );
+      return;
     }
 
+    console.log('☁️ Syncing agent profiles to Firestore...');
     const profiles = this.profilesSignal();
     for (const profile of profiles) {
       try {
         await this.firestoreService.saveDocument(this.COLLECTION_NAME, profile);
       } catch (error) {
         console.error(
-          `Error syncing agent profile ${profile.id} to cloud:`,
+          `❌ Error syncing agent profile ${profile.id} to cloud:`,
           error
         );
       }
     }
+    console.log(`✅ Synced ${profiles.length} agent profiles to Firestore`);
   }
 
   getProfiles(): AgentProfile[] {
@@ -208,11 +213,15 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     this.saveProfiles();
 
     // Delete from cloud
-    if (this.authService.isAuthenticated()) {
+    if (this.authService.isRealUser()) {
       try {
         await this.firestoreService.deleteDocument(this.COLLECTION_NAME, id);
+        console.log(`🗑️ Agent profile ${id} deleted from Firestore`);
       } catch (error) {
-        console.error(`Error deleting agent profile ${id} from cloud:`, error);
+        console.error(
+          `❌ Error deleting agent profile ${id} from cloud:`,
+          error
+        );
       }
     }
   }
@@ -228,10 +237,11 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
    * Load profiles from Firestore (called after login sync)
    */
   async loadFromCloud(): Promise<void> {
-    if (!this.authService.isAuthenticated()) {
+    if (!this.authService.isRealUser()) {
       return;
     }
 
+    console.log('📥 Loading agent profiles from Firestore...');
     try {
       const profiles = await this.firestoreService.getDocuments<AgentProfile>(
         this.COLLECTION_NAME
@@ -240,9 +250,14 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       if (profiles.length > 0) {
         this.profilesSignal.set(profiles);
         this.saveProfiles();
+        console.log(
+          `✅ Loaded ${profiles.length} agent profiles from Firestore`
+        );
+      } else {
+        console.log('📭 No agent profiles found in Firestore');
       }
     } catch (error) {
-      console.error('Error loading agent profiles from cloud:', error);
+      console.error('❌ Error loading agent profiles from cloud:', error);
     }
   }
 

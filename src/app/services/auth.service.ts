@@ -308,6 +308,19 @@ export class AuthService implements OnDestroy {
   }
 
   /**
+   * Check if user is truly authenticated (not anonymous)
+   * Anonymous users have no email
+   */
+  isRealUser(): boolean {
+    const user = this.userSignal();
+    return (
+      user !== null &&
+      user.email !== null &&
+      !user.email.startsWith('anonymous')
+    );
+  }
+
+  /**
    * Extract error code from Firebase error object
    */
   private getErrorCode(error: any): string {

@@ -220,6 +220,7 @@ export class ExampleComponent {}
 2. **Read**: localStorage (instant display) → Firestore (background sync if authenticated)
 
 **Key Services:**
+
 - `FirestoreService`: Store-forward pattern, sync strategies, offline cache
 - `EncryptionService`: AES-256-GCM encryption for sensitive data (API keys)
 - `AgentProfileService`: Agent configs with cloud sync (includes `createdAt`, `updatedAt`)
@@ -228,6 +229,7 @@ export class ExampleComponent {}
 - `AuthService`: Authentication with sync triggers on first login
 
 **Important Rules:**
+
 - All CRUD methods in storage services are **async** (return `Promise<void>`)
 - Always include `createdAt` and `updatedAt` timestamps in data models
 - Implement `SyncableData` interface for cloud-synced entities
@@ -313,23 +315,27 @@ this.breakpointObserver.observe([MOBILE_VIEW, TABLET_VIEW]).subscribe((state) =>
 ## Data Sync & Security
 
 ### Sync Strategies (shown in `SyncDialogComponent` on first login)
+
 1. **Merge** (recommended): Combines local and cloud data, prefers newer `updatedAt` timestamps
 2. **Cloud to Local**: Overwrites local with cloud data (for device switching)
 3. **Local to Cloud**: Overwrites cloud with local data (for backup)
 
 ### Encryption
+
 - **Algorithm**: AES-256-GCM with 96-bit IV
 - **Key Derivation**: PBKDF2 with 100,000 iterations from UID + static salt
 - **Usage**: API keys encrypted before Firestore, decrypted on retrieval
 - **Storage**: Plain text in localStorage (browser-secured), encrypted in Firestore
 
 ### Firestore Rules (firestore.rules)
+
 - Per-user data isolation: `request.auth.uid == userId`
 - Timestamp validation: `updatedAt is timestamp`
 - Type enforcement: `messages is list` for chat sessions
 - Profile ID validation: `id == userId` for user profiles
 
 ### Offline Mode
+
 - Firestore offline persistence enabled globally
 - All data available offline via localStorage + Firestore cache
 - Auto-sync when connection restored
