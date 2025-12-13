@@ -45,8 +45,8 @@ A **multi-agent AI chat interface** (`/tachikoma`) featuring three distinct AI p
 - **Component**: `src/app/pages/tachikoma-chat/tachikoma-chat.component.ts`
 - **API Integration**: `@google/genai` SDK (replaces deprecated `@google/generative-ai`)
 - **State Management**: Component-level signals (Angular 19 pattern)
-- **Persistence**: API key stored in `localStorage` (key: `gemini_api_key`)
-- **Security**: API key sanitization via `getCleanKey()` regex to strip non-ASCII characters
+- **Persistence**: 2-stage system (localStorage + Firestore cloud sync)
+- **Security**: API key encryption via `EncryptionService` (AES-256-GCM) before Firestore upload
 - **UI Framework**: Custom SCSS with cyberpunk theme, no Material Design used in chat
 
 #### Key Methods
@@ -212,6 +212,30 @@ export class ExampleComponent {}
 - No manual provider registration in components
 - Example services: `CoreService` (settings), `NavService` (navigation state)
 
+### Data Persistence Pattern (2-Stage System)
+
+**All data operations must follow this pattern:**
+
+1. **Write**: localStorage (instant) → Firestore (async)
+2. **Read**: localStorage (instant display) → Firestore (background sync if authenticated)
+
+**Key Services:**
+- `FirestoreService`: Store-forward pattern, sync strategies, offline cache
+- `EncryptionService`: AES-256-GCM encryption for sensitive data (API keys)
+- `AgentProfileService`: Agent configs with cloud sync (includes `createdAt`, `updatedAt`)
+- `ChatStorageService`: Chat sessions with cloud sync (async methods)
+- `UserProfileService`: User settings with encrypted API key storage
+- `AuthService`: Authentication with sync triggers on first login
+
+**Important Rules:**
+- All CRUD methods in storage services are **async** (return `Promise<void>`)
+- Always include `createdAt` and `updatedAt` timestamps in data models
+- Implement `SyncableData` interface for cloud-synced entities
+- API keys: plain text in localStorage, encrypted in Firestore
+- Anonymous users: localStorage only, no cloud sync
+- Authenticated users: automatic background sync to Firestore
+- First login with local data: show `SyncDialogComponent` for strategy selection
+
 ### Responsive Handling
 
 ```typescript
@@ -264,8 +288,13 @@ this.breakpointObserver.observe([MOBILE_VIEW, TABLET_VIEW]).subscribe((state) =>
 - **Don't** modify `allowedCommonJsDependencies` without understanding bundle impact
 - **Don't** forget to sanitize API keys - use `getCleanKey()` pattern for external APIs
 - **Don't** forget to import `TablerIconsModule` in components using `<i-tabler>` elements
+- **Don't** store sensitive data in Firestore without encryption - use `EncryptionService`
+- **Don't** make storage service methods synchronous - they must be async for cloud sync
+- **Don't** forget timestamps - all entities need `createdAt` and `updatedAt`
+- **Don't** skip `SyncableData` interface for cloud-synced data models
 - **Verify** PRO features aren't implemented locally - they should link externally
 - **Responsive Design**: Always test mobile layouts - use unified header structure, avoid desktop-only classes
+- **Offline Testing**: Verify app works without internet connection using Firestore offline cache
 
 ## External Dependencies
 
@@ -275,13 +304,42 @@ this.breakpointObserver.observe([MOBILE_VIEW, TABLET_VIEW]).subscribe((state) =>
 - **docx**: Word document export functionality
 - **file-saver**: Client-side file download utility
 - **@angular/fire**: Firebase integration (auth, firestore)
+- **Web Crypto API**: Browser-native encryption (AES-256-GCM) for sensitive data
 - **ApexCharts** (`ng-apexcharts`): Chart library for dashboards
 - **ngx-scrollbar**: Custom scrollbar styling
 - **ngx-translate**: i18n support (TranslateModule configured in app.config)
 - Material Design theming via Sass `@use` imports
+
+## Data Sync & Security
+
+### Sync Strategies (shown in `SyncDialogComponent` on first login)
+1. **Merge** (recommended): Combines local and cloud data, prefers newer `updatedAt` timestamps
+2. **Cloud to Local**: Overwrites local with cloud data (for device switching)
+3. **Local to Cloud**: Overwrites cloud with local data (for backup)
+
+### Encryption
+- **Algorithm**: AES-256-GCM with 96-bit IV
+- **Key Derivation**: PBKDF2 with 100,000 iterations from UID + static salt
+- **Usage**: API keys encrypted before Firestore, decrypted on retrieval
+- **Storage**: Plain text in localStorage (browser-secured), encrypted in Firestore
+
+### Firestore Rules (firestore.rules)
+- Per-user data isolation: `request.auth.uid == userId`
+- Timestamp validation: `updatedAt is timestamp`
+- Type enforcement: `messages is list` for chat sessions
+- Profile ID validation: `id == userId` for user profiles
+
+### Offline Mode
+- Firestore offline persistence enabled globally
+- All data available offline via localStorage + Firestore cache
+- Auto-sync when connection restored
+- Error handling: console logging, graceful fallback to localStorage
 
 ## Testing Notes
 
 - Jasmine/Karma configured with Angular defaults
 - Test files: `*.spec.ts` alongside components
 - Coverage output via `karma-coverage`
+- **Test Sync Flow**: Anonymous → Login → Verify sync dialog → Choose strategy → Verify data
+- **Test Offline**: Disconnect internet → Use app → Reconnect → Verify sync
+- **Test Encryption**: Save API key → Check Firestore console → Verify encrypted field
