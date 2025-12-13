@@ -67,6 +67,15 @@
             <a [routerLink]="['/authentication/register']" class="text-decoration-none text-primary f-w-500 f-s-14">
               Create an account</a>
           </span>
+
+          <div class="or-border m-t-24">or</div>
+
+          <button mat-stroked-button class="w-100 m-t-24" (click)="continueAsGuest()" [disabled]="isLoading()">
+            <div class="d-flex align-items-center justify-content-center">
+              <i-tabler name="user" class="icon-20 m-r-8"></i-tabler>
+              <span>Continue as Guest</span>
+            </div>
+          </button>
         </mat-card-content>
       </mat-card>
     </div>

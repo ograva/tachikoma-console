@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   signInWithPopup,
+  signInAnonymously,
   GoogleAuthProvider,
   User,
   UserCredential,
@@ -44,7 +45,9 @@ export class AuthService implements OnDestroy {
       this.firebaseConfigured = true;
       this.initAuthListener();
     } catch (error) {
-      console.warn('Firebase Auth not configured. Authentication features will be disabled.');
+      console.warn(
+        'Firebase Auth not configured. Authentication features will be disabled.'
+      );
       this.loadingSignal.set(false);
       this.firebaseConfigured = false;
     }
@@ -62,7 +65,7 @@ export class AuthService implements OnDestroy {
    */
   initAuthListener(): void {
     if (!this.auth) return;
-    
+
     this.loadingSignal.set(true);
 
     this.unsubscribe = onAuthStateChanged(
@@ -96,7 +99,8 @@ export class AuthService implements OnDestroy {
     password: string
   ): Promise<UserCredential> {
     if (!this.auth) {
-      const errorMsg = 'Firebase Auth not configured. Please contact the administrator.';
+      const errorMsg =
+        'Firebase Auth not configured. Please contact the administrator.';
       this.errorSignal.set(errorMsg);
       throw new Error(errorMsg);
     }
@@ -128,7 +132,8 @@ export class AuthService implements OnDestroy {
     password: string
   ): Promise<UserCredential> {
     if (!this.auth) {
-      const errorMsg = 'Firebase Auth not configured. Please contact the administrator.';
+      const errorMsg =
+        'Firebase Auth not configured. Please contact the administrator.';
       this.errorSignal.set(errorMsg);
       throw new Error(errorMsg);
     }
@@ -157,7 +162,8 @@ export class AuthService implements OnDestroy {
    */
   async signInWithGoogle(): Promise<UserCredential> {
     if (!this.auth) {
-      const errorMsg = 'Firebase Auth not configured. Please contact the administrator.';
+      const errorMsg =
+        'Firebase Auth not configured. Please contact the administrator.';
       this.errorSignal.set(errorMsg);
       throw new Error(errorMsg);
     }
@@ -171,6 +177,32 @@ export class AuthService implements OnDestroy {
       const errorCode = this.getErrorCode(error);
       const errorMessage = this.getErrorMessage(errorCode);
       console.error('Google Sign-In error:', error);
+      this.errorSignal.set(errorMessage);
+      throw error;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+
+  /**
+   * Sign in anonymously as guest
+   */
+  async signInAsGuest(): Promise<UserCredential> {
+    if (!this.auth) {
+      const errorMsg =
+        'Firebase Auth not configured. Please contact the administrator.';
+      this.errorSignal.set(errorMsg);
+      throw new Error(errorMsg);
+    }
+    try {
+      this.loadingSignal.set(true);
+      this.errorSignal.set(null);
+      const result = await signInAnonymously(this.auth);
+      return result;
+    } catch (error: any) {
+      const errorCode = this.getErrorCode(error);
+      const errorMessage = this.getErrorMessage(errorCode);
+      console.error('Anonymous Sign-In error:', error);
       this.errorSignal.set(errorMessage);
       throw error;
     } finally {
@@ -258,7 +290,9 @@ export class AuthService implements OnDestroy {
         return 'An internal error occurred. Please check if Firebase is properly configured.';
       default:
         console.warn('Unhandled Firebase auth error code:', code);
-        return `Authentication error: ${code || 'Unknown error'}. Please try again or contact support.`;
+        return `Authentication error: ${
+          code || 'Unknown error'
+        }. Please try again or contact support.`;
     }
   }
 

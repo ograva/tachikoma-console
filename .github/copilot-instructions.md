@@ -62,12 +62,14 @@ addMessage(); // Adds message to chat feed with Markdown parsing
 #### UI/UX Features
 
 - **Neural Activity Panel**: Real-time agent status visualization controlled by `showNeuralActivity` signal
+
   - Appears when `triggerProtocol()` starts processing
   - Auto-hides when all agents complete responses
   - Shows processing states: "INITIALIZING", "PROCESSING", "SYNTHESIZING", "COMPLETE"
   - Responsive display: Desktop (side panel), Mobile (overlay section)
 
 - **First-Time User Explainer**: Modal dialog (`ChatExplainerDialogComponent`) shown on first visit
+
   - Explains multi-agent system workflow
   - Describes agent roles and capabilities
   - Displays pro tips for optimal usage

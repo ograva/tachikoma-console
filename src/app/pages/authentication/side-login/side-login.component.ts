@@ -6,6 +6,7 @@ import { MaterialModule } from 'src/app/material.module';
 import { FormsModule } from '@angular/forms';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { TablerIconsModule } from 'angular-tabler-icons';
 import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
@@ -16,6 +17,7 @@ import { AuthService } from 'src/app/services/auth.service';
     FormsModule,
     ReactiveFormsModule,
     CommonModule,
+    TablerIconsModule,
   ],
   templateUrl: './side-login.component.html',
   styleUrls: ['./side-login.component.scss'],
@@ -69,6 +71,22 @@ export class AppSideLoginComponent {
     } catch (error: any) {
       this.errorMessage.set(
         this.authService.error() || 'Google sign-in failed. Please try again.'
+      );
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async continueAsGuest(): Promise<void> {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    try {
+      await this.authService.signInAsGuest();
+      this.router.navigate(['/dashboard']);
+    } catch (error: any) {
+      this.errorMessage.set(
+        this.authService.error() || 'Guest sign-in failed. Please try again.'
       );
     } finally {
       this.isLoading.set(false);
