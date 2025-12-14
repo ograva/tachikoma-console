@@ -171,13 +171,13 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     profile: Omit<AgentProfile, 'id' | 'status' | 'createdAt' | 'updatedAt'>
   ): Promise<void> {
     const now = Date.now();
-    const newProfile: AgentProfile = {
+    const newProfile = {
       ...profile,
       id: this.generateId(),
-      status: 'idle',
+      status: 'idle' as const,
       createdAt: now,
       updatedAt: now,
-    };
+    } as AgentProfile;
 
     // Update local state immediately
     this.profilesSignal.update((profiles) => [...profiles, newProfile]);

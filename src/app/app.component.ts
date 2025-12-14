@@ -4,9 +4,9 @@ import { AuthService } from './services/auth.service';
 import { FirestoreService } from './services/firestore.service';
 
 @Component({
-    selector: 'app-root',
-    imports: [RouterOutlet],
-    templateUrl: './app.component.html'
+  selector: 'app-root',
+  imports: [RouterOutlet],
+  templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit {
   title = 'Tachikoma Console';
@@ -30,7 +30,7 @@ export class AppComponent implements OnInit {
       if (isAuth && !wasAuthenticated) {
         // User just logged in, trigger sync
         console.log('User logged in, triggering sync...');
-        this.firestoreService.syncOnLogin();
+        this.firestoreService.syncOnLogin('merge');
       }
       wasAuthenticated = isAuth;
     };
