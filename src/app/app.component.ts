@@ -1,9 +1,9 @@
 import { Component, inject, OnInit, OnDestroy, effect } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AuthService } from './services/auth.service';
+import { AuthService, AuthUser } from './services/auth.service';
 import { FirestoreService } from './services/firestore.service';
-import { ChatStorageService } from './services/chat-storage.service';
-import { AgentProfileService } from './services/agent-profile.service';
+import { ChatStorageService, ChatSession } from './services/chat-storage.service';
+import { AgentProfileService, AgentProfile } from './services/agent-profile.service';
 
 @Component({
   selector: 'app-root',
@@ -44,7 +44,7 @@ export class AppComponent implements OnInit, OnDestroy {
   /**
    * Handle auth state changes and sync data if needed
    */
-  private async handleAuthStateChange(user: any): Promise<void> {
+  private async handleAuthStateChange(user: AuthUser): Promise<void> {
     this.hasCheckedInitialSync = true;
     
     // Check if user is authenticated and not anonymous
@@ -75,19 +75,19 @@ export class AppComponent implements OnInit, OnDestroy {
       console.log(`📊 Local data: ${localChats.length} chats, ${localAgents.length} agents`);
 
       // Get Firestore data
-      const firestoreChats = await this.firestoreService.getDocuments('chat_sessions');
-      const firestoreAgents = await this.firestoreService.getDocuments('agent_profiles');
+      const firestoreChats = await this.firestoreService.getDocuments<ChatSession>('chat_sessions');
+      const firestoreAgents = await this.firestoreService.getDocuments<AgentProfile>('agent_profiles');
 
       console.log(`☁️  Firestore data: ${firestoreChats.length} chats, ${firestoreAgents.length} agents`);
 
       // Check if Firestore has chats missing from localStorage
       const missingChats = firestoreChats.filter(
-        (fsChat: any) => !localChats.find((localChat) => localChat.id === fsChat.id)
+        (fsChat) => !localChats.find((localChat) => localChat.id === fsChat.id)
       );
 
       // Check if Firestore has agents missing from localStorage
       const missingAgents = firestoreAgents.filter(
-        (fsAgent: any) => !localAgents.find((localAgent) => localAgent.id === fsAgent.id)
+        (fsAgent) => !localAgents.find((localAgent) => localAgent.id === fsAgent.id)
       );
 
       if (missingChats.length > 0) {
