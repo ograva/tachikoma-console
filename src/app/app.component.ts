@@ -1,44 +1,115 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, effect } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AuthService } from './services/auth.service';
+import { AuthService, AuthUser } from './services/auth.service';
 import { FirestoreService } from './services/firestore.service';
+import { ChatStorageService, ChatSession } from './services/chat-storage.service';
+import { AgentProfileService, AgentProfile } from './services/agent-profile.service';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
   templateUrl: './app.component.html',
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'Tachikoma Console';
 
   private authService = inject(AuthService);
   private firestoreService = inject(FirestoreService);
+  private chatStorageService = inject(ChatStorageService);
+  private agentProfileService = inject(AgentProfileService);
+  
+  private hasCheckedInitialSync = false;
+
+  constructor() {
+    // Use Angular effect to react to auth state changes
+    effect(() => {
+      const user = this.authService.user();
+      const isLoading = this.authService.isLoading();
+      
+      // Only proceed when auth is not loading and we have a user
+      if (!isLoading && user && !this.hasCheckedInitialSync) {
+        this.handleAuthStateChange(user);
+      }
+    });
+  }
 
   ngOnInit(): void {
-    // Auth state listener is automatically initialized in AuthService constructor
-    // Subscribe to auth changes to trigger sync on login
-    // The AuthService already initializes the listener, we just need to
-    // handle the sync when a user logs in
+    console.log('🚀 Tachikoma Console initialized');
+  }
 
-    // We use an interval check to detect login for sync
-    // This is a simple approach; alternatively we could use effects
-    let wasAuthenticated = false;
+  ngOnDestroy(): void {
+    // Cleanup is handled by AuthService
+  }
 
-    // Check auth state periodically and trigger sync on login
-    const checkAuth = () => {
-      const isAuth = this.authService.isAuthenticated();
-      if (isAuth && !wasAuthenticated) {
-        // User just logged in, trigger sync
-        console.log('User logged in, triggering sync...');
-        this.firestoreService.syncOnLogin('merge');
+  /**
+   * Handle auth state changes and sync data if needed
+   */
+  private async handleAuthStateChange(user: AuthUser): Promise<void> {
+    this.hasCheckedInitialSync = true;
+    
+    // Check if user is authenticated and not anonymous
+    const isRealUser = this.authService.isRealUser();
+    
+    if (!isRealUser) {
+      console.log('👤 Anonymous or guest user - skipping Firestore sync');
+      return;
+    }
+
+    console.log('✅ Authenticated user detected:', user.email);
+    
+    // Check if we need to sync data from Firestore to localStorage
+    await this.checkAndSyncFromFirestore();
+  }
+
+  /**
+   * Check if Firestore has data missing from localStorage and sync
+   */
+  private async checkAndSyncFromFirestore(): Promise<void> {
+    console.log('🔍 Checking for Firestore data to sync...');
+
+    try {
+      // Get current localStorage data
+      const localChats = this.chatStorageService.getSessions();
+      const localAgents = this.agentProfileService.getProfiles();
+
+      console.log(`📊 Local data: ${localChats.length} chats, ${localAgents.length} agents`);
+
+      // Get Firestore data
+      const firestoreChats = await this.firestoreService.getDocuments<ChatSession>('chat_sessions');
+      const firestoreAgents = await this.firestoreService.getDocuments<AgentProfile>('agent_profiles');
+
+      console.log(`☁️  Firestore data: ${firestoreChats.length} chats, ${firestoreAgents.length} agents`);
+
+      // Check if Firestore has chats missing from localStorage
+      const missingChats = firestoreChats.filter(
+        (fsChat) => !localChats.find((localChat) => localChat.id === fsChat.id)
+      );
+
+      // Check if Firestore has agents missing from localStorage
+      const missingAgents = firestoreAgents.filter(
+        (fsAgent) => !localAgents.find((localAgent) => localAgent.id === fsAgent.id)
+      );
+
+      if (missingChats.length > 0) {
+        console.log(`📥 Found ${missingChats.length} chats in Firestore missing from localStorage`);
+        // Load chats from cloud which updates localStorage
+        await this.chatStorageService.loadFromCloud();
+        console.log('✅ Chats synced from Firestore to localStorage');
       }
-      wasAuthenticated = isAuth;
-    };
 
-    // Initial check
-    setTimeout(checkAuth, 1000);
+      if (missingAgents.length > 0) {
+        console.log(`📥 Found ${missingAgents.length} agents in Firestore missing from localStorage`);
+        // Load agents from cloud which updates localStorage
+        await this.agentProfileService.loadFromCloud();
+        console.log('✅ Agents synced from Firestore to localStorage');
+      }
 
-    // Periodic check (every 2 seconds)
-    setInterval(checkAuth, 2000);
+      if (missingChats.length === 0 && missingAgents.length === 0) {
+        console.log('✅ All Firestore data already in localStorage - no sync needed');
+      }
+
+    } catch (error) {
+      console.error('❌ Error checking/syncing Firestore data:', error);
+    }
   }
 }
