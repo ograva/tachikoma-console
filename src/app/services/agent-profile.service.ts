@@ -274,7 +274,9 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       return { success: 0, failed: 0 };
     }
 
-    console.log('🔄 Starting manual sync of all agent profiles to Firestore...');
+    console.log(
+      '🔄 Starting manual sync of all agent profiles to Firestore...'
+    );
     const profiles = this.profilesSignal();
     let success = 0;
     let failed = 0;

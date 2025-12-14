@@ -12,301 +12,277 @@
     <mat-card-content class="p-24">
       <!-- Success/Error Messages -->
       @if (successMessage()) {
-        <div class="alert alert-success m-b-16">
-          <i-tabler name="check" class="icon-18"></i-tabler>
-          {{ successMessage() }}
-        </div>
+      <div class="alert alert-success m-b-16">
+        <i-tabler name="check" class="icon-18"></i-tabler>
+        {{ successMessage() }}
+      </div>
       }
       @if (errorMessage()) {
-        <div class="alert alert-error m-b-16">
-          <i-tabler name="alert-circle" class="icon-18"></i-tabler>
-          {{ errorMessage() }}
-        </div>
+      <div class="alert alert-error m-b-16">
+        <i-tabler name="alert-circle" class="icon-18"></i-tabler>
+        {{ errorMessage() }}
+      </div>
       }
 
       @if (isAuthenticated()) {
-        <!-- User Info Section -->
-        <div class="profile-section">
-          <div class="profile-avatar">
-            @if (user()?.photoURL) {
-              <img [src]="user()?.photoURL" alt="Profile" class="avatar-image" />
-            } @else {
-              <div class="avatar-placeholder">
-                <i-tabler name="user" class="icon-48"></i-tabler>
-              </div>
-            }
+      <!-- User Info Section -->
+      <div class="profile-section">
+        <div class="profile-avatar">
+          @if (user()?.photoURL) {
+          <img [src]="user()?.photoURL" alt="Profile" class="avatar-image" />
+          } @else {
+          <div class="avatar-placeholder">
+            <i-tabler name="user" class="icon-48"></i-tabler>
           </div>
-
-          <div class="profile-info">
-            <!-- Email (read-only) -->
-            <div class="info-row">
-              <mat-label class="info-label">Email</mat-label>
-              <div class="info-value">{{ user()?.email || 'Not available' }}</div>
-            </div>
-
-            <!-- Display Name -->
-            <div class="info-row">
-              <mat-label class="info-label">Display Name</mat-label>
-              @if (editingDisplayName()) {
-                <div class="edit-row">
-                  <mat-form-field appearance="outline" class="edit-field">
-                    <input 
-                      matInput 
-                      [value]="displayNameInput()"
-                      (input)="displayNameInput.set($any($event.target).value)"
-                      placeholder="Enter display name"
-                    />
-                  </mat-form-field>
-                  <button mat-icon-button color="primary" (click)="saveDisplayName()" [disabled]="isLoading()">
-                    <i-tabler name="check" class="icon-18"></i-tabler>
-                  </button>
-                  <button mat-icon-button (click)="cancelEditDisplayName()">
-                    <i-tabler name="x" class="icon-18"></i-tabler>
-                  </button>
-                </div>
-              } @else {
-                <div class="info-value-with-edit">
-                  <span>{{ profile()?.displayName || 'Not set' }}</span>
-                  <button mat-icon-button (click)="startEditDisplayName()">
-                    <i-tabler name="edit" class="icon-16"></i-tabler>
-                  </button>
-                </div>
-              }
-            </div>
-
-            <!-- Chat Username -->
-            <div class="info-row highlight">
-              <mat-label class="info-label">
-                Chat Username
-                <span class="label-hint">(Used in Tachikoma Chat)</span>
-              </mat-label>
-              @if (editingChatUsername()) {
-                <div class="edit-row">
-                  <mat-form-field appearance="outline" class="edit-field">
-                    <input 
-                      matInput 
-                      [value]="chatUsernameInput()"
-                      (input)="chatUsernameInput.set($any($event.target).value)"
-                      placeholder="Enter chat username"
-                      maxlength="20"
-                    />
-                    <mat-hint>This name appears in chat messages</mat-hint>
-                  </mat-form-field>
-                  <button mat-icon-button color="primary" (click)="saveChatUsername()" [disabled]="isLoading()">
-                    <i-tabler name="check" class="icon-18"></i-tabler>
-                  </button>
-                  <button mat-icon-button (click)="cancelEditChatUsername()">
-                    <i-tabler name="x" class="icon-18"></i-tabler>
-                  </button>
-                </div>
-              } @else {
-                <div class="info-value-with-edit">
-                  <span class="username-preview">{{ profile()?.chatUsername || 'USER' }}</span>
-                  <button mat-icon-button (click)="startEditChatUsername()">
-                    <i-tabler name="edit" class="icon-16"></i-tabler>
-                  </button>
-                </div>
-              }
-            </div>
-
-            <!-- Account Created -->
-            @if (profile()?.createdAt) {
-              <div class="info-row">
-                <mat-label class="info-label">Member Since</mat-label>
-                <div class="info-value">{{ profile()?.createdAt | date:'mediumDate' }}</div>
-              </div>
-            }
-          </div>
+          }
         </div>
 
-        <!-- AI Settings Section -->
-        <div class="ai-settings-section m-t-24">
-          <h3 class="section-title">
-            <i-tabler name="robot" class="icon-20 m-r-8"></i-tabler>
-            AI Settings
-          </h3>
+        <div class="profile-info">
+          <!-- Email (read-only) -->
+          <div class="info-row">
+            <mat-label class="info-label">Email</mat-label>
+            <div class="info-value">{{ user()?.email || 'Not available' }}</div>
+          </div>
 
-          <!-- Google AI API Key -->
+          <!-- Display Name -->
+          <div class="info-row">
+            <mat-label class="info-label">Display Name</mat-label>
+            @if (editingDisplayName()) {
+            <div class="edit-row">
+              <mat-form-field appearance="outline" class="edit-field">
+                <input matInput [value]="displayNameInput()" (input)="displayNameInput.set($any($event.target).value)"
+                  placeholder="Enter display name" />
+              </mat-form-field>
+              <button mat-icon-button color="primary" (click)="saveDisplayName()" [disabled]="isLoading()">
+                <i-tabler name="check" class="icon-18"></i-tabler>
+              </button>
+              <button mat-icon-button (click)="cancelEditDisplayName()">
+                <i-tabler name="x" class="icon-18"></i-tabler>
+              </button>
+            </div>
+            } @else {
+            <div class="info-value-with-edit">
+              <span>{{ profile()?.displayName || 'Not set' }}</span>
+              <button mat-icon-button (click)="startEditDisplayName()">
+                <i-tabler name="edit" class="icon-16"></i-tabler>
+              </button>
+            </div>
+            }
+          </div>
+
+          <!-- Chat Username -->
           <div class="info-row highlight">
             <mat-label class="info-label">
-              Google AI API Key
-              <span class="label-hint">(Required for Tachikoma Chat)</span>
+              Chat Username
+              <span class="label-hint">(Used in Tachikoma Chat)</span>
             </mat-label>
-            @if (editingApiKey()) {
-              <div class="edit-row">
-                <mat-form-field appearance="outline" class="edit-field">
-                  <input 
-                    matInput 
-                    type="password"
-                    [value]="apiKeyInput()"
-                    (input)="apiKeyInput.set($any($event.target).value)"
-                    placeholder="Enter your Google AI API key"
-                  />
-                  <mat-hint>Your key will be validated before saving</mat-hint>
-                  @if (apiKeyValidationError()) {
-                    <mat-error>{{ apiKeyValidationError() }}</mat-error>
-                  }
-                </mat-form-field>
-                <button 
-                  mat-icon-button 
-                  color="primary" 
-                  (click)="saveApiKey()" 
-                  [disabled]="isLoading() || isValidatingApiKey()">
-                  @if (isValidatingApiKey()) {
-                    <mat-spinner diameter="18"></mat-spinner>
-                  } @else {
-                    <i-tabler name="check" class="icon-18"></i-tabler>
-                  }
-                </button>
-                <button mat-icon-button (click)="cancelEditApiKey()" [disabled]="isValidatingApiKey()">
-                  <i-tabler name="x" class="icon-18"></i-tabler>
-                </button>
-              </div>
-              @if (apiKeyValidationError()) {
-                <div class="validation-error m-t-8">
-                  <i-tabler name="alert-circle" class="icon-14"></i-tabler>
-                  {{ apiKeyValidationError() }}
-                </div>
-              }
+            @if (editingChatUsername()) {
+            <div class="edit-row">
+              <mat-form-field appearance="outline" class="edit-field">
+                <input matInput [value]="chatUsernameInput()" (input)="chatUsernameInput.set($any($event.target).value)"
+                  placeholder="Enter chat username" maxlength="20" />
+                <mat-hint>This name appears in chat messages</mat-hint>
+              </mat-form-field>
+              <button mat-icon-button color="primary" (click)="saveChatUsername()" [disabled]="isLoading()">
+                <i-tabler name="check" class="icon-18"></i-tabler>
+              </button>
+              <button mat-icon-button (click)="cancelEditChatUsername()">
+                <i-tabler name="x" class="icon-18"></i-tabler>
+              </button>
+            </div>
             } @else {
-              <div class="info-value-with-edit">
-                <span class="api-key-preview" [class.not-set]="!hasApiKey()">
-                  @if (hasApiKey()) {
-                    <i-tabler name="key" class="icon-14 m-r-4"></i-tabler>
-                    {{ getMaskedApiKey() }}
-                  } @else {
-                    Not set
-                  }
-                </span>
-                <button mat-icon-button (click)="startEditApiKey()">
-                  <i-tabler name="edit" class="icon-16"></i-tabler>
-                </button>
-              </div>
+            <div class="info-value-with-edit">
+              <span class="username-preview">{{ profile()?.chatUsername || 'USER' }}</span>
+              <button mat-icon-button (click)="startEditChatUsername()">
+                <i-tabler name="edit" class="icon-16"></i-tabler>
+              </button>
+            </div>
             }
           </div>
 
-          <!-- Model Selection -->
+          <!-- Account Created -->
+          @if (profile()?.createdAt) {
           <div class="info-row">
-            <mat-label class="info-label">
-              Gemini Model
-              <span class="label-hint">(Select your preferred AI model)</span>
-            </mat-label>
-            <mat-form-field appearance="outline" class="model-select">
-              <mat-select 
-                [value]="profile()?.geminiModel || 'gemini-2.5-flash'"
-                (selectionChange)="onModelChange($event.value)">
-                @for (model of geminiModels; track model.value) {
-                  <mat-option [value]="model.value">{{ model.label }}</mat-option>
-                }
-              </mat-select>
+            <mat-label class="info-label">Member Since</mat-label>
+            <div class="info-value">{{ profile()?.createdAt | date:'mediumDate' }}</div>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- AI Settings Section -->
+      <div class="ai-settings-section m-t-24">
+        <h3 class="section-title">
+          <i-tabler name="robot" class="icon-20 m-r-8"></i-tabler>
+          AI Settings
+        </h3>
+
+        <!-- Google AI API Key -->
+        <div class="info-row highlight">
+          <mat-label class="info-label">
+            Google AI API Key
+            <span class="label-hint">(Required for Tachikoma Chat)</span>
+          </mat-label>
+          @if (editingApiKey()) {
+          <div class="edit-row">
+            <mat-form-field appearance="outline" class="edit-field">
+              <input matInput type="password" [value]="apiKeyInput()"
+                (input)="apiKeyInput.set($any($event.target).value)" placeholder="Enter your Google AI API key" />
+              <mat-hint>Your key will be validated before saving</mat-hint>
+              @if (apiKeyValidationError()) {
+              <mat-error>{{ apiKeyValidationError() }}</mat-error>
+              }
             </mat-form-field>
-          </div>
-        </div>
-
-        <!-- Data Sync Section -->
-        <div class="data-sync-section m-t-24">
-          <h3 class="section-title">
-            <i-tabler name="cloud-upload" class="icon-20 m-r-8"></i-tabler>
-            Data Sync
-          </h3>
-          
-          @if (syncChatsMessage()) {
-            <div class="alert alert-info m-b-16">
-              <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
-              {{ syncChatsMessage() }}
-            </div>
-          }
-
-          @if (syncAgentsMessage()) {
-            <div class="alert alert-info m-b-16">
-              <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
-              {{ syncAgentsMessage() }}
-            </div>
-          }
-
-          <!-- Chat Sync -->
-          <div class="sync-item m-b-16">
-            <div class="sync-description m-b-12">
-              <h4 class="sync-subtitle">
-                <i-tabler name="message-circle" class="icon-16 m-r-4"></i-tabler>
-                Chat Sessions
-              </h4>
-              <p>
-                Manually sync your local chat history to Firestore. This will upload all chats 
-                stored in your browser's local storage, including older chats with legacy formats.
-              </p>
-              <p class="sync-note">
-                <i-tabler name="info-circle" class="icon-14 m-r-4"></i-tabler>
-                Note: Very large chats (>900KB) will be skipped due to Firestore limits.
-              </p>
-            </div>
-
-            <button 
-              mat-stroked-button 
-              color="primary"
-              (click)="syncChatsToCloud()"
-              [disabled]="isSyncingChats() || isLoading()">
-              @if (isSyncingChats()) {
-                <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+            <button mat-icon-button color="primary" (click)="saveApiKey()"
+              [disabled]="isLoading() || isValidatingApiKey()">
+              @if (isValidatingApiKey()) {
+              <mat-spinner diameter="18"></mat-spinner>
               } @else {
-                <i-tabler name="cloud-upload" class="icon-18 m-r-8"></i-tabler>
+              <i-tabler name="check" class="icon-18"></i-tabler>
               }
-              {{ isSyncingChats() ? 'Syncing...' : 'Sync Chats to Cloud' }}
+            </button>
+            <button mat-icon-button (click)="cancelEditApiKey()" [disabled]="isValidatingApiKey()">
+              <i-tabler name="x" class="icon-18"></i-tabler>
             </button>
           </div>
-
-          <!-- Agent Sync -->
-          <div class="sync-item">
-            <div class="sync-description m-b-12">
-              <h4 class="sync-subtitle">
-                <i-tabler name="users" class="icon-16 m-r-4"></i-tabler>
-                Agent Profiles
-              </h4>
-              <p>
-                Manually sync your Tachikoma agent profiles to Firestore. This will upload all 
-                custom agent configurations, including older profiles with legacy formats.
-              </p>
-              <p class="sync-note">
-                <i-tabler name="info-circle" class="icon-14 m-r-4"></i-tabler>
-                Note: This includes all agents (LOGIKOMA, GHOST-1, MODERATOR, and custom agents).
-              </p>
-            </div>
-
-            <button 
-              mat-stroked-button 
-              color="accent"
-              (click)="syncAgentsToCloud()"
-              [disabled]="isSyncingAgents() || isLoading()">
-              @if (isSyncingAgents()) {
-                <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+          @if (apiKeyValidationError()) {
+          <div class="validation-error m-t-8">
+            <i-tabler name="alert-circle" class="icon-14"></i-tabler>
+            {{ apiKeyValidationError() }}
+          </div>
+          }
+          } @else {
+          <div class="info-value-with-edit">
+            <span class="api-key-preview" [class.not-set]="!hasApiKey()">
+              @if (hasApiKey()) {
+              <i-tabler name="key" class="icon-14 m-r-4"></i-tabler>
+              {{ getMaskedApiKey() }}
               } @else {
-                <i-tabler name="cloud-upload" class="icon-18 m-r-8"></i-tabler>
+              Not set
               }
-              {{ isSyncingAgents() ? 'Syncing...' : 'Sync Agents to Cloud' }}
+            </span>
+            <button mat-icon-button (click)="startEditApiKey()">
+              <i-tabler name="edit" class="icon-16"></i-tabler>
             </button>
           </div>
+          }
         </div>
 
-        <!-- Actions -->
-        <div class="profile-actions m-t-24">
-          <button mat-flat-button color="warn" (click)="logout()">
-            <i-tabler name="logout" class="icon-18 m-r-8"></i-tabler>
-            Logout
+        <!-- Model Selection -->
+        <div class="info-row">
+          <mat-label class="info-label">
+            Gemini Model
+            <span class="label-hint">(Select your preferred AI model)</span>
+          </mat-label>
+          <mat-form-field appearance="outline" class="model-select">
+            <mat-select [value]="profile()?.geminiModel || 'gemini-2.5-flash'"
+              (selectionChange)="onModelChange($event.value)">
+              @for (model of geminiModels; track model.value) {
+              <mat-option [value]="model.value">{{ model.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Data Sync Section -->
+      <div class="data-sync-section m-t-24">
+        <h3 class="section-title">
+          <i-tabler name="cloud-upload" class="icon-20 m-r-8"></i-tabler>
+          Data Sync
+        </h3>
+
+        @if (syncChatsMessage()) {
+        <div class="alert alert-info m-b-16">
+          <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+          {{ syncChatsMessage() }}
+        </div>
+        }
+
+        @if (syncAgentsMessage()) {
+        <div class="alert alert-info m-b-16">
+          <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+          {{ syncAgentsMessage() }}
+        </div>
+        }
+
+        <!-- Chat Sync -->
+        <div class="sync-item m-b-16">
+          <div class="sync-description m-b-12">
+            <h4 class="sync-subtitle">
+              <i-tabler name="message-circle" class="icon-16 m-r-4"></i-tabler>
+              Chat Sessions
+            </h4>
+            <p>
+              Manually sync your local chat history to Firestore. This will upload all chats
+              stored in your browser's local storage, including older chats with legacy formats.
+            </p>
+            <p class="sync-note">
+              <i-tabler name="info-circle" class="icon-14 m-r-4"></i-tabler>
+              Note: Very large chats (>900KB) will be skipped due to Firestore limits.
+            </p>
+          </div>
+
+          <button mat-stroked-button color="primary" (click)="syncChatsToCloud()"
+            [disabled]="isSyncingChats() || isLoading()">
+            @if (isSyncingChats()) {
+            <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+            } @else {
+            <i-tabler name="cloud-upload" class="icon-18 m-r-8"></i-tabler>
+            }
+            {{ isSyncingChats() ? 'Syncing...' : 'Sync Chats to Cloud' }}
           </button>
         </div>
+
+        <!-- Agent Sync -->
+        <div class="sync-item">
+          <div class="sync-description m-b-12">
+            <h4 class="sync-subtitle">
+              <i-tabler name="users" class="icon-16 m-r-4"></i-tabler>
+              Agent Profiles
+            </h4>
+            <p>
+              Manually sync your Tachikoma agent profiles to Firestore. This will upload all
+              custom agent configurations, including older profiles with legacy formats.
+            </p>
+            <p class="sync-note">
+              <i-tabler name="info-circle" class="icon-14 m-r-4"></i-tabler>
+              Note: This includes all agents (LOGIKOMA, GHOST-1, MODERATOR, and custom agents).
+            </p>
+          </div>
+
+          <button mat-stroked-button color="accent" (click)="syncAgentsToCloud()"
+            [disabled]="isSyncingAgents() || isLoading()">
+            @if (isSyncingAgents()) {
+            <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+            } @else {
+            <i-tabler name="cloud-upload" class="icon-18 m-r-8"></i-tabler>
+            }
+            {{ isSyncingAgents() ? 'Syncing...' : 'Sync Agents to Cloud' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="profile-actions m-t-24">
+        <button mat-flat-button color="warn" (click)="logout()">
+          <i-tabler name="logout" class="icon-18 m-r-8"></i-tabler>
+          Logout
+        </button>
+      </div>
       } @else {
-        <!-- Not Logged In -->
-        <div class="not-logged-in">
-          <div class="icon-container">
-            <i-tabler name="user-x" class="icon-64"></i-tabler>
-          </div>
-          <h3>Not Logged In</h3>
-          <p>Please log in to view and manage your profile.</p>
-          <button mat-flat-button color="primary" (click)="goToLogin()">
-            <i-tabler name="login" class="icon-18 m-r-8"></i-tabler>
-            Go to Login
-          </button>
+      <!-- Not Logged In -->
+      <div class="not-logged-in">
+        <div class="icon-container">
+          <i-tabler name="user-x" class="icon-64"></i-tabler>
         </div>
+        <h3>Not Logged In</h3>
+        <p>Please log in to view and manage your profile.</p>
+        <button mat-flat-button color="primary" (click)="goToLogin()">
+          <i-tabler name="login" class="icon-18 m-r-8"></i-tabler>
+          Go to Login
+        </button>
+      </div>
       }
     </mat-card-content>
   </mat-card>

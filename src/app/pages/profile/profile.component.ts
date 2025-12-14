@@ -5,7 +5,12 @@ import { Router } from '@angular/router';
 import { MaterialModule } from 'src/app/material.module';
 import { TablerIconsModule } from 'angular-tabler-icons';
 import { AuthService } from 'src/app/services/auth.service';
-import { UserProfileService, UserProfile, GeminiModel, GEMINI_MODELS } from 'src/app/services/user-profile.service';
+import {
+  UserProfileService,
+  UserProfile,
+  GeminiModel,
+  GEMINI_MODELS,
+} from 'src/app/services/user-profile.service';
 import { ChatStorageService } from 'src/app/services/chat-storage.service';
 import { AgentProfileService } from 'src/app/services/agent-profile.service';
 
@@ -125,7 +130,9 @@ export class ProfileComponent {
       this.successMessage.set('Chat username updated successfully!');
       setTimeout(() => this.successMessage.set(null), 3000);
     } catch (error) {
-      this.errorMessage.set('Failed to update chat username. Please try again.');
+      this.errorMessage.set(
+        'Failed to update chat username. Please try again.'
+      );
       setTimeout(() => this.errorMessage.set(null), 5000);
     }
   }
@@ -147,7 +154,9 @@ export class ProfileComponent {
       this.successMessage.set('API key validated and saved successfully!');
       setTimeout(() => this.successMessage.set(null), 3000);
     } catch (error: any) {
-      this.apiKeyValidationError.set(error.message || 'Failed to validate API key.');
+      this.apiKeyValidationError.set(
+        error.message || 'Failed to validate API key.'
+      );
     } finally {
       this.isValidatingApiKey.set(false);
     }
@@ -159,7 +168,9 @@ export class ProfileComponent {
       this.successMessage.set('Model preference saved!');
       setTimeout(() => this.successMessage.set(null), 3000);
     } catch (error) {
-      this.errorMessage.set('Failed to save model preference. Please try again.');
+      this.errorMessage.set(
+        'Failed to save model preference. Please try again.'
+      );
       setTimeout(() => this.errorMessage.set(null), 5000);
     }
   }
@@ -203,29 +214,41 @@ export class ProfileComponent {
 
     try {
       const result = await this.chatStorageService.manualSyncAllChatsToCloud();
-      
+
       if (result.success > 0) {
         this.successMessage.set(
-          `✅ Successfully synced ${result.success} chat${result.success > 1 ? 's' : ''}!` +
-          (result.failed > 0 ? ` (${result.failed} failed)` : '') +
-          (result.skipped > 0 ? ` (${result.skipped} skipped - too large)` : '')
+          `✅ Successfully synced ${result.success} chat${
+            result.success > 1 ? 's' : ''
+          }!` +
+            (result.failed > 0 ? ` (${result.failed} failed)` : '') +
+            (result.skipped > 0
+              ? ` (${result.skipped} skipped - too large)`
+              : '')
         );
       } else if (result.skipped > 0) {
         this.errorMessage.set(
-          `⚠️ ${result.skipped} chat${result.skipped > 1 ? 's' : ''} skipped (too large for Firestore)`
+          `⚠️ ${result.skipped} chat${
+            result.skipped > 1 ? 's' : ''
+          } skipped (too large for Firestore)`
         );
       } else if (result.failed > 0) {
-        this.errorMessage.set(`❌ Failed to sync ${result.failed} chat${result.failed > 1 ? 's' : ''}`);
+        this.errorMessage.set(
+          `❌ Failed to sync ${result.failed} chat${
+            result.failed > 1 ? 's' : ''
+          }`
+        );
       } else {
         this.successMessage.set('No chats to sync.');
       }
-      
+
       setTimeout(() => {
         this.successMessage.set(null);
         this.errorMessage.set(null);
       }, 5000);
     } catch (error) {
-      this.errorMessage.set('Failed to sync chats. Please check console for details.');
+      this.errorMessage.set(
+        'Failed to sync chats. Please check console for details.'
+      );
       console.error('Sync error:', error);
       setTimeout(() => this.errorMessage.set(null), 5000);
     } finally {
@@ -236,7 +259,9 @@ export class ProfileComponent {
 
   async syncAgentsToCloud(): Promise<void> {
     if (!this.authService.isRealUser()) {
-      this.errorMessage.set('Please log in with a real account to sync agents.');
+      this.errorMessage.set(
+        'Please log in with a real account to sync agents.'
+      );
       setTimeout(() => this.errorMessage.set(null), 5000);
       return;
     }
@@ -246,25 +271,33 @@ export class ProfileComponent {
     this.clearMessages();
 
     try {
-      const result = await this.agentProfileService.manualSyncAllProfilesToCloud();
-      
+      const result =
+        await this.agentProfileService.manualSyncAllProfilesToCloud();
+
       if (result.success > 0) {
         this.successMessage.set(
-          `✅ Successfully synced ${result.success} agent profile${result.success > 1 ? 's' : ''}!` +
-          (result.failed > 0 ? ` (${result.failed} failed)` : '')
+          `✅ Successfully synced ${result.success} agent profile${
+            result.success > 1 ? 's' : ''
+          }!` + (result.failed > 0 ? ` (${result.failed} failed)` : '')
         );
       } else if (result.failed > 0) {
-        this.errorMessage.set(`❌ Failed to sync ${result.failed} agent profile${result.failed > 1 ? 's' : ''}`);
+        this.errorMessage.set(
+          `❌ Failed to sync ${result.failed} agent profile${
+            result.failed > 1 ? 's' : ''
+          }`
+        );
       } else {
         this.successMessage.set('No agent profiles to sync.');
       }
-      
+
       setTimeout(() => {
         this.successMessage.set(null);
         this.errorMessage.set(null);
       }, 5000);
     } catch (error) {
-      this.errorMessage.set('Failed to sync agents. Please check console for details.');
+      this.errorMessage.set(
+        'Failed to sync agents. Please check console for details.'
+      );
       console.error('Sync error:', error);
       setTimeout(() => this.errorMessage.set(null), 5000);
     } finally {

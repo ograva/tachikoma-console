@@ -377,7 +377,9 @@ export class ChatStorageService {
 
         // Ensure messages have required fields
         migratedSession.messages = migratedSession.messages.map((msg: any) => ({
-          id: msg.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id:
+            msg.id ||
+            `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           sender: msg.sender || 'Unknown',
           text: msg.text || '',
           html: msg.html || msg.text || '',
@@ -393,7 +395,9 @@ export class ChatStorageService {
 
         if (sizeInKB > 900) {
           console.warn(
-            `⚠️ Chat ${migratedSession.id} is too large (${sizeInKB.toFixed(0)}KB) - skipping`
+            `⚠️ Chat ${migratedSession.id} is too large (${sizeInKB.toFixed(
+              0
+            )}KB) - skipping`
           );
           skipped++;
           continue;
