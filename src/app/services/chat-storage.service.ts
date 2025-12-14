@@ -340,6 +340,83 @@ export class ChatStorageService {
     }
   }
 
+  /**
+   * Manual sync all local chats to Firestore
+   * Handles legacy chat structures by migrating them
+   */
+  async manualSyncAllChatsToCloud(): Promise<{
+    success: number;
+    failed: number;
+    skipped: number;
+  }> {
+    if (!this.authService.isRealUser()) {
+      console.log('❌ Cannot sync - user not authenticated');
+      return { success: 0, failed: 0, skipped: 1 };
+    }
+
+    console.log('🔄 Starting manual sync of all chats to Firestore...');
+    const sessions = this.sessionsSignal();
+    let success = 0;
+    let failed = 0;
+    let skipped = 0;
+
+    for (const session of sessions) {
+      try {
+        // Migrate legacy chat structure if needed
+        const migratedSession: ChatSession = {
+          id: session.id || this.generateId(),
+          title: session.title || 'Untitled Chat',
+          messages: Array.isArray(session.messages) ? session.messages : [],
+          conversationSummary: session.conversationSummary || '',
+          participatingAgents: Array.isArray(session.participatingAgents)
+            ? session.participatingAgents
+            : [],
+          createdAt: session.createdAt || Date.now(),
+          updatedAt: session.updatedAt || Date.now(),
+        };
+
+        // Ensure messages have required fields
+        migratedSession.messages = migratedSession.messages.map((msg: any) => ({
+          id: msg.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          sender: msg.sender || 'Unknown',
+          text: msg.text || '',
+          html: msg.html || msg.text || '',
+          isUser: msg.isUser !== undefined ? msg.isUser : false,
+          agentId: msg.agentId,
+          timestamp: msg.timestamp || Date.now(),
+        }));
+
+        // Check size before syncing
+        const chatJson = JSON.stringify(migratedSession);
+        const sizeInBytes = new Blob([chatJson]).size;
+        const sizeInKB = sizeInBytes / 1024;
+
+        if (sizeInKB > 900) {
+          console.warn(
+            `⚠️ Chat ${migratedSession.id} is too large (${sizeInKB.toFixed(0)}KB) - skipping`
+          );
+          skipped++;
+          continue;
+        }
+
+        await this.firestoreService.saveDocument(
+          this.COLLECTION_NAME,
+          migratedSession
+        );
+        console.log(`✅ Synced chat: ${migratedSession.title}`);
+        success++;
+      } catch (error) {
+        console.error(`❌ Failed to sync chat ${session.id}:`, error);
+        failed++;
+      }
+    }
+
+    console.log(
+      `🎉 Manual sync complete: ${success} succeeded, ${failed} failed, ${skipped} skipped`
+    );
+    return { success, failed, skipped };
+  }
+
   private generateId(): string {
     return `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }

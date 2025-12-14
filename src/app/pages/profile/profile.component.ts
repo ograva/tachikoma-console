@@ -6,6 +6,7 @@ import { MaterialModule } from 'src/app/material.module';
 import { TablerIconsModule } from 'angular-tabler-icons';
 import { AuthService } from 'src/app/services/auth.service';
 import { UserProfileService, UserProfile, GeminiModel, GEMINI_MODELS } from 'src/app/services/user-profile.service';
+import { ChatStorageService } from 'src/app/services/chat-storage.service';
 
 @Component({
   selector: 'app-profile',
@@ -23,6 +24,7 @@ import { UserProfileService, UserProfile, GeminiModel, GEMINI_MODELS } from 'src
 export class ProfileComponent {
   private authService = inject(AuthService);
   private userProfileService = inject(UserProfileService);
+  private chatStorageService = inject(ChatStorageService);
   private router = inject(Router);
 
   // Signals from services
@@ -46,6 +48,10 @@ export class ProfileComponent {
   // API key validation state
   isValidatingApiKey = signal<boolean>(false);
   apiKeyValidationError = signal<string | null>(null);
+
+  // Sync state
+  isSyncing = signal<boolean>(false);
+  syncMessage = signal<string | null>(null);
 
   // Success/error messages
   successMessage = signal<string | null>(null);
@@ -178,8 +184,53 @@ export class ProfileComponent {
     this.router.navigate(['/authentication/login']);
   }
 
+  async syncChatsToCloud(): Promise<void> {
+    if (!this.authService.isRealUser()) {
+      this.errorMessage.set('Please log in with a real account to sync chats.');
+      setTimeout(() => this.errorMessage.set(null), 5000);
+      return;
+    }
+
+    this.isSyncing.set(true);
+    this.syncMessage.set('Syncing chats to Firestore...');
+    this.clearMessages();
+
+    try {
+      const result = await this.chatStorageService.manualSyncAllChatsToCloud();
+      
+      if (result.success > 0) {
+        this.successMessage.set(
+          `✅ Successfully synced ${result.success} chat${result.success > 1 ? 's' : ''}!` +
+          (result.failed > 0 ? ` (${result.failed} failed)` : '') +
+          (result.skipped > 0 ? ` (${result.skipped} skipped - too large)` : '')
+        );
+      } else if (result.skipped > 0) {
+        this.errorMessage.set(
+          `⚠️ ${result.skipped} chat${result.skipped > 1 ? 's' : ''} skipped (too large for Firestore)`
+        );
+      } else if (result.failed > 0) {
+        this.errorMessage.set(`❌ Failed to sync ${result.failed} chat${result.failed > 1 ? 's' : ''}`);
+      } else {
+        this.successMessage.set('No chats to sync.');
+      }
+      
+      setTimeout(() => {
+        this.successMessage.set(null);
+        this.errorMessage.set(null);
+      }, 5000);
+    } catch (error) {
+      this.errorMessage.set('Failed to sync chats. Please check console for details.');
+      console.error('Sync error:', error);
+      setTimeout(() => this.errorMessage.set(null), 5000);
+    } finally {
+      this.isSyncing.set(false);
+      this.syncMessage.set(null);
+    }
+  }
+
   private clearMessages(): void {
     this.successMessage.set(null);
     this.errorMessage.set(null);
+    this.syncMessage.set(null);
   }
 }

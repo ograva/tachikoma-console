@@ -173,7 +173,9 @@ export class UserProfileService {
    */
   private async saveProfileToFirestore(profile: UserProfile): Promise<void> {
     if (!this.authService.isRealUser()) {
-      console.log('💾 User profile saved locally (not syncing - user not authenticated)');
+      console.log(
+        '💾 User profile saved locally (not syncing - user not authenticated)'
+      );
       return;
     }
 

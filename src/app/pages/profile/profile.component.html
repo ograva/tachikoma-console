@@ -203,6 +203,45 @@
           </div>
         </div>
 
+        <!-- Data Sync Section -->
+        <div class="data-sync-section m-t-24">
+          <h3 class="section-title">
+            <i-tabler name="cloud-upload" class="icon-20 m-r-8"></i-tabler>
+            Data Sync
+          </h3>
+          
+          @if (syncMessage()) {
+            <div class="alert alert-info m-b-16">
+              <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+              {{ syncMessage() }}
+            </div>
+          }
+
+          <div class="sync-description m-b-16">
+            <p>
+              Manually sync your local chat history to Firestore. This will upload all chats 
+              stored in your browser's local storage, including older chats with legacy formats.
+            </p>
+            <p class="sync-note">
+              <i-tabler name="info-circle" class="icon-14 m-r-4"></i-tabler>
+              Note: Very large chats (>900KB) will be skipped due to Firestore limits.
+            </p>
+          </div>
+
+          <button 
+            mat-stroked-button 
+            color="primary"
+            (click)="syncChatsToCloud()"
+            [disabled]="isSyncing() || isLoading()">
+            @if (isSyncing()) {
+              <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+            } @else {
+              <i-tabler name="cloud-upload" class="icon-18 m-r-8"></i-tabler>
+            }
+            {{ isSyncing() ? 'Syncing...' : 'Sync Chats to Cloud' }}
+          </button>
+        </div>
+
         <!-- Actions -->
         <div class="profile-actions m-t-24">
           <button mat-flat-button color="warn" (click)="logout()">
