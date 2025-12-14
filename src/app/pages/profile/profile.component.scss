@@ -197,9 +197,29 @@
   .section-title {
     display: flex;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     font-size: 16px;
     font-weight: 600;
+  }
+
+  .sync-item {
+    padding: 16px;
+    border: 1px solid rgba(var(--text-rgb), 0.1);
+    border-radius: 8px;
+    background: rgba(var(--primary-rgb), 0.02);
+
+    &:not(:last-child) {
+      margin-bottom: 16px;
+    }
+  }
+
+  .sync-subtitle {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
   }
 
   .sync-description {

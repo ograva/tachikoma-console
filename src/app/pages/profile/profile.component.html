@@ -210,36 +210,81 @@
             Data Sync
           </h3>
           
-          @if (syncMessage()) {
+          @if (syncChatsMessage()) {
             <div class="alert alert-info m-b-16">
               <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
-              {{ syncMessage() }}
+              {{ syncChatsMessage() }}
             </div>
           }
 
-          <div class="sync-description m-b-16">
-            <p>
-              Manually sync your local chat history to Firestore. This will upload all chats 
-              stored in your browser's local storage, including older chats with legacy formats.
-            </p>
-            <p class="sync-note">
-              <i-tabler name="info-circle" class="icon-14 m-r-4"></i-tabler>
-              Note: Very large chats (>900KB) will be skipped due to Firestore limits.
-            </p>
+          @if (syncAgentsMessage()) {
+            <div class="alert alert-info m-b-16">
+              <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+              {{ syncAgentsMessage() }}
+            </div>
+          }
+
+          <!-- Chat Sync -->
+          <div class="sync-item m-b-16">
+            <div class="sync-description m-b-12">
+              <h4 class="sync-subtitle">
+                <i-tabler name="message-circle" class="icon-16 m-r-4"></i-tabler>
+                Chat Sessions
+              </h4>
+              <p>
+                Manually sync your local chat history to Firestore. This will upload all chats 
+                stored in your browser's local storage, including older chats with legacy formats.
+              </p>
+              <p class="sync-note">
+                <i-tabler name="info-circle" class="icon-14 m-r-4"></i-tabler>
+                Note: Very large chats (>900KB) will be skipped due to Firestore limits.
+              </p>
+            </div>
+
+            <button 
+              mat-stroked-button 
+              color="primary"
+              (click)="syncChatsToCloud()"
+              [disabled]="isSyncingChats() || isLoading()">
+              @if (isSyncingChats()) {
+                <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+              } @else {
+                <i-tabler name="cloud-upload" class="icon-18 m-r-8"></i-tabler>
+              }
+              {{ isSyncingChats() ? 'Syncing...' : 'Sync Chats to Cloud' }}
+            </button>
           </div>
 
-          <button 
-            mat-stroked-button 
-            color="primary"
-            (click)="syncChatsToCloud()"
-            [disabled]="isSyncing() || isLoading()">
-            @if (isSyncing()) {
-              <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
-            } @else {
-              <i-tabler name="cloud-upload" class="icon-18 m-r-8"></i-tabler>
-            }
-            {{ isSyncing() ? 'Syncing...' : 'Sync Chats to Cloud' }}
-          </button>
+          <!-- Agent Sync -->
+          <div class="sync-item">
+            <div class="sync-description m-b-12">
+              <h4 class="sync-subtitle">
+                <i-tabler name="users" class="icon-16 m-r-4"></i-tabler>
+                Agent Profiles
+              </h4>
+              <p>
+                Manually sync your Tachikoma agent profiles to Firestore. This will upload all 
+                custom agent configurations, including older profiles with legacy formats.
+              </p>
+              <p class="sync-note">
+                <i-tabler name="info-circle" class="icon-14 m-r-4"></i-tabler>
+                Note: This includes all agents (LOGIKOMA, GHOST-1, MODERATOR, and custom agents).
+              </p>
+            </div>
+
+            <button 
+              mat-stroked-button 
+              color="accent"
+              (click)="syncAgentsToCloud()"
+              [disabled]="isSyncingAgents() || isLoading()">
+              @if (isSyncingAgents()) {
+                <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
+              } @else {
+                <i-tabler name="cloud-upload" class="icon-18 m-r-8"></i-tabler>
+              }
+              {{ isSyncingAgents() ? 'Syncing...' : 'Sync Agents to Cloud' }}
+            </button>
+          </div>
         </div>
 
         <!-- Actions -->

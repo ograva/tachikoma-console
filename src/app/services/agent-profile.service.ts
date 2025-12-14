@@ -261,6 +261,59 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     }
   }
 
+  /**
+   * Manual sync all local agent profiles to Firestore
+   * Handles legacy agent structures by migrating them
+   */
+  async manualSyncAllProfilesToCloud(): Promise<{
+    success: number;
+    failed: number;
+  }> {
+    if (!this.authService.isRealUser()) {
+      console.log('❌ Cannot sync - user not authenticated');
+      return { success: 0, failed: 0 };
+    }
+
+    console.log('🔄 Starting manual sync of all agent profiles to Firestore...');
+    const profiles = this.profilesSignal();
+    let success = 0;
+    let failed = 0;
+
+    for (const profile of profiles) {
+      try {
+        // Migrate legacy agent structure if needed
+        const migratedProfile: AgentProfile = {
+          id: profile.id || this.generateId(),
+          name: profile.name || 'Unnamed Agent',
+          color: profile.color || 'neutral',
+          hex: profile.hex || '#ffa500',
+          temp: profile.temp !== undefined ? profile.temp : 0.5,
+          system: profile.system || '',
+          role: profile.role || 'chatter',
+          silenceProtocol: profile.silenceProtocol || 'standard',
+          status: profile.status || 'idle',
+          createdAt: profile.createdAt || Date.now(),
+          updatedAt: profile.updatedAt || Date.now(),
+        };
+
+        await this.firestoreService.saveDocument(
+          this.COLLECTION_NAME,
+          migratedProfile
+        );
+        console.log(`✅ Synced agent: ${migratedProfile.name}`);
+        success++;
+      } catch (error) {
+        console.error(`❌ Failed to sync agent ${profile.id}:`, error);
+        failed++;
+      }
+    }
+
+    console.log(
+      `🎉 Manual sync complete: ${success} succeeded, ${failed} failed`
+    );
+    return { success, failed };
+  }
+
   private generateId(): string {
     return `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }

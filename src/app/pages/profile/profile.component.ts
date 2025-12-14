@@ -7,6 +7,7 @@ import { TablerIconsModule } from 'angular-tabler-icons';
 import { AuthService } from 'src/app/services/auth.service';
 import { UserProfileService, UserProfile, GeminiModel, GEMINI_MODELS } from 'src/app/services/user-profile.service';
 import { ChatStorageService } from 'src/app/services/chat-storage.service';
+import { AgentProfileService } from 'src/app/services/agent-profile.service';
 
 @Component({
   selector: 'app-profile',
@@ -25,6 +26,7 @@ export class ProfileComponent {
   private authService = inject(AuthService);
   private userProfileService = inject(UserProfileService);
   private chatStorageService = inject(ChatStorageService);
+  private agentProfileService = inject(AgentProfileService);
   private router = inject(Router);
 
   // Signals from services
@@ -49,9 +51,13 @@ export class ProfileComponent {
   isValidatingApiKey = signal<boolean>(false);
   apiKeyValidationError = signal<string | null>(null);
 
-  // Sync state
-  isSyncing = signal<boolean>(false);
-  syncMessage = signal<string | null>(null);
+  // Sync state for chats
+  isSyncingChats = signal<boolean>(false);
+  syncChatsMessage = signal<string | null>(null);
+
+  // Sync state for agents
+  isSyncingAgents = signal<boolean>(false);
+  syncAgentsMessage = signal<string | null>(null);
 
   // Success/error messages
   successMessage = signal<string | null>(null);
@@ -191,8 +197,8 @@ export class ProfileComponent {
       return;
     }
 
-    this.isSyncing.set(true);
-    this.syncMessage.set('Syncing chats to Firestore...');
+    this.isSyncingChats.set(true);
+    this.syncChatsMessage.set('Syncing chats to Firestore...');
     this.clearMessages();
 
     try {
@@ -223,14 +229,54 @@ export class ProfileComponent {
       console.error('Sync error:', error);
       setTimeout(() => this.errorMessage.set(null), 5000);
     } finally {
-      this.isSyncing.set(false);
-      this.syncMessage.set(null);
+      this.isSyncingChats.set(false);
+      this.syncChatsMessage.set(null);
+    }
+  }
+
+  async syncAgentsToCloud(): Promise<void> {
+    if (!this.authService.isRealUser()) {
+      this.errorMessage.set('Please log in with a real account to sync agents.');
+      setTimeout(() => this.errorMessage.set(null), 5000);
+      return;
+    }
+
+    this.isSyncingAgents.set(true);
+    this.syncAgentsMessage.set('Syncing agent profiles to Firestore...');
+    this.clearMessages();
+
+    try {
+      const result = await this.agentProfileService.manualSyncAllProfilesToCloud();
+      
+      if (result.success > 0) {
+        this.successMessage.set(
+          `✅ Successfully synced ${result.success} agent profile${result.success > 1 ? 's' : ''}!` +
+          (result.failed > 0 ? ` (${result.failed} failed)` : '')
+        );
+      } else if (result.failed > 0) {
+        this.errorMessage.set(`❌ Failed to sync ${result.failed} agent profile${result.failed > 1 ? 's' : ''}`);
+      } else {
+        this.successMessage.set('No agent profiles to sync.');
+      }
+      
+      setTimeout(() => {
+        this.successMessage.set(null);
+        this.errorMessage.set(null);
+      }, 5000);
+    } catch (error) {
+      this.errorMessage.set('Failed to sync agents. Please check console for details.');
+      console.error('Sync error:', error);
+      setTimeout(() => this.errorMessage.set(null), 5000);
+    } finally {
+      this.isSyncingAgents.set(false);
+      this.syncAgentsMessage.set(null);
     }
   }
 
   private clearMessages(): void {
     this.successMessage.set(null);
     this.errorMessage.set(null);
-    this.syncMessage.set(null);
+    this.syncChatsMessage.set(null);
+    this.syncAgentsMessage.set(null);
   }
 }
