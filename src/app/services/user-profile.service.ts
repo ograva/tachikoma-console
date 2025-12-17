@@ -1,43 +1,15 @@
 import { Injectable, signal, computed, inject, effect } from '@angular/core';
-import { FirestoreService, SyncableData } from './firestore.service';
+import { FirestoreService } from './firestore.service';
 import { AuthService } from './auth.service';
 import { EncryptionService } from './encryption.service';
+import {
+  UserProfile,
+  UserProfileModel,
+  GeminiModel,
+  GEMINI_MODELS,
+} from '../models';
 
-export type GeminiModel =
-  | 'gemini-2.0-flash'
-  | 'gemini-2.5-flash'
-  | 'gemini-3.0';
-
-export const GEMINI_MODELS: { value: GeminiModel; label: string }[] = [
-  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  { value: 'gemini-3.0', label: 'Gemini 3.0' },
-];
-
-export interface UserProfile extends SyncableData {
-  id: string;
-  email: string;
-  displayName: string;
-  chatUsername: string;
-  photoURL: string | null;
-  geminiApiKey?: string; // Encrypted in Firestore, plain in localStorage
-  geminiApiKeyEncrypted?: string; // Used only for Firestore storage
-  geminiModel?: GeminiModel;
-  rateLimitRPM?: number; // API rate limit (15 for free, 1000 for paid)
-  createdAt: number;
-  updatedAt: number;
-}
-
-const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'email'> = {
-  displayName: '',
-  chatUsername: 'USER',
-  photoURL: null,
-  geminiApiKey: '',
-  geminiModel: 'gemini-2.5-flash',
-  rateLimitRPM: 15, // Default to free tier
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
-};
+export { GeminiModel, GEMINI_MODELS, UserProfile };
 
 @Injectable({
   providedIn: 'root',
@@ -96,8 +68,9 @@ export class UserProfileService {
     const stored = localStorage.getItem(this.LOCAL_PROFILE_KEY);
     if (stored) {
       try {
-        const profile = JSON.parse(stored) as UserProfile;
-        this.profileSignal.set(profile);
+        const profile = JSON.parse(stored);
+        const normalizedProfile = UserProfileModel.fromLocalStorage(profile);
+        this.profileSignal.set(normalizedProfile);
       } catch (e) {
         console.error('Error loading profile from localStorage:', e);
       }
@@ -128,34 +101,34 @@ export class UserProfileService {
       );
 
       if (existing) {
+        // Normalize profile using model
+        const normalizedProfile = UserProfileModel.fromFirestore(existing);
+
         // Decrypt API key if present
-        if (existing.geminiApiKeyEncrypted) {
+        if (normalizedProfile.geminiApiKeyEncrypted) {
           try {
-            existing.geminiApiKey = await this.encryptionService.decrypt(
-              existing.geminiApiKeyEncrypted,
-              userId
-            );
+            normalizedProfile.geminiApiKey =
+              await this.encryptionService.decrypt(
+                normalizedProfile.geminiApiKeyEncrypted,
+                userId
+              );
           } catch (error) {
             console.error('Error decrypting API key:', error);
-            existing.geminiApiKey = '';
+            normalizedProfile.geminiApiKey = '';
           }
         }
 
-        this.profileSignal.set(existing);
-        this.saveToLocalStorage(existing);
+        this.profileSignal.set(normalizedProfile);
+        this.saveToLocalStorage(normalizedProfile);
       } else {
-        // Create new profile
+        // Create new profile using model
         const authUser = this.authService.user();
-        const newProfile: UserProfile = {
-          id: userId,
-          email: email,
-          displayName: authUser?.displayName || '',
-          chatUsername:
-            authUser?.displayName?.split(' ')[0]?.toUpperCase() || 'USER',
-          photoURL: authUser?.photoURL || null,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
+        const newProfile = UserProfileModel.create(
+          userId,
+          email,
+          authUser?.displayName || undefined,
+          authUser?.photoURL || undefined
+        );
 
         await this.saveProfileToFirestore(newProfile);
         this.profileSignal.set(newProfile);
@@ -354,16 +327,7 @@ export class UserProfileService {
    * Create anonymous profile for non-authenticated users
    */
   createAnonymousProfile(): UserProfile {
-    const profile: UserProfile = {
-      id: 'anonymous',
-      email: '',
-      displayName: 'Guest',
-      chatUsername: 'USER',
-      photoURL: null,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-
+    const profile = UserProfileModel.createAnonymous();
     this.profileSignal.set(profile);
     this.saveToLocalStorage(profile);
     return profile;

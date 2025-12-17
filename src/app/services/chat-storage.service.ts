@@ -1,28 +1,15 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { AgentProfile } from './agent-profile.service';
-import { FirestoreService, SyncableData } from './firestore.service';
+import { FirestoreService } from './firestore.service';
 import { AuthService } from './auth.service';
+import {
+  AgentProfile,
+  ChatSession,
+  ChatSessionModel,
+  ChatMessage,
+  ChatMessageModel,
+} from '../models';
 
-export interface ChatSession extends SyncableData {
-  id: string;
-  title: string;
-  description?: string; // Context/description for agents
-  messages: ChatMessage[];
-  conversationSummary: string;
-  participatingAgents: AgentProfile[]; // Store the actual agent profiles used in this chat
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface ChatMessage {
-  id: string;
-  sender: string;
-  text: string;
-  html: string;
-  isUser: boolean;
-  agentId?: string;
-  timestamp: number;
-}
+export { ChatSession, ChatMessage };
 
 @Injectable({
   providedIn: 'root',
@@ -48,12 +35,10 @@ export class ChatStorageService {
     if (stored) {
       try {
         const sessions = JSON.parse(stored);
-        // Migrate legacy chats that don't have participatingAgents
-        const migratedSessions = sessions.map((session: any) => ({
-          ...session,
-          participatingAgents: session.participatingAgents || [],
-        }));
-        this.sessionsSignal.set(migratedSessions);
+        const normalizedSessions = sessions.map((session: any) =>
+          ChatSessionModel.fromLocalStorage(session)
+        );
+        this.sessionsSignal.set(normalizedSessions);
       } catch (e) {
         console.error('Error loading chat sessions', e);
         this.sessionsSignal.set([]);
@@ -103,16 +88,11 @@ export class ChatStorageService {
     participatingAgents: AgentProfile[] = [],
     description?: string
   ): Promise<ChatSession> {
-    const newChat: ChatSession = {
-      id: this.generateId(),
-      title: title || `Chat ${new Date().toLocaleString()}`,
-      description: description,
-      messages: [],
-      conversationSummary: '',
-      participatingAgents: participatingAgents,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+    const newChat = ChatSessionModel.create(
+      title,
+      participatingAgents,
+      description
+    );
 
     // Update local state immediately
     this.sessionsSignal.update((sessions) => [newChat, ...sessions]);
@@ -263,13 +243,10 @@ export class ChatStorageService {
 
     console.log(`☁️ Syncing chat ${chat.id} to Firestore...`);
     try {
-      // Check chat size (Firestore has 1MB document limit)
-      const chatJson = JSON.stringify(chat);
-      const sizeInBytes = new Blob([chatJson]).size;
-      const sizeInKB = sizeInBytes / 1024;
+      // Check chat size using model helper
+      const sizeInKB = ChatSessionModel.getSizeInKB(chat);
 
-      if (sizeInKB > 900) {
-        // Leave buffer below 1MB
+      if (ChatSessionModel.exceedsFirestoreLimit(chat)) {
         console.warn(
           `Chat ${chat.id} is large (${sizeInKB.toFixed(
             0
@@ -288,6 +265,7 @@ export class ChatStorageService {
 
   /**
    * Load chats from Firestore (called after login sync)
+   * Merges cloud data with existing localStorage data
    */
   async loadFromCloud(): Promise<void> {
     if (!this.authService.isRealUser()) {
@@ -301,9 +279,31 @@ export class ChatStorageService {
       );
 
       if (chats.length > 0) {
-        this.sessionsSignal.set(chats);
-        this.saveSessions();
-        console.log(`✅ Loaded ${chats.length} chats from Firestore`);
+        // Normalize chats using model
+        const normalizedChats = chats.map((chat) =>
+          ChatSessionModel.fromFirestore(chat)
+        );
+
+        // Merge with existing localStorage data instead of replacing
+        const existingChats = this.sessionsSignal();
+        const existingChatIds = new Set(existingChats.map((c) => c.id));
+
+        // Add only chats that don't exist locally
+        const newChats = normalizedChats.filter(
+          (chat) => !existingChatIds.has(chat.id)
+        );
+
+        if (newChats.length > 0) {
+          this.sessionsSignal.update((sessions) => [...newChats, ...sessions]);
+          this.saveSessions();
+          console.log(
+            `✅ Merged ${newChats.length} new chats from Firestore (${chats.length} total in cloud)`
+          );
+        } else {
+          console.log(
+            `✅ All ${chats.length} Firestore chats already exist locally`
+          );
+        }
       } else {
         console.log('📭 No chats found in Firestore');
       }
@@ -365,38 +365,13 @@ export class ChatStorageService {
 
     for (const session of sessions) {
       try {
-        // Migrate legacy chat structure if needed
-        const migratedSession: ChatSession = {
-          id: session.id || this.generateId(),
-          title: session.title || 'Untitled Chat',
-          messages: Array.isArray(session.messages) ? session.messages : [],
-          conversationSummary: session.conversationSummary || '',
-          participatingAgents: Array.isArray(session.participatingAgents)
-            ? session.participatingAgents
-            : [],
-          createdAt: session.createdAt || Date.now(),
-          updatedAt: session.updatedAt || Date.now(),
-        };
+        // Normalize session using model (handles migration)
+        const migratedSession = ChatSessionModel.fromLocalStorage(session);
 
-        // Ensure messages have required fields
-        migratedSession.messages = migratedSession.messages.map((msg: any) => ({
-          id:
-            msg.id ||
-            `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          sender: msg.sender || 'Unknown',
-          text: msg.text || '',
-          html: msg.html || msg.text || '',
-          isUser: msg.isUser !== undefined ? msg.isUser : false,
-          agentId: msg.agentId,
-          timestamp: msg.timestamp || Date.now(),
-        }));
+        // Check size before syncing using model helper
+        const sizeInKB = ChatSessionModel.getSizeInKB(migratedSession);
 
-        // Check size before syncing
-        const chatJson = JSON.stringify(migratedSession);
-        const sizeInBytes = new Blob([chatJson]).size;
-        const sizeInKB = sizeInBytes / 1024;
-
-        if (sizeInKB > 900) {
+        if (ChatSessionModel.exceedsFirestoreLimit(migratedSession)) {
           console.warn(
             `⚠️ Chat ${migratedSession.id} is too large (${sizeInKB.toFixed(
               0
@@ -422,6 +397,20 @@ export class ChatStorageService {
       `🎉 Manual sync complete: ${success} succeeded, ${failed} failed, ${skipped} skipped`
     );
     return { success, failed, skipped };
+  }
+
+  /**
+   * Clear all chats from localStorage only (does not affect Firestore)
+   * Used when user logs out to clear local data
+   * @returns Number of chats cleared
+   */
+  clearLocalStorage(): number {
+    const count = this.sessionsSignal().length;
+    this.sessionsSignal.set([]);
+    this.currentChatIdSignal.set(null);
+    localStorage.removeItem(this.STORAGE_KEY);
+    localStorage.removeItem(this.CURRENT_CHAT_KEY);
+    return count;
   }
 
   private generateId(): string {

@@ -14,12 +14,7 @@ import {
   writeBatch,
 } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
-
-export interface SyncableData {
-  id: string;
-  updatedAt: number;
-  [key: string]: any;
-}
+import { SyncableData } from '../models';
 
 /**
  * FirestoreService implements a store-forward pattern:
@@ -152,12 +147,53 @@ export class FirestoreService {
         `users/${userId}/${collectionName}`,
         data.id
       );
-      await setDoc(docRef, { ...data, userId });
+
+      // Sanitize data: Remove undefined fields (Firestore doesn't allow undefined)
+      const sanitizedData = this.sanitizeForFirestore({
+        ...data,
+        userId,
+      }) as any;
+      await setDoc(docRef, sanitizedData);
     } catch (error) {
       console.error('Error saving to Firestore:', error);
       // Data is still in localStorage, so user won't lose it
       throw error;
     }
+  }
+
+  /**
+   * Sanitize data for Firestore by removing undefined fields
+   * Firestore doesn't allow undefined values - must be null or omitted
+   */
+  private sanitizeForFirestore<T>(data: T): Partial<T> {
+    const sanitized: any = {};
+
+    for (const [key, value] of Object.entries(data as any)) {
+      if (value === undefined) {
+        // Skip undefined fields entirely
+        continue;
+      }
+
+      if (value === null) {
+        // Null is allowed in Firestore
+        sanitized[key] = null;
+      } else if (Array.isArray(value)) {
+        // Recursively sanitize array items
+        sanitized[key] = value.map((item) =>
+          typeof item === 'object' && item !== null
+            ? this.sanitizeForFirestore(item)
+            : item
+        );
+      } else if (typeof value === 'object') {
+        // Recursively sanitize nested objects
+        sanitized[key] = this.sanitizeForFirestore(value);
+      } else {
+        // Primitive values are safe
+        sanitized[key] = value;
+      }
+    }
+
+    return sanitized;
   }
 
   /**

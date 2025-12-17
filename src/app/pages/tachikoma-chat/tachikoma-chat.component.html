@@ -20,6 +20,18 @@
                 </button>
             </div>
 
+            <!-- Chat Title Input -->
+            <div class="description-section">
+                <label class="description-label">
+                    <mat-icon class="label-icon">title</mat-icon>
+                    CHAT TITLE (Optional)
+                </label>
+                <input type="text" [(ngModel)]="chatTitle"
+                    placeholder="Give this chat a memorable title (e.g., 'AI Ethics Discussion' or 'React Debugging Session')"
+                    class="title-input" maxlength="100" (click)="$event.stopPropagation()" />
+                <div class="char-counter">{{ chatTitle.length }}/100</div>
+            </div>
+
             <!-- Chat Description Input -->
             <div class="description-section">
                 <label class="description-label">

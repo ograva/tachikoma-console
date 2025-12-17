@@ -191,8 +191,7 @@
             <span class="label-hint">(Requests per minute - based on your Gemini API plan)</span>
           </mat-label>
           <mat-form-field appearance="outline" class="model-select">
-            <mat-select [value]="profile()?.rateLimitRPM || 15"
-              (selectionChange)="onRateLimitChange($event.value)">
+            <mat-select [value]="profile()?.rateLimitRPM || 15" (selectionChange)="onRateLimitChange($event.value)">
               @for (option of rateLimitOptions; track option.value) {
               <mat-option [value]="option.value">{{ option.label }}</mat-option>
               }

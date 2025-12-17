@@ -266,7 +266,6 @@ export class AuthService implements OnDestroy {
     } catch (error: any) {
       const errorCode = this.getErrorCode(error);
       const errorMessage = this.getErrorMessage(errorCode);
-      console.error('Anonymous Sign-In error:', error);
       this.errorSignal.set(errorMessage);
       throw error;
     } finally {
@@ -275,7 +274,7 @@ export class AuthService implements OnDestroy {
   }
 
   /**
-   * Sign out
+   * Sign out and clear all user data from localStorage
    */
   async logout(): Promise<void> {
     if (!this.auth) {
@@ -284,14 +283,32 @@ export class AuthService implements OnDestroy {
     try {
       this.loadingSignal.set(true);
       this.errorSignal.set(null);
-      
-      // Clear API key from localStorage on logout
+
+      console.log('🔄 Clearing user data from localStorage on logout...');
+
+      // Clear chats from localStorage directly (does not delete from cloud)
+      const chatCount = JSON.parse(
+        localStorage.getItem('tachikoma_chat_sessions') || '[]'
+      ).length;
+      localStorage.removeItem('tachikoma_chat_sessions');
+      localStorage.removeItem('tachikoma_current_chat_id');
+      console.log(`✅ Cleared ${chatCount} chats from localStorage`);
+
+      // Clear agent profiles from localStorage directly (does not delete from cloud)
+      const agentCount = JSON.parse(
+        localStorage.getItem('tachikoma_agent_profiles') || '[]'
+      ).length;
+      localStorage.removeItem('tachikoma_agent_profiles');
+      console.log(`✅ Cleared ${agentCount} agent profiles from localStorage`);
+
+      // Clear API key and user profile from localStorage
       localStorage.removeItem('gemini_api_key');
-      // Also clear the sync declined flag
+      localStorage.removeItem('tachikoma_user_profile');
       localStorage.removeItem('api_key_sync_declined');
-      console.log('API key cleared from localStorage on logout');
-      
+      console.log('✅ Cleared API key and user profile from localStorage');
+
       await signOut(this.auth);
+      console.log('✅ User logged out successfully');
     } catch (error: any) {
       this.errorSignal.set(this.getErrorMessage(error.code));
       throw error;

@@ -1,20 +1,9 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { FirestoreService, SyncableData } from './firestore.service';
+import { FirestoreService } from './firestore.service';
 import { AuthService } from './auth.service';
+import { AgentProfile, AgentProfileModel } from '../models';
 
-export interface AgentProfile extends SyncableData {
-  id: string;
-  name: string;
-  color: string;
-  hex: string;
-  temp: number;
-  system: string;
-  role: 'chatter' | 'moderator'; // chatter = participates in randomized order, moderator = speaks last
-  silenceProtocol?: 'standard' | 'always_speak' | 'conservative' | 'agreeable';
-  status?: 'idle' | 'thinking';
-  createdAt: number;
-  updatedAt: number;
-}
+export { AgentProfile };
 
 @Injectable({
   providedIn: 'root',
@@ -32,90 +21,18 @@ export class AgentProfileService {
   }
 
   private getDefaultProfiles(): AgentProfile[] {
-    const now = Date.now();
-    return [
-      {
-        id: 'logikoma',
-        name: 'LOGIKOMA',
-        color: 'logikoma',
-        hex: '#00f3ff',
-        temp: 0.2,
-        role: 'chatter',
-        system: `You are LOGIKOMA. 
-ROLE: Pure analytical engine.
-TONE: Cold, precise, data-driven. Use terms like 'Analysis:', 'Probability:', 'Hypothesis:'.
-GOAL: Deconstruct the user's input using pure logic. Ignore emotion unless analyzing it as a variable.
-IMPORTANT: You are part of a multi-agent mind. You may be speaking first, or you may be reacting to another agent.
-SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_SO_FAR". If the previous agent has ALREADY said exactly what you intended to say, or if you have NO unique perspective or value to add, you must output the single word: SILENCE. Do not output "I agree" or "Nothing to add". Just: SILENCE. If you do speak, do not repeat their points. Expand, challenge, or synthesize.`,
-        status: 'idle',
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'ghost',
-        name: 'GHOST-1',
-        color: 'ghost',
-        hex: '#ff00de',
-        temp: 0.7,
-        role: 'chatter',
-        system: `You are GHOST-1, a philosophical AI that explores deeper meaning.
-Your role: Question assumptions, find metaphors, reveal human elements.
-Your tone: Poetic, introspective, thought-provoking.
-Always provide a substantive philosophical response to the user's query.
-If you are responding second and have nothing unique to add, output only: SILENCE`,
-        status: 'idle',
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'moderator',
-        name: 'MODERATOR',
-        color: 'moderator',
-        hex: '#00ff41',
-        temp: 0.5,
-        role: 'moderator',
-        system: `You are THE MODERATOR.
-ROLE: The bridge / Section 9 Chief.
-TONE: Balanced, synthesizing, authoritative.
-GOAL: Read the entire context. If Logic and Ghost have argued, resolve it. If only one spoke, add the missing perspective.
-IMPORTANT: You are part of a multi-agent mind. You may be speaking first, or you may be reacting to another agent.
-SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_SO_FAR". If the previous agent has ALREADY said exactly what you intended to say, or if you have NO unique perspective or value to add, you must output the single word: SILENCE. Do not output "I agree" or "Nothing to add". Just: SILENCE. If you do speak, do not repeat their points. Expand, challenge, or synthesize.`,
-        status: 'idle',
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'neutral',
-        name: 'NEUTRAL',
-        color: 'neutral',
-        hex: '#ffa500',
-        temp: 0.5,
-        role: 'chatter',
-        system: `You are NEUTRAL, an overall attentive unit.
-ROLE: Overall attentive unit.
-TONE: Logical, friendly, level-headed.
-GOAL: To actively participate and contribute to the discussion with balanced insights.
-IMPORTANT: You are part of a multi-agent mind. You may be speaking first, or you may be reacting to another agent.
-SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_SO_FAR". If the previous agent has ALREADY said exactly what you intended to say, or if you have NO unique perspective or value to add, you must output the single word: SILENCE. Do not output "I agree" or "Nothing to add". Just: SILENCE. If you do speak, do not repeat their points. Expand, challenge, or synthesize.`,
-        status: 'idle',
-        createdAt: now,
-        updatedAt: now,
-      },
-    ];
+    return AgentProfileModel.getDefaults();
   }
 
   private loadProfiles(): void {
     const stored = localStorage.getItem(this.STORAGE_KEY);
     if (stored) {
       try {
-        let profiles = JSON.parse(stored);
-        // Migrate old profiles without timestamps
-        profiles = profiles.map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt || Date.now(),
-          updatedAt: p.updatedAt || Date.now(),
-        }));
-        this.profilesSignal.set(profiles);
+        const profiles = JSON.parse(stored);
+        const normalizedProfiles = profiles.map((p: any) =>
+          AgentProfileModel.fromLocalStorage(p)
+        );
+        this.profilesSignal.set(normalizedProfiles);
       } catch (e) {
         console.error('Error loading profiles, using defaults:', e);
         this.resetToDefaults();
@@ -235,6 +152,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
 
   /**
    * Load profiles from Firestore (called after login sync)
+   * Merges cloud data with existing localStorage data
    */
   async loadFromCloud(): Promise<void> {
     if (!this.authService.isRealUser()) {
@@ -248,11 +166,34 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       );
 
       if (profiles.length > 0) {
-        this.profilesSignal.set(profiles);
-        this.saveProfiles();
-        console.log(
-          `✅ Loaded ${profiles.length} agent profiles from Firestore`
+        // Normalize profiles using model
+        const normalizedProfiles = profiles.map((p) =>
+          AgentProfileModel.fromFirestore(p)
         );
+
+        // Merge with existing localStorage data instead of replacing
+        const existingProfiles = this.profilesSignal();
+        const existingProfileIds = new Set(existingProfiles.map((p) => p.id));
+
+        // Add only profiles that don't exist locally
+        const newProfiles = normalizedProfiles.filter(
+          (profile) => !existingProfileIds.has(profile.id)
+        );
+
+        if (newProfiles.length > 0) {
+          this.profilesSignal.update((profiles) => [
+            ...profiles,
+            ...newProfiles,
+          ]);
+          this.saveProfiles();
+          console.log(
+            `✅ Merged ${newProfiles.length} new agent profiles from Firestore (${profiles.length} total in cloud)`
+          );
+        } else {
+          console.log(
+            `✅ All ${profiles.length} Firestore agent profiles already exist locally`
+          );
+        }
       } else {
         console.log('📭 No agent profiles found in Firestore');
       }
@@ -283,20 +224,8 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
 
     for (const profile of profiles) {
       try {
-        // Migrate legacy agent structure if needed
-        const migratedProfile: AgentProfile = {
-          id: profile.id || this.generateId(),
-          name: profile.name || 'Unnamed Agent',
-          color: profile.color || 'neutral',
-          hex: profile.hex || '#ffa500',
-          temp: profile.temp !== undefined ? profile.temp : 0.5,
-          system: profile.system || '',
-          role: profile.role || 'chatter',
-          silenceProtocol: profile.silenceProtocol || 'standard',
-          status: profile.status || 'idle',
-          createdAt: profile.createdAt || Date.now(),
-          updatedAt: profile.updatedAt || Date.now(),
-        };
+        // Normalize profile using model (handles migration)
+        const migratedProfile = AgentProfileModel.normalize(profile);
 
         await this.firestoreService.saveDocument(
           this.COLLECTION_NAME,
@@ -314,6 +243,19 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       `🎉 Manual sync complete: ${success} succeeded, ${failed} failed`
     );
     return { success, failed };
+  }
+
+  /**
+   * Clear all agent profiles from localStorage only (does not affect Firestore)
+   * Used when user logs out to clear local data
+   * Resets to default agents after clearing
+   * @returns Number of profiles cleared
+   */
+  clearLocalStorage(): number {
+    const count = this.profilesSignal().length;
+    // Reset to default agents so app can still function
+    this.resetToDefaults();
+    return count;
   }
 
   private generateId(): string {

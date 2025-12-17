@@ -72,6 +72,7 @@ export class TachikomaChatComponent {
   apiKey = '';
   selectedModel: GeminiModel = 'gemini-2.5-flash';
   userInput = '';
+  chatTitle = ''; // Title for new chat
   chatDescription = ''; // Description for new chat context
   isProcessing = false;
   showNeuralActivity = signal<boolean>(false); // Show/hide neural activity panel
@@ -363,7 +364,7 @@ export class TachikomaChatComponent {
     this.showAgentSelector.set(true);
   }
 
-  async createNewChat(title?: string): Promise<void> {
+  async createNewChat(): Promise<void> {
     // Get selected agents
     const selectedAgents = this.availableAgents.filter((a) =>
       this.selectedAgentIds().has(a.id)
@@ -374,6 +375,7 @@ export class TachikomaChatComponent {
       return;
     }
 
+    const title = this.chatTitle.trim() || undefined;
     const description = this.chatDescription.trim() || undefined;
     const newChat = await this.chatStorage.createNewChat(
       title,
@@ -383,6 +385,7 @@ export class TachikomaChatComponent {
     this.messages = [];
     this.conversationSummary = '';
     this.messagesSinceLastSummary = 0;
+    this.chatTitle = ''; // Clear title after creating chat
     this.chatDescription = ''; // Clear description after creating chat
     this.loadAgentsFromChat(selectedAgents);
     this.showAgentSelector.set(false);
@@ -1049,7 +1052,11 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       const oldestRequest = Math.min(...recentRequests);
       const waitTime = this.REQUEST_WINDOW_MS - (now - oldestRequest) + 1000; // Add 1s buffer
       console.warn(
-        `⚠️ RATE LIMIT: ${recentRequests.length}/${maxRPM} requests in last minute. Waiting ${Math.round(waitTime / 1000)}s...`
+        `⚠️ RATE LIMIT: ${
+          recentRequests.length
+        }/${maxRPM} requests in last minute. Waiting ${Math.round(
+          waitTime / 1000
+        )}s...`
       );
       await this.sleep(waitTime);
     }
@@ -1127,7 +1134,13 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       `  ├─ Requests in last minute: ${this.requestMetrics.requestTimestamps.length}`
     );
     console.log(
-      `  └─ Rate limit: ${this.maxRequestsPerMinute} requests/min (${this.maxRequestsPerMinute === 15 ? 'Free' : this.maxRequestsPerMinute === 60 ? 'Pay-as-you-go' : 'Paid'} tier)`
+      `  └─ Rate limit: ${this.maxRequestsPerMinute} requests/min (${
+        this.maxRequestsPerMinute === 15
+          ? 'Free'
+          : this.maxRequestsPerMinute === 60
+          ? 'Pay-as-you-go'
+          : 'Paid'
+      } tier)`
     );
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }

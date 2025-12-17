@@ -114,6 +114,34 @@
         }
     }
 
+    .title-input {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(0, 243, 255, 0.3);
+        border-radius: 4px;
+        color: var(--neon-green);
+        padding: 0.75rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+
+        &::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.8rem;
+        }
+
+        &:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        &:hover {
+            border-color: rgba(0, 243, 255, 0.5);
+        }
+    }
+
     .description-input {
         width: 100%;
         background: rgba(0, 0, 0, 0.4);
