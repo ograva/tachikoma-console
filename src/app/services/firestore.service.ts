@@ -178,15 +178,25 @@ export class FirestoreService {
         // Null is allowed in Firestore
         sanitized[key] = null;
       } else if (Array.isArray(value)) {
-        // Recursively sanitize array items
-        sanitized[key] = value.map((item) =>
-          typeof item === 'object' && item !== null
-            ? this.sanitizeForFirestore(item)
-            : item
-        );
+        // Recursively sanitize array items (handle objects in arrays)
+        sanitized[key] = value
+          .map((item) => {
+            if (item === undefined) {
+              return null; // Convert undefined to null in arrays
+            }
+            if (typeof item === 'object' && item !== null) {
+              return this.sanitizeForFirestore(item);
+            }
+            return item;
+          })
+          .filter((item) => item !== null || value.includes(null)); // Keep nulls only if original array had nulls
       } else if (typeof value === 'object') {
         // Recursively sanitize nested objects
-        sanitized[key] = this.sanitizeForFirestore(value);
+        const sanitizedNested = this.sanitizeForFirestore(value);
+        // Only include if sanitized object has properties
+        if (Object.keys(sanitizedNested).length > 0) {
+          sanitized[key] = sanitizedNested;
+        }
       } else {
         // Primitive values are safe
         sanitized[key] = value;
