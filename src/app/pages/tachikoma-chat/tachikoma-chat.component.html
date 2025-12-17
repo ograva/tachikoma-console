@@ -1,6 +1,52 @@
 <div class="tachikoma-container" (click)="closeExportMenu()">
     <div class="scanlines"></div>
 
+    <!-- Edit Chat Dialog -->
+    <div class="agent-selector-overlay" *ngIf="showEditDialog()" (click)="cancelEditChat()">
+        <div class="agent-selector-dialog" (click)="$event.stopPropagation()">
+            <div class="dialog-header">
+                <h2>EDIT CHAT DETAILS</h2>
+                <button mat-icon-button (click)="cancelEditChat()" class="close-btn">
+                    <mat-icon>close</mat-icon>
+                </button>
+            </div>
+
+            <!-- Chat Title Input -->
+            <div class="description-section">
+                <label class="description-label">
+                    <mat-icon class="label-icon">title</mat-icon>
+                    CHAT TITLE
+                </label>
+                <input type="text" [(ngModel)]="editChatTitle"
+                    placeholder="Give this chat a memorable title"
+                    class="title-input" maxlength="100" (click)="$event.stopPropagation()" />
+                <div class="char-counter">{{ editChatTitle.length }}/100</div>
+            </div>
+
+            <!-- Chat Description Input -->
+            <div class="description-section">
+                <label class="description-label">
+                    <mat-icon class="label-icon">description</mat-icon>
+                    CHAT CONTEXT / DESCRIPTION (Optional)
+                </label>
+                <textarea [(ngModel)]="editChatDescription"
+                    placeholder="Provide context for the agents"
+                    class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()">
+                </textarea>
+                <div class="char-counter">{{ editChatDescription.length }}/500</div>
+            </div>
+
+            <div class="dialog-footer">
+                <button mat-stroked-button (click)="cancelEditChat()" class="action-btn">
+                    CANCEL
+                </button>
+                <button mat-raised-button color="primary" (click)="saveEditedChat()" class="create-btn">
+                    SAVE CHANGES
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Agent Selection Dialog -->
     <div class="agent-selector-overlay" *ngIf="showAgentSelector()" (click)="cancelNewChat()">
         <div class="agent-selector-dialog" (click)="$event.stopPropagation()">
@@ -250,10 +296,16 @@
                         [class.active]="session.id === getCurrentChatId()" (click)="switchChat(session.id)">
                         <div class="chat-item-header">
                             <span class="chat-title">{{ session.title }}</span>
-                            <button class="delete-chat-btn" (click)="deleteChat(session.id); $event.stopPropagation()"
-                                matTooltip="Delete">
-                                <mat-icon>delete</mat-icon>
-                            </button>
+                            <div class="chat-actions">
+                                <button class="edit-chat-btn" (click)="showEditChatDialog(session.id); $event.stopPropagation()"
+                                    matTooltip="Edit">
+                                    <mat-icon>edit</mat-icon>
+                                </button>
+                                <button class="delete-chat-btn" (click)="deleteChat(session.id); $event.stopPropagation()"
+                                    matTooltip="Delete">
+                                    <mat-icon>delete</mat-icon>
+                                </button>
+                            </div>
                         </div>
                         <div class="chat-meta">
                             <span class="chat-date">{{ session.updatedAt | date:'short' }}</span>

@@ -118,6 +118,12 @@ export class TachikomaChatComponent {
   // Chat history drawer state
   historyDrawerOpened = signal<boolean>(false);
 
+  // Edit chat dialog state
+  showEditDialog = signal<boolean>(false);
+  editingChatId = signal<string | null>(null);
+  editChatTitle = '';
+  editChatDescription = '';
+
   // File context for all agents
   uploadedFiles = signal<
     Array<{ name: string; content: string; type: string }>
@@ -398,6 +404,36 @@ export class TachikomaChatComponent {
     if (!this.chatStorage.getCurrentChat()) {
       this.loadAgents();
     }
+  }
+
+  showEditChatDialog(chatId: string): void {
+    const session = this.chatStorage.getChatById(chatId);
+    if (session) {
+      this.editingChatId.set(chatId);
+      this.editChatTitle = session.title;
+      this.editChatDescription = session.description || '';
+      this.showEditDialog.set(true);
+    }
+  }
+
+  async saveEditedChat(): Promise<void> {
+    const chatId = this.editingChatId();
+    if (!chatId) return;
+
+    const title = this.editChatTitle.trim() || this.chatStorage.getChatById(chatId)?.title || 'Untitled Chat';
+    const description = this.editChatDescription.trim() || undefined;
+
+    await this.chatStorage.updateChatMetadata(chatId, title, description);
+    
+    // Description updates automatically via getter when chat is updated
+    this.cancelEditChat();
+  }
+
+  cancelEditChat(): void {
+    this.showEditDialog.set(false);
+    this.editingChatId.set(null);
+    this.editChatTitle = '';
+    this.editChatDescription = '';
   }
 
   toggleAgentSelection(agentId: string): void {

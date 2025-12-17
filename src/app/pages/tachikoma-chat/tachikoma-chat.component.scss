@@ -849,10 +849,6 @@
     &:hover {
         background: rgba(0, 255, 65, 0.1);
         border-color: var(--neon-green);
-        
-        .delete-chat-btn {
-            opacity: 1;
-        }
     }
     
     &.active {
@@ -879,10 +875,21 @@
     white-space: nowrap;
 }
 
+.chat-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.chat-item:hover .chat-actions {
+    opacity: 1;
+}
+
+.edit-chat-btn,
 .delete-chat-btn {
     background: transparent;
     border: none;
-    color: var(--neon-pink);
     width: 20px;
     height: 20px;
     display: flex;
@@ -890,14 +897,25 @@
     justify-content: center;
     cursor: pointer;
     padding: 0;
-    opacity: 0;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
     
     mat-icon {
         font-size: 16px;
         width: 16px;
         height: 16px;
     }
+}
+
+.edit-chat-btn {
+    color: var(--neon-blue);
+    
+    &:hover {
+        background: rgba(0, 243, 255, 0.1);
+    }
+}
+
+.delete-chat-btn {
+    color: var(--neon-pink);
     
     &:hover {
         background: rgba(255, 0, 222, 0.1);

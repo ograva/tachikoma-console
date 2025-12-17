@@ -174,6 +174,54 @@ export class ChatStorageService {
     }
   }
 
+  async updateChatDescription(chatId: string, description: string | undefined): Promise<void> {
+    const now = Date.now();
+    let updatedChat: ChatSession | null = null;
+
+    // Update local state immediately
+    this.sessionsSignal.update((sessions) =>
+      sessions.map((session) => {
+        if (session.id === chatId) {
+          updatedChat = { ...session, description, updatedAt: now };
+          return updatedChat;
+        }
+        return session;
+      })
+    );
+    this.saveSessions();
+
+    // Sync to cloud
+    if (updatedChat) {
+      await this.syncChatToCloud(updatedChat);
+    }
+  }
+
+  async updateChatMetadata(chatId: string, title: string, description: string | undefined): Promise<void> {
+    const now = Date.now();
+    let updatedChat: ChatSession | null = null;
+
+    // Update local state immediately
+    this.sessionsSignal.update((sessions) =>
+      sessions.map((session) => {
+        if (session.id === chatId) {
+          updatedChat = { ...session, title, description, updatedAt: now };
+          return updatedChat;
+        }
+        return session;
+      })
+    );
+    this.saveSessions();
+
+    // Sync to cloud
+    if (updatedChat) {
+      await this.syncChatToCloud(updatedChat);
+    }
+  }
+
+  getChatById(chatId: string): ChatSession | undefined {
+    return this.sessionsSignal().find((s) => s.id === chatId);
+  }
+
   async deleteChat(chatId: string): Promise<void> {
     // Update local state immediately
     this.sessionsSignal.update((sessions) =>
