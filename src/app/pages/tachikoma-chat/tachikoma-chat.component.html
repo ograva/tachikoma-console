@@ -18,7 +18,8 @@
                     CHAT TITLE
                 </label>
                 <input type="text" [(ngModel)]="editChatTitle" placeholder="Give this chat a memorable title"
-                    class="title-input" maxlength="100" (click)="$event.stopPropagation()" />
+                    class="title-input" maxlength="100" (click)="$event.stopPropagation()"
+                    name="chat-title-edit-field" autocomplete="off" />
                 <div class="char-counter">{{ editChatTitle.length }}/100</div>
             </div>
 
@@ -29,7 +30,8 @@
                     CHAT CONTEXT / DESCRIPTION (Optional)
                 </label>
                 <textarea [(ngModel)]="editChatDescription" placeholder="Provide context for the agents"
-                    class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()">
+                    class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()"
+                    name="chat-description-edit-field" autocomplete="off">
                 </textarea>
                 <div class="char-counter">{{ editChatDescription.length }}/500</div>
             </div>
@@ -72,7 +74,8 @@
                 </label>
                 <input type="text" [(ngModel)]="chatTitle"
                     placeholder="Give this chat a memorable title (e.g., 'AI Ethics Discussion' or 'React Debugging Session')"
-                    class="title-input" maxlength="100" (click)="$event.stopPropagation()" />
+                    class="title-input" maxlength="100" (click)="$event.stopPropagation()"
+                    name="new-chat-title-field" autocomplete="off" />
                 <div class="char-counter">{{ chatTitle.length }}/100</div>
             </div>
 
@@ -84,7 +87,8 @@
                 </label>
                 <textarea [(ngModel)]="chatDescription"
                     placeholder="Provide context for the agents (e.g., 'We're discussing AI ethics' or 'Help me debug a React component'). This will be shared with all participating agents."
-                    class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()">
+                    class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()"
+                    name="new-chat-description-field" autocomplete="off">
                 </textarea>
                 <div class="char-counter">{{ chatDescription.length }}/500</div>
             </div>
