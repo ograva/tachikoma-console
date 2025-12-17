@@ -174,7 +174,10 @@ export class ChatStorageService {
     }
   }
 
-  async updateChatDescription(chatId: string, description: string | undefined): Promise<void> {
+  async updateChatDescription(
+    chatId: string,
+    description: string | undefined
+  ): Promise<void> {
     const now = Date.now();
     let updatedChat: ChatSession | null = null;
 
@@ -196,7 +199,11 @@ export class ChatStorageService {
     }
   }
 
-  async updateChatMetadata(chatId: string, title: string, description: string | undefined): Promise<void> {
+  async updateChatMetadata(
+    chatId: string,
+    title: string,
+    description: string | undefined
+  ): Promise<void> {
     const now = Date.now();
     let updatedChat: ChatSession | null = null;
 
@@ -336,14 +343,22 @@ export class ChatStorageService {
         const existingChats = this.sessionsSignal();
         const existingChatIds = new Set(existingChats.map((c) => c.id));
 
+        console.log(`📊 Existing chats in localStorage: ${existingChats.length}`, existingChats.map(c => c.id));
+        console.log(`📊 Chats from Firestore: ${normalizedChats.length}`, normalizedChats.map(c => c.id));
+
         // Add only chats that don't exist locally
         const newChats = normalizedChats.filter(
           (chat) => !existingChatIds.has(chat.id)
         );
 
+        console.log(`📊 New chats to merge: ${newChats.length}`, newChats.map(c => c.id));
+
         if (newChats.length > 0) {
           this.sessionsSignal.update((sessions) => [...newChats, ...sessions]);
           this.saveSessions();
+          
+          const finalCount = this.sessionsSignal().length;
+          console.log(`📊 Final chat count after merge: ${finalCount}`, this.sessionsSignal().map(c => c.id));
           console.log(
             `✅ Merged ${newChats.length} new chats from Firestore (${chats.length} total in cloud)`
           );

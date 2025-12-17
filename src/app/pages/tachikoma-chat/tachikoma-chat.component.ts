@@ -420,11 +420,14 @@ export class TachikomaChatComponent {
     const chatId = this.editingChatId();
     if (!chatId) return;
 
-    const title = this.editChatTitle.trim() || this.chatStorage.getChatById(chatId)?.title || 'Untitled Chat';
+    const title =
+      this.editChatTitle.trim() ||
+      this.chatStorage.getChatById(chatId)?.title ||
+      'Untitled Chat';
     const description = this.editChatDescription.trim() || undefined;
 
     await this.chatStorage.updateChatMetadata(chatId, title, description);
-    
+
     // Description updates automatically via getter when chat is updated
     this.cancelEditChat();
   }

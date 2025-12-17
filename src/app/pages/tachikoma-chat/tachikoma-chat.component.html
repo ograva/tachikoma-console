@@ -17,8 +17,7 @@
                     <mat-icon class="label-icon">title</mat-icon>
                     CHAT TITLE
                 </label>
-                <input type="text" [(ngModel)]="editChatTitle"
-                    placeholder="Give this chat a memorable title"
+                <input type="text" [(ngModel)]="editChatTitle" placeholder="Give this chat a memorable title"
                     class="title-input" maxlength="100" (click)="$event.stopPropagation()" />
                 <div class="char-counter">{{ editChatTitle.length }}/100</div>
             </div>
@@ -29,8 +28,7 @@
                     <mat-icon class="label-icon">description</mat-icon>
                     CHAT CONTEXT / DESCRIPTION (Optional)
                 </label>
-                <textarea [(ngModel)]="editChatDescription"
-                    placeholder="Provide context for the agents"
+                <textarea [(ngModel)]="editChatDescription" placeholder="Provide context for the agents"
                     class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()">
                 </textarea>
                 <div class="char-counter">{{ editChatDescription.length }}/500</div>
@@ -297,12 +295,13 @@
                         <div class="chat-item-header">
                             <span class="chat-title">{{ session.title }}</span>
                             <div class="chat-actions">
-                                <button class="edit-chat-btn" (click)="showEditChatDialog(session.id); $event.stopPropagation()"
+                                <button class="edit-chat-btn"
+                                    (click)="showEditChatDialog(session.id); $event.stopPropagation()"
                                     matTooltip="Edit">
                                     <mat-icon>edit</mat-icon>
                                 </button>
-                                <button class="delete-chat-btn" (click)="deleteChat(session.id); $event.stopPropagation()"
-                                    matTooltip="Delete">
+                                <button class="delete-chat-btn"
+                                    (click)="deleteChat(session.id); $event.stopPropagation()" matTooltip="Delete">
                                     <mat-icon>delete</mat-icon>
                                 </button>
                             </div>
