@@ -252,9 +252,8 @@ export class FirestoreService {
       const snapshot = await getDocs(collRef);
       const data = snapshot.docs.map((doc) => doc.data() as T);
 
-      // Update localStorage with Firestore data
-      this.storeInLocalStorage(collectionName, data);
-
+      // Return data without updating localStorage
+      // Service layer (ChatStorageService, AgentProfileService) handles merging
       return data;
     } catch (error) {
       console.error('Error fetching from Firestore:', error);
