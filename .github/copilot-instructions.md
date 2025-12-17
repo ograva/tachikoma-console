@@ -1,5 +1,46 @@
 # Tachikoma Console - AI Coding Guidelines
 
+## Git Workflow and Versioning
+
+### Commit and Push Protocol
+
+**CRITICAL: Always ask before committing and pushing to main branch**
+
+1. **Before Any Commit/Push**:
+
+   - Ask the user if they want to commit changes
+   - There may be additional fixes/changes to bundle together
+   - Never automatically commit and push without explicit approval
+
+2. **Version Number Management**:
+
+   - When committing to main branch, increment the version number
+   - Version badge location: `src/app/pages/tachikoma-chat/tachikoma-chat.component.html`
+   - Find: `<div class="version-badge">V3.1</div>`
+   - Increment patch version for bug fixes (V3.1 → V3.2)
+   - Increment minor version for new features (V3.1 → V4.0)
+   - Include version change in commit message: "bump version to V3.2"
+
+3. **Commit Message Format**:
+
+   ```
+   type: Brief description
+
+   Detailed explanation
+   - Point 1
+   - Point 2
+
+   Version: V3.x
+   ```
+
+### Example Workflow
+
+```
+AI: "I've fixed the issue. Would you like me to commit and push these changes?"
+User: "Yes, commit them"
+AI: [Updates version badge V3.1 → V3.2, commits with version bump]
+```
+
 ## Project Overview
 
 **Tachikoma Console** is a cyberpunk-themed Angular 19 admin dashboard with an integrated AI chat interface. Originally forked from Flexy Angular Admin, it features a **multi-agent AI system** powered by Google's Gemini API, a dark cyberpunk aesthetic, and Material Design components.

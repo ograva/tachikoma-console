@@ -18,8 +18,8 @@
                     CHAT TITLE
                 </label>
                 <input type="text" [(ngModel)]="editChatTitle" placeholder="Give this chat a memorable title"
-                    class="title-input" maxlength="100" (click)="$event.stopPropagation()"
-                    name="chat-title-edit-field" autocomplete="off" />
+                    class="title-input" maxlength="100" (click)="$event.stopPropagation()" name="chat-title-edit-field"
+                    autocomplete="off" />
                 <div class="char-counter">{{ editChatTitle.length }}/100</div>
             </div>
 
@@ -74,8 +74,8 @@
                 </label>
                 <input type="text" [(ngModel)]="chatTitle"
                     placeholder="Give this chat a memorable title (e.g., 'AI Ethics Discussion' or 'React Debugging Session')"
-                    class="title-input" maxlength="100" (click)="$event.stopPropagation()"
-                    name="new-chat-title-field" autocomplete="off" />
+                    class="title-input" maxlength="100" (click)="$event.stopPropagation()" name="new-chat-title-field"
+                    autocomplete="off" />
                 <div class="char-counter">{{ chatTitle.length }}/100</div>
             </div>
 
@@ -123,7 +123,7 @@
     <!-- Header -->
     <header class="chat-header">
         <div class="header-left">
-            <div class="version-badge">V3.1</div>
+            <div class="version-badge">V3.2</div>
             <div class="header-title-section">
                 <h1 class="protocol-title glitch">TACHIKOMA PROTOCOL</h1>
                 <div class="sync-status">
