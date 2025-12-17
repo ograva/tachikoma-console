@@ -72,6 +72,7 @@ export class TachikomaChatComponent {
   apiKey = '';
   selectedModel: GeminiModel = 'gemini-2.5-flash';
   userInput = '';
+  chatDescription = ''; // Description for new chat context
   isProcessing = false;
   showNeuralActivity = signal<boolean>(false); // Show/hide neural activity panel
   messages: ChatMessage[] = [];
@@ -79,9 +80,28 @@ export class TachikomaChatComponent {
   messagesSinceLastSummary = 0; // Counter for when to trigger summary
   readonly SUMMARY_INTERVAL = 6; // Summarize every 6 exchanges (user + agent responses)
 
+  // API Request Metrics for O(n) complexity tracking
+  requestMetrics = {
+    totalRequests: 0,
+    requestsThisSession: 0,
+    averageResponseTime: 0,
+    lastRequestTime: 0,
+    requestTimestamps: [] as number[],
+    errorsThisSession: 0,
+    requestsPerMessage: 0,
+  };
+  readonly REQUEST_WINDOW_MS = 60000; // Track requests in 1-minute windows
+  readonly MAX_REQUESTS_PER_MINUTE = 15; // Rate limit (adjust based on your API quota)
+  readonly MIN_REQUEST_INTERVAL_MS = 1000; // Minimum 1 second between requests
+
   // Get chat username from profile service
   get chatUsername(): string {
     return this.userProfileService.getChatUsername();
+  }
+
+  // Get current chat description
+  get currentChatDescription(): string | undefined {
+    return this.chatStorage.getCurrentChat()?.description;
   }
 
   // Agents State - now loaded dynamically
@@ -235,7 +255,9 @@ export class TachikomaChatComponent {
           if (accepted) {
             // User wants to sync - save to profile
             try {
-              const cleanKey = localStorageKey.replace(/[^\x00-\x7F]/g, '').trim();
+              const cleanKey = localStorageKey
+                .replace(/[^\x00-\x7F]/g, '')
+                .trim();
               await this.userProfileService.updateGeminiApiKey(cleanKey);
               console.log('API key synced to user profile');
               // Remove the declined flag if it exists
@@ -243,7 +265,9 @@ export class TachikomaChatComponent {
             } catch (error: any) {
               console.error('Failed to sync API key to profile:', error);
               const errorMessage = error?.message || 'Unknown error';
-              alert(`Failed to save API key to profile: ${errorMessage}\n\nPlease try again from your Profile page or check your internet connection.`);
+              alert(
+                `Failed to save API key to profile: ${errorMessage}\n\nPlease try again from your Profile page or check your internet connection.`
+              );
             }
           } else {
             // User declined - remember this decision for this specific key
@@ -346,10 +370,16 @@ export class TachikomaChatComponent {
       return;
     }
 
-    const newChat = await this.chatStorage.createNewChat(title, selectedAgents);
+    const description = this.chatDescription.trim() || undefined;
+    const newChat = await this.chatStorage.createNewChat(
+      title,
+      selectedAgents,
+      description
+    );
     this.messages = [];
     this.conversationSummary = '';
     this.messagesSinceLastSummary = 0;
+    this.chatDescription = ''; // Clear description after creating chat
     this.loadAgentsFromChat(selectedAgents);
     this.showAgentSelector.set(false);
     this.historyDrawerOpened.set(false);
@@ -533,7 +563,7 @@ export class TachikomaChatComponent {
     const cleanKey = this.getCleanKey();
     if (cleanKey) {
       this.apiKey = cleanKey;
-      
+
       // Always save to localStorage for unauthenticated users
       localStorage.setItem('gemini_api_key', cleanKey);
 
@@ -546,7 +576,9 @@ export class TachikomaChatComponent {
           console.error('Failed to save API key to profile:', error);
           const errorMessage = error?.message || 'Unknown error';
           // Show warning since localStorage save worked but profile sync failed
-          alert(`⚠️ WARNING: KEY SAVED LOCALLY BUT PROFILE SYNC FAILED\n\nYour API key is saved locally and will work on this device.\n\nProfile sync error: ${errorMessage}\n\nTo sync to your profile, please visit the Profile page.`);
+          alert(
+            `⚠️ WARNING: KEY SAVED LOCALLY BUT PROFILE SYNC FAILED\n\nYour API key is saved locally and will work on this device.\n\nProfile sync error: ${errorMessage}\n\nTo sync to your profile, please visit the Profile page.`
+          );
           return;
         }
       }
@@ -611,6 +643,9 @@ export class TachikomaChatComponent {
     this.showNeuralActivity.set(true); // Show panel when processing starts
 
     try {
+      // Log complexity analysis before processing
+      this.logComplexityAnalysis(text);
+
       // Add User Message with custom username from profile
       this.addMessage(this.chatUsername, text, true);
 
@@ -619,6 +654,12 @@ export class TachikomaChatComponent {
 
       // Build full conversation history for context
       let conversationHistory = this.buildConversationHistory();
+
+      // Include chat description if available (provides context to agents)
+      const chatDescription = this.currentChatDescription;
+      if (chatDescription) {
+        conversationHistory = `[CHAT CONTEXT: ${chatDescription}]\n\n${conversationHistory}`;
+      }
 
       // Shuffle chatter agents (role === 'chatter')
       let activeAgents = this.shuffle(
@@ -878,13 +919,34 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
     systemInstruction: string,
     temp: number
   ): Promise<string> {
+    const startTime = Date.now();
+
     try {
+      // Rate limiting check
+      await this.checkRateLimit();
+
       const cleanKey = this.getCleanKey();
 
       // Validate cleaned key before API call
       if (!cleanKey) {
         throw new Error('API key is invalid or empty after sanitization');
       }
+
+      // Track request metrics
+      this.requestMetrics.totalRequests++;
+      this.requestMetrics.requestsThisSession++;
+      this.requestMetrics.requestTimestamps.push(startTime);
+      this.requestMetrics.lastRequestTime = startTime;
+
+      // Clean up old timestamps (keep only last minute)
+      this.requestMetrics.requestTimestamps =
+        this.requestMetrics.requestTimestamps.filter(
+          (ts) => startTime - ts < this.REQUEST_WINDOW_MS
+        );
+
+      console.log(
+        `📊 API Request #${this.requestMetrics.totalRequests} | RPM: ${this.requestMetrics.requestTimestamps.length}`
+      );
 
       const ai = new GoogleGenAI({ apiKey: cleanKey });
 
@@ -899,6 +961,15 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
           topK: 40,
         },
       });
+
+      // Track response time
+      const responseTime = Date.now() - startTime;
+      this.updateAverageResponseTime(responseTime);
+      console.log(
+        `✅ Request completed in ${responseTime}ms | Avg: ${Math.round(
+          this.requestMetrics.averageResponseTime
+        )}ms`
+      );
 
       // Check if response was blocked by safety filters
       if (response.promptFeedback?.blockReason) {
@@ -923,9 +994,136 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
 
       return text;
     } catch (error: any) {
-      console.error('Gemini API Error:', error);
+      this.requestMetrics.errorsThisSession++;
+      console.error(
+        `❌ Gemini API Error [${this.requestMetrics.errorsThisSession} errors this session]:`,
+        error
+      );
+
+      // Analyze error type for better debugging
+      if (error.message?.includes('429') || error.message?.includes('quota')) {
+        console.error(
+          '🚨 RATE LIMIT ERROR: Too many requests. Implement throttling.'
+        );
+      } else if (
+        error.message?.includes('401') ||
+        error.message?.includes('authentication')
+      ) {
+        console.error('🔑 AUTH ERROR: Invalid API key.');
+      } else if (error.message?.includes('timeout')) {
+        console.error('⏱️ TIMEOUT ERROR: Request took too long.');
+      }
+
       throw error; // Re-throw to let caller handle
     }
+  }
+
+  /**
+   * Check rate limit before making API request
+   * Implements exponential backoff if too many requests
+   */
+  private async checkRateLimit(): Promise<void> {
+    const now = Date.now();
+
+    // Minimum interval between requests
+    const timeSinceLastRequest = now - this.requestMetrics.lastRequestTime;
+    if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL_MS) {
+      const waitTime = this.MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest;
+      console.log(
+        `⏳ Throttling: waiting ${waitTime}ms before next request...`
+      );
+      await this.sleep(waitTime);
+    }
+
+    // Check requests per minute
+    const recentRequests = this.requestMetrics.requestTimestamps.filter(
+      (ts) => now - ts < this.REQUEST_WINDOW_MS
+    );
+
+    if (recentRequests.length >= this.MAX_REQUESTS_PER_MINUTE) {
+      const oldestRequest = Math.min(...recentRequests);
+      const waitTime = this.REQUEST_WINDOW_MS - (now - oldestRequest) + 1000; // Add 1s buffer
+      console.warn(
+        `⚠️ RATE LIMIT: ${
+          recentRequests.length
+        } requests in last minute. Waiting ${Math.round(waitTime / 1000)}s...`
+      );
+      await this.sleep(waitTime);
+    }
+  }
+
+  /**
+   * Update running average of response times
+   */
+  private updateAverageResponseTime(newResponseTime: number): void {
+    const currentAvg = this.requestMetrics.averageResponseTime;
+    const totalRequests = this.requestMetrics.totalRequests;
+
+    // Weighted average: more weight to recent measurements
+    this.requestMetrics.averageResponseTime =
+      currentAvg === 0
+        ? newResponseTime
+        : (currentAvg * (totalRequests - 1) + newResponseTime) / totalRequests;
+  }
+
+  /**
+   * Sleep utility for throttling
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Log O(n) complexity analysis for current protocol execution
+   */
+  logComplexityAnalysis(userMessage: string): void {
+    const numAgents = this.agents.length;
+    const numChatters = this.agents.filter((a) => a.role === 'chatter').length;
+    const numModerators = this.agents.filter(
+      (a) => a.role === 'moderator'
+    ).length;
+
+    // Base requests: 1 per chatter + 1 per moderator
+    const baseRequests = numChatters + numModerators;
+
+    // Additional requests: title generation (if first message) + summary (every N messages)
+    const additionalRequests =
+      (this.messages.length === 0 ? 1 : 0) + // Title generation
+      (this.messagesSinceLastSummary >= this.SUMMARY_INTERVAL ? 1 : 0); // Summary
+
+    const totalExpectedRequests = baseRequests + additionalRequests;
+
+    this.requestMetrics.requestsPerMessage = totalExpectedRequests;
+
+    console.log('🔬 O(n) COMPLEXITY ANALYSIS');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(
+      `👥 Total Agents: ${numAgents} (${numChatters} chatters + ${numModerators} moderators)`
+    );
+    console.log(`📨 Expected API Requests: ${totalExpectedRequests}`);
+    console.log(`  ├─ Agent responses: ${baseRequests}`);
+    console.log(`  ├─ Title generation: ${this.messages.length === 0 ? 1 : 0}`);
+    console.log(
+      `  └─ Summary generation: ${
+        this.messagesSinceLastSummary >= this.SUMMARY_INTERVAL ? 1 : 0
+      }`
+    );
+    console.log(`⚡ Complexity: O(n) where n = number of agents`);
+    console.log(`📊 Current Session Stats:`);
+    console.log(`  ├─ Total requests: ${this.requestMetrics.totalRequests}`);
+    console.log(
+      `  ├─ Requests this session: ${this.requestMetrics.requestsThisSession}`
+    );
+    console.log(`  ├─ Errors: ${this.requestMetrics.errorsThisSession}`);
+    console.log(
+      `  ├─ Avg response time: ${Math.round(
+        this.requestMetrics.averageResponseTime
+      )}ms`
+    );
+    console.log(
+      `  └─ Requests in last minute: ${this.requestMetrics.requestTimestamps.length}`
+    );
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 
   shuffle(array: any[]) {

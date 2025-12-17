@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 export interface ChatSession extends SyncableData {
   id: string;
   title: string;
+  description?: string; // Context/description for agents
   messages: ChatMessage[];
   conversationSummary: string;
   participatingAgents: AgentProfile[]; // Store the actual agent profiles used in this chat
@@ -99,11 +100,13 @@ export class ChatStorageService {
 
   async createNewChat(
     title?: string,
-    participatingAgents: AgentProfile[] = []
+    participatingAgents: AgentProfile[] = [],
+    description?: string
   ): Promise<ChatSession> {
     const newChat: ChatSession = {
       id: this.generateId(),
       title: title || `Chat ${new Date().toLocaleString()}`,
+      description: description,
       messages: [],
       conversationSummary: '',
       participatingAgents: participatingAgents,
