@@ -183,6 +183,23 @@
             </mat-select>
           </mat-form-field>
         </div>
+
+        <!-- API Rate Limit -->
+        <div class="info-row highlight">
+          <mat-label class="info-label">
+            API Tier / Rate Limit
+            <span class="label-hint">(Requests per minute - based on your Gemini API plan)</span>
+          </mat-label>
+          <mat-form-field appearance="outline" class="model-select">
+            <mat-select [value]="profile()?.rateLimitRPM || 15"
+              (selectionChange)="onRateLimitChange($event.value)">
+              @for (option of rateLimitOptions; track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>Select your API tier to optimize performance and avoid rate limits</mat-hint>
+          </mat-form-field>
+        </div>
       </div>
 
       <!-- Data Sync Section -->

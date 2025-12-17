@@ -23,6 +23,7 @@ export interface UserProfile extends SyncableData {
   geminiApiKey?: string; // Encrypted in Firestore, plain in localStorage
   geminiApiKeyEncrypted?: string; // Used only for Firestore storage
   geminiModel?: GeminiModel;
+  rateLimitRPM?: number; // API rate limit (15 for free, 1000 for paid)
   createdAt: number;
   updatedAt: number;
 }
@@ -33,6 +34,7 @@ const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'email'> = {
   photoURL: null,
   geminiApiKey: '',
   geminiModel: 'gemini-2.5-flash',
+  rateLimitRPM: 15, // Default to free tier
   createdAt: Date.now(),
   updatedAt: Date.now(),
 };
@@ -339,6 +341,13 @@ export class UserProfileService {
    */
   async updateGeminiModel(model: GeminiModel): Promise<void> {
     await this.updateProfile({ geminiModel: model });
+  }
+
+  /**
+   * Update API rate limit (RPM)
+   */
+  async updateRateLimitRPM(rateLimitRPM: number): Promise<void> {
+    await this.updateProfile({ rateLimitRPM });
   }
 
   /**

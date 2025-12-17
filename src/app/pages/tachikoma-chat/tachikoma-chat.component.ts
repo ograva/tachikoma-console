@@ -91,8 +91,12 @@ export class TachikomaChatComponent {
     requestsPerMessage: 0,
   };
   readonly REQUEST_WINDOW_MS = 60000; // Track requests in 1-minute windows
-  readonly MAX_REQUESTS_PER_MINUTE = 15; // Rate limit (adjust based on your API quota)
   readonly MIN_REQUEST_INTERVAL_MS = 1000; // Minimum 1 second between requests
+
+  // Get rate limit from user profile (default to free tier)
+  get maxRequestsPerMinute(): number {
+    return this.userProfileService.profile()?.rateLimitRPM || 15;
+  }
 
   // Get chat username from profile service
   get chatUsername(): string {
@@ -1035,18 +1039,17 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       await this.sleep(waitTime);
     }
 
-    // Check requests per minute
+    // Check requests per minute (use dynamic limit from user profile)
     const recentRequests = this.requestMetrics.requestTimestamps.filter(
       (ts) => now - ts < this.REQUEST_WINDOW_MS
     );
+    const maxRPM = this.maxRequestsPerMinute;
 
-    if (recentRequests.length >= this.MAX_REQUESTS_PER_MINUTE) {
+    if (recentRequests.length >= maxRPM) {
       const oldestRequest = Math.min(...recentRequests);
       const waitTime = this.REQUEST_WINDOW_MS - (now - oldestRequest) + 1000; // Add 1s buffer
       console.warn(
-        `⚠️ RATE LIMIT: ${
-          recentRequests.length
-        } requests in last minute. Waiting ${Math.round(waitTime / 1000)}s...`
+        `⚠️ RATE LIMIT: ${recentRequests.length}/${maxRPM} requests in last minute. Waiting ${Math.round(waitTime / 1000)}s...`
       );
       await this.sleep(waitTime);
     }
@@ -1121,7 +1124,10 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       )}ms`
     );
     console.log(
-      `  └─ Requests in last minute: ${this.requestMetrics.requestTimestamps.length}`
+      `  ├─ Requests in last minute: ${this.requestMetrics.requestTimestamps.length}`
+    );
+    console.log(
+      `  └─ Rate limit: ${this.maxRequestsPerMinute} requests/min (${this.maxRequestsPerMinute === 15 ? 'Free' : this.maxRequestsPerMinute === 60 ? 'Pay-as-you-go' : 'Paid'} tier)`
     );
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }

@@ -43,6 +43,13 @@ export class ProfileComponent {
   // Available Gemini models
   geminiModels = GEMINI_MODELS;
 
+  // API tier options
+  rateLimitOptions = [
+    { value: 15, label: 'Free Tier (15 requests/min)' },
+    { value: 60, label: 'Pay-as-you-go (60 requests/min)' },
+    { value: 1000, label: 'Paid Tier (1000 requests/min)' },
+  ];
+
   // Form state
   editingDisplayName = signal<boolean>(false);
   editingChatUsername = signal<boolean>(false);
@@ -171,6 +178,17 @@ export class ProfileComponent {
       this.errorMessage.set(
         'Failed to save model preference. Please try again.'
       );
+      setTimeout(() => this.errorMessage.set(null), 5000);
+    }
+  }
+
+  async onRateLimitChange(rateLimitRPM: number): Promise<void> {
+    try {
+      await this.userProfileService.updateRateLimitRPM(rateLimitRPM);
+      this.successMessage.set('API rate limit updated!');
+      setTimeout(() => this.successMessage.set(null), 3000);
+    } catch (error) {
+      this.errorMessage.set('Failed to save rate limit. Please try again.');
       setTimeout(() => this.errorMessage.set(null), 5000);
     }
   }
