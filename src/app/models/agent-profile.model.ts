@@ -16,6 +16,7 @@ export interface AgentProfile extends SyncableData {
   temp: number;
   system: string;
   role: AgentRole; // chatter = participates in randomized order, moderator = speaks last
+  model?: string; // Gemini model to use (e.g., 'models/gemini-2.0-flash-exp')
   silenceProtocol?: SilenceProtocol;
   status?: AgentStatus;
   createdAt: number;
@@ -30,6 +31,7 @@ export class AgentProfileModel {
    * Default values for optional fields
    */
   static readonly DEFAULTS = {
+    model: 'models/gemini-2.0-flash-exp',
     silenceProtocol: 'standard' as SilenceProtocol,
     status: 'idle' as AgentStatus,
   };
@@ -41,6 +43,7 @@ export class AgentProfileModel {
   static normalize(profile: Partial<AgentProfile>): AgentProfile {
     return {
       ...profile,
+      model: profile.model ?? AgentProfileModel.DEFAULTS.model,
       silenceProtocol:
         profile.silenceProtocol ?? AgentProfileModel.DEFAULTS.silenceProtocol,
       status: profile.status ?? AgentProfileModel.DEFAULTS.status,
@@ -74,6 +77,7 @@ export class AgentProfileModel {
     temp: number;
     system: string;
     role: AgentRole;
+    model?: string;
     silenceProtocol?: SilenceProtocol;
   }): AgentProfile {
     const now = Date.now();
@@ -85,6 +89,7 @@ export class AgentProfileModel {
       temp: params.temp,
       system: params.system,
       role: params.role,
+      model: params.model ?? AgentProfileModel.DEFAULTS.model,
       silenceProtocol:
         params.silenceProtocol ?? AgentProfileModel.DEFAULTS.silenceProtocol,
       status: AgentProfileModel.DEFAULTS.status,
@@ -106,6 +111,7 @@ export class AgentProfileModel {
         hex: '#00f3ff',
         temp: 0.2,
         role: 'chatter',
+        model: 'models/gemini-2.0-flash-exp',
         system: `You are LOGIKOMA. 
 ROLE: Pure analytical engine.
 TONE: Cold, precise, data-driven. Use terms like 'Analysis:', 'Probability:', 'Hypothesis:'.
@@ -123,6 +129,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
         hex: '#ff00de',
         temp: 0.7,
         role: 'chatter',
+        model: 'models/gemini-2.0-flash-exp',
         system: `You are GHOST-1, a philosophical AI that explores deeper meaning.
 Your role: Question assumptions, find metaphors, reveal human elements.
 Your tone: Poetic, introspective, thought-provoking.
@@ -139,6 +146,7 @@ If you are responding second and have nothing unique to add, output only: SILENC
         hex: '#00ff41',
         temp: 0.5,
         role: 'moderator',
+        model: 'models/gemini-1.5-flash',
         system: `You are THE MODERATOR.
 ROLE: The bridge / Section 9 Chief.
 TONE: Balanced, synthesizing, authoritative.
@@ -156,6 +164,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
         hex: '#ffa500',
         temp: 0.5,
         role: 'chatter',
+        model: 'models/gemini-2.0-flash-exp',
         system: `You are NEUTRAL, an overall attentive unit.
 ROLE: Overall attentive unit.
 TONE: Logical, friendly, level-headed.

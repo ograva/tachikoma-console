@@ -25,6 +25,7 @@ export class TachikomaProfilesComponent {
     hex: '#00f3ff',
     temp: 0.5,
     role: 'chatter',
+    model: 'models/gemini-2.0-flash-exp',
     system: '',
     silenceProtocol: 'standard',
   };

@@ -1,5 +1,5 @@
 import { SyncableData } from './syncable-data.model';
-import { AgentProfile } from './agent-profile.model';
+import { AgentProfile, AgentProfileModel } from './agent-profile.model';
 import { ChatMessage, ChatMessageModel } from './chat-message.model';
 
 export interface ChatSession extends SyncableData {
@@ -56,6 +56,10 @@ export class ChatSessionModel {
     normalized.messages = normalized.messages.map((msg: any) =>
       ChatMessageModel.normalize(msg)
     );
+    // Ensure participating agents are properly normalized (handles old data without model field)
+    normalized.participatingAgents = normalized.participatingAgents.map(
+      (agent: any) => AgentProfileModel.normalize(agent)
+    );
     return normalized;
   }
 
@@ -67,6 +71,10 @@ export class ChatSessionModel {
     // Ensure messages are properly normalized
     normalized.messages = normalized.messages.map((msg: any) =>
       ChatMessageModel.normalize(msg)
+    );
+    // Ensure participating agents are properly normalized (handles old data without model field)
+    normalized.participatingAgents = normalized.participatingAgents.map(
+      (agent: any) => AgentProfileModel.normalize(agent)
     );
     return normalized;
   }

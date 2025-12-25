@@ -62,6 +62,18 @@
                     </mat-select>
                 </mat-form-field>
 
+                <mat-form-field appearance="outline">
+                    <mat-label>Model</mat-label>
+                    <mat-select [(ngModel)]="newProfile.model">
+                        <mat-option value="models/gemini-2.0-flash-exp">Gemini 2.0 Flash (Exp)</mat-option>
+                        <mat-option value="models/gemini-1.5-flash">Gemini 1.5 Flash</mat-option>
+                        <mat-option value="models/gemini-1.5-pro">Gemini 1.5 Pro</mat-option>
+                        <mat-option value="models/gemini-2.0-flash-thinking-exp-1219">Gemini 2.0 Flash
+                            Thinking</mat-option>
+                    </mat-select>
+                    <mat-hint>Which LLM this agent uses</mat-hint>
+                </mat-form-field>
+
                 <mat-form-field appearance="outline" class="full-width">
                     <mat-label>Silence Protocol</mat-label>
                     <mat-select [(ngModel)]="newProfile.silenceProtocol">
@@ -147,6 +159,17 @@
                             <mat-select [(ngModel)]="editingProfile()!.role">
                                 <mat-option value="chatter">Chatter (Random Order)</mat-option>
                                 <mat-option value="moderator">Moderator (Speaks Last)</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                            <mat-label>Model</mat-label>
+                            <mat-select [(ngModel)]="editingProfile()!.model">
+                                <mat-option value="models/gemini-2.0-flash-exp">Gemini 2.0 Flash (Exp)</mat-option>
+                                <mat-option value="models/gemini-1.5-flash">Gemini 1.5 Flash</mat-option>
+                                <mat-option value="models/gemini-1.5-pro">Gemini 1.5 Pro</mat-option>
+                                <mat-option value="models/gemini-2.0-flash-thinking-exp-1219">Gemini 2.0 Flash
+                                    Thinking</mat-option>
                             </mat-select>
                         </mat-form-field>
 

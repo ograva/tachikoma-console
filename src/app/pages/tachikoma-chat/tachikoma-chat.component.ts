@@ -40,6 +40,7 @@ interface Agent {
   temp: number;
   system: string;
   role: 'chatter' | 'moderator';
+  model?: string; // Gemini model to use for this agent
   status: 'idle' | 'thinking';
   silenceProtocol?: 'standard' | 'always_speak' | 'conservative' | 'agreeable';
 }
@@ -90,13 +91,65 @@ export class TachikomaChatComponent {
     requestTimestamps: [] as number[],
     errorsThisSession: 0,
     requestsPerMessage: 0,
+    dailyRequestCount: 0,
+    dailyRequestResetTime: 0,
+    consecutiveRateLimitErrors: 0,
   };
+  // Per-model token metrics - each model tracks its own usage
+  modelMetrics = signal<
+    Map<
+      string,
+      {
+        tokensThisMinute: number;
+        tokensThisMinuteResetTime: number;
+        conversationContextTokens: number;
+        inputTokenLimit: number;
+        outputTokenLimit: number;
+        tokensPerMinute: number;
+        agentCount: number; // Number of agents using this model
+      }
+    >
+  >(new Map());
+
+  // Legacy tokenMetrics for backward compatibility (now unused)
+  tokenMetrics = signal({
+    inputTokensThisMessage: 0,
+    outputTokensThisMessage: 0,
+    tokensThisMinute: 0,
+    tokensThisMinuteResetTime: 0,
+    conversationContextTokens: 0,
+    estimatedCost: 0,
+  });
   readonly REQUEST_WINDOW_MS = 60000; // Track requests in 1-minute windows
   readonly MIN_REQUEST_INTERVAL_MS = 1000; // Minimum 1 second between requests
+  readonly DAILY_QUOTA_FREE_TIER = 20; // Gemini 2.5 Flash free tier daily limit
+  readonly MAX_RETRY_ATTEMPTS = 3; // Maximum retry attempts for rate limit errors
+  readonly RETRY_BASE_DELAY_MS = 3000; // Base delay for exponential backoff (3s)
+  readonly TOKEN_WARNING_THRESHOLD = 0.8; // Warn at 80% of limit
 
   // Get rate limit from user profile (default to free tier)
   get maxRequestsPerMinute(): number {
     return this.userProfileService.profile()?.rateLimitRPM || 15;
+  }
+
+  // Get all models currently in use by agents
+  getModelsInUse(): string[] {
+    const models = new Set<string>();
+    for (const agent of this.agents) {
+      const model = agent.model || this.selectedModel;
+      models.add(model);
+    }
+    return Array.from(models);
+  }
+
+  // Get metrics for a specific model
+  getModelMetrics(model: string) {
+    return this.modelMetrics().get(model);
+  }
+
+  // Get agents using a specific model
+  getAgentsForModel(model: string): Agent[] {
+    return this.agents.filter((a) => (a.model || this.selectedModel) === model);
   }
 
   // Get chat username from profile service
@@ -169,6 +222,9 @@ export class TachikomaChatComponent {
 
     // Show explainer dialog on first visit
     this.checkAndShowExplainer();
+
+    // Initialize model metrics for all agents
+    this.initializeModelMetrics();
 
     // React to user profile changes (e.g., after login)
     effect(() => {
@@ -332,11 +388,15 @@ export class TachikomaChatComponent {
     const profiles = this.profileService.getProfiles();
     this.agents = profiles.map((p) => ({ ...p, status: 'idle' as const }));
     this.availableAgents = profiles;
+    // Re-initialize model metrics when agents change
+    this.initializeModelMetrics();
   }
 
   loadAgentsFromChat(chatAgents: AgentProfile[]): void {
     // Load agents specifically from a saved chat (may include deleted/modified agents)
     this.agents = chatAgents.map((p) => ({ ...p, status: 'idle' as const }));
+    // Re-initialize model metrics when agents change
+    this.initializeModelMetrics();
   }
 
   loadCurrentChat(): void {
@@ -344,6 +404,9 @@ export class TachikomaChatComponent {
     if (currentChat) {
       this.messages = currentChat.messages;
       this.conversationSummary = currentChat.conversationSummary;
+
+      // Reset model metrics for this chat session
+      this.initializeModelMetrics();
       // Load agents from this specific chat
       if (
         currentChat.participatingAgents &&
@@ -673,6 +736,79 @@ export class TachikomaChatComponent {
     }
   }
 
+  /**
+   * Initialize or update model metrics for all models used by current agents
+   */
+  async initializeModelMetrics() {
+    const cleanKey = this.getCleanKey();
+    if (!cleanKey) return;
+
+    const modelsInUse = this.getModelsInUse();
+    const metricsMap = new Map(this.modelMetrics());
+
+    for (const model of modelsInUse) {
+      // Count agents using this model
+      const agentCount = this.getAgentsForModel(model).length;
+
+      // Check if we already have metrics for this model
+      const existing = metricsMap.get(model);
+
+      if (existing) {
+        // Update agent count but preserve token counts
+        existing.agentCount = agentCount;
+      } else {
+        // Fetch limits from API for new model
+        try {
+          const modelName = model.replace('models/', '');
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${modelName}?key=${cleanKey}`
+          );
+
+          if (response.ok) {
+            const modelData = await response.json();
+            metricsMap.set(model, {
+              tokensThisMinute: 0,
+              tokensThisMinuteResetTime: Date.now(),
+              conversationContextTokens: 0,
+              inputTokenLimit: modelData.inputTokenLimit || 1048576,
+              outputTokenLimit: modelData.outputTokenLimit || 8192,
+              tokensPerMinute: 4000000, // API doesn't return TPM, use default
+              agentCount: agentCount,
+            });
+            console.log(
+              `📊 Initialized metrics for ${model} (${agentCount} agents)`
+            );
+          } else {
+            // Use defaults if API call fails
+            metricsMap.set(model, {
+              tokensThisMinute: 0,
+              tokensThisMinuteResetTime: Date.now(),
+              conversationContextTokens: 0,
+              inputTokenLimit: 1048576,
+              outputTokenLimit: 8192,
+              tokensPerMinute: 4000000,
+              agentCount: agentCount,
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to fetch limits for ${model}:`, error);
+          // Use defaults on error
+          metricsMap.set(model, {
+            tokensThisMinute: 0,
+            tokensThisMinuteResetTime: Date.now(),
+            conversationContextTokens: 0,
+            inputTokenLimit: 1048576,
+            outputTokenLimit: 8192,
+            tokensPerMinute: 4000000,
+            agentCount: agentCount,
+          });
+        }
+      }
+    }
+
+    this.modelMetrics.set(metricsMap);
+  }
+
   async triggerProtocol() {
     if (!this.userInput.trim() || this.isProcessing) return;
 
@@ -687,6 +823,24 @@ export class TachikomaChatComponent {
     this.userInput = '';
     this.isProcessing = true;
     this.showNeuralActivity.set(true); // Show panel when processing starts
+
+    // Reset per-minute token counters for all models if 60 seconds elapsed
+    const now = Date.now();
+    const metricsMap = new Map(this.modelMetrics());
+    let anyReset = false;
+
+    for (const [model, metrics] of metricsMap.entries()) {
+      if (now - metrics.tokensThisMinuteResetTime > 60000) {
+        metrics.tokensThisMinute = 0;
+        metrics.tokensThisMinuteResetTime = now;
+        anyReset = true;
+      }
+    }
+
+    if (anyReset) {
+      this.modelMetrics.set(metricsMap);
+      console.log('🔄 TPM counters reset (new minute)');
+    }
 
     try {
       // Log complexity analysis before processing
@@ -719,14 +873,20 @@ export class TachikomaChatComponent {
         const agent = activeAgents[i];
         agent.status = 'thinking';
 
+        console.log(
+          `🤖 ${agent.name} using model: ${agent.model || this.selectedModel}`
+        );
+
         // Build prompt with current context (includes file content and agent responses so far)
         let prompt = conversationContext;
 
         try {
-          const response = await this.callGemini(
+          const response = await this.callGeminiWithRetry(
             prompt,
             agent.system,
-            agent.temp
+            agent.temp,
+            agent.name,
+            agent.model // Use agent's specific model
           );
           agent.status = 'idle';
 
@@ -762,15 +922,21 @@ export class TachikomaChatComponent {
             this.addMessage(agent.name, response, false, agent.id);
             conversationContext += `\n${agent.name} SAID: "${response}"\n`;
           }
-        } catch (error) {
+        } catch (error: any) {
           agent.status = 'idle';
           console.error(`${agent.name} Error:`, error);
-          this.addMessage(
-            agent.name,
-            `[SYSTEM ERROR: Unable to process]`,
-            false,
-            agent.id
-          );
+
+          // Check if it's a rate limit error
+          const isRateLimitError =
+            error.message?.includes('429') ||
+            error.message?.includes('quota') ||
+            error.message?.includes('RESOURCE_EXHAUSTED');
+
+          const errorMsg = isRateLimitError
+            ? `[RATE LIMIT: Daily quota exceeded. Try again tomorrow or upgrade your API plan at https://ai.google.dev/pricing]`
+            : `[SYSTEM ERROR: Unable to process]`;
+
+          this.addMessage(agent.name, errorMsg, false, agent.id);
         }
       }
 
@@ -785,21 +951,28 @@ export class TachikomaChatComponent {
           const modResponse = await this.callGemini(
             modPrompt,
             moderator.system,
-            moderator.temp
+            moderator.temp,
+            moderator.model // Use moderator's specific model
           );
           moderator.status = 'idle';
           if (!modResponse.includes('SILENCE')) {
             this.addMessage(moderator.name, modResponse, false, moderator.id);
           }
-        } catch (error) {
+        } catch (error: any) {
           moderator.status = 'idle';
           console.error(`${moderator.name} Error:`, error);
-          this.addMessage(
-            moderator.name,
-            `[SYSTEM ERROR: Unable to synthesize]`,
-            false,
-            moderator.id
-          );
+
+          // Check if it's a rate limit error
+          const isRateLimitError =
+            error.message?.includes('429') ||
+            error.message?.includes('quota') ||
+            error.message?.includes('RESOURCE_EXHAUSTED');
+
+          const errorMsg = isRateLimitError
+            ? `[RATE LIMIT: Daily quota exceeded. Try again tomorrow or upgrade your API plan at https://ai.google.dev/pricing]`
+            : `[SYSTEM ERROR: Unable to process]`;
+
+          this.addMessage(moderator.name, errorMsg, false, moderator.id);
         }
       }
 
@@ -963,7 +1136,8 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
   async callGemini(
     prompt: string,
     systemInstruction: string,
-    temp: number
+    temp: number,
+    model?: string // Optional: use agent's model or fall back to global selectedModel
   ): Promise<string> {
     const startTime = Date.now();
 
@@ -981,6 +1155,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       // Track request metrics
       this.requestMetrics.totalRequests++;
       this.requestMetrics.requestsThisSession++;
+      this.requestMetrics.dailyRequestCount++;
       this.requestMetrics.requestTimestamps.push(startTime);
       this.requestMetrics.lastRequestTime = startTime;
 
@@ -996,8 +1171,57 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
 
       const ai = new GoogleGenAI({ apiKey: cleanKey });
 
+      // Use agent-specific model or fall back to global selectedModel
+      const modelToUse = model || this.selectedModel;
+
+      // Count input tokens before sending (systemInstruction not supported in countTokens API)
+      try {
+        const tokenCount = await ai.models.countTokens({
+          model: modelToUse,
+          contents: prompt,
+        });
+
+        const inputTokens = tokenCount.totalTokens || 0;
+
+        // Update metrics for this specific model
+        const metricsMap = new Map(this.modelMetrics());
+        const modelMetric = metricsMap.get(modelToUse);
+
+        if (modelMetric) {
+          modelMetric.tokensThisMinute += inputTokens;
+          modelMetric.conversationContextTokens += inputTokens;
+          this.modelMetrics.set(metricsMap);
+
+          console.log(
+            `📝 Input tokens: ${inputTokens} (${modelToUse}) | TPM: ${modelMetric.tokensThisMinute}/${modelMetric.tokensPerMinute} | Context: ${modelMetric.conversationContextTokens}/${modelMetric.inputTokenLimit}`
+          );
+
+          // Warn if approaching TPM limit
+          if (
+            modelMetric.tokensThisMinute >
+            modelMetric.tokensPerMinute * this.TOKEN_WARNING_THRESHOLD
+          ) {
+            console.warn(
+              `⚠️ WARNING: Approaching TPM limit for ${modelToUse} (${modelMetric.tokensThisMinute}/${modelMetric.tokensPerMinute} tokens/min)`
+            );
+          }
+
+          // Warn if approaching context window limit
+          if (
+            modelMetric.conversationContextTokens >
+            modelMetric.inputTokenLimit * this.TOKEN_WARNING_THRESHOLD
+          ) {
+            console.warn(
+              `⚠️ WARNING: Approaching context window limit for ${modelToUse} (${modelMetric.conversationContextTokens}/${modelMetric.inputTokenLimit} tokens)`
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to count tokens:', err);
+      }
+
       const response = await ai.models.generateContent({
-        model: this.selectedModel,
+        model: modelToUse,
         contents: prompt,
         config: {
           systemInstruction: systemInstruction,
@@ -1034,6 +1258,25 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
 
       const text = response.text || '';
 
+      // Track output tokens
+      if (response.usageMetadata) {
+        const outputTokens = response.usageMetadata.candidatesTokenCount || 0;
+
+        // Update metrics for this specific model
+        const metricsMap = new Map(this.modelMetrics());
+        const modelMetric = metricsMap.get(modelToUse);
+
+        if (modelMetric) {
+          modelMetric.tokensThisMinute += outputTokens;
+          modelMetric.conversationContextTokens += outputTokens;
+          this.modelMetrics.set(metricsMap);
+
+          console.log(
+            `📤 Output tokens: ${outputTokens} (${modelToUse}) | Total: ${text.length} chars`
+          );
+        }
+      }
+
       // Debug: Log response details
       console.log('API Response candidates:', response.candidates?.length);
       console.log('API Response text length:', text.length);
@@ -1047,10 +1290,26 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       );
 
       // Analyze error type for better debugging
-      if (error.message?.includes('429') || error.message?.includes('quota')) {
+      if (
+        error.message?.includes('429') ||
+        error.message?.includes('quota') ||
+        error.message?.includes('RESOURCE_EXHAUSTED')
+      ) {
+        this.requestMetrics.consecutiveRateLimitErrors++;
         console.error(
-          '🚨 RATE LIMIT ERROR: Too many requests. Implement throttling.'
+          `🚨 RATE LIMIT ERROR: Daily quota exceeded (${this.requestMetrics.dailyRequestCount}/${this.DAILY_QUOTA_FREE_TIER} free tier).`,
+          '\n📋 Options:',
+          '\n  1. Wait until tomorrow for quota reset',
+          '\n  2. Upgrade to paid tier at https://ai.google.dev/pricing',
+          '\n  3. Use a different API key'
         );
+
+        // Extract retry delay from error if available
+        const retryMatch = error.message?.match(/retry in ([0-9.]+)s/);
+        if (retryMatch) {
+          const retrySeconds = parseFloat(retryMatch[1]);
+          console.log(`⏳ API suggests retry in ${retrySeconds}s`);
+        }
       } else if (
         error.message?.includes('401') ||
         error.message?.includes('authentication')
@@ -1065,11 +1324,102 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
   }
 
   /**
+   * Call Gemini API with automatic retry on rate limit errors
+   * Implements exponential backoff for temporary rate limit errors
+   */
+  private async callGeminiWithRetry(
+    prompt: string,
+    systemInstruction: string,
+    temp: number,
+    agentName: string,
+    model?: string,
+    attempt: number = 1
+  ): Promise<string> {
+    try {
+      return await this.callGemini(prompt, systemInstruction, temp, model);
+    } catch (error: any) {
+      // Check if it's a recoverable rate limit error (not daily quota)
+      const isRateLimitError =
+        error.message?.includes('429') ||
+        error.message?.includes('quota') ||
+        error.message?.includes('RESOURCE_EXHAUSTED');
+
+      const isDailyQuotaError = error.message?.includes(
+        'generativelanguage.googleapis.com/generate_content_free_tier_requests'
+      );
+
+      // If daily quota exceeded, don't retry - just fail
+      if (isDailyQuotaError) {
+        console.error(`❌ ${agentName}: Daily quota exhausted, cannot retry.`);
+        throw error;
+      }
+
+      // If rate limit but not daily quota, and we haven't exceeded max retries
+      if (isRateLimitError && attempt < this.MAX_RETRY_ATTEMPTS) {
+        // Extract suggested retry delay from error message
+        const retryMatch = error.message?.match(/retry in ([0-9.]+)s/);
+        const suggestedDelay = retryMatch
+          ? parseFloat(retryMatch[1]) * 1000
+          : 0;
+
+        // Calculate exponential backoff delay
+        const exponentialDelay =
+          this.RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        const retryDelay = Math.max(suggestedDelay, exponentialDelay);
+
+        console.warn(
+          `⚠️ ${agentName}: Rate limit hit (attempt ${attempt}/${
+            this.MAX_RETRY_ATTEMPTS
+          }). Retrying in ${Math.round(retryDelay / 1000)}s...`
+        );
+
+        await this.sleep(retryDelay);
+
+        // Recursive retry
+        return this.callGeminiWithRetry(
+          prompt,
+          systemInstruction,
+          temp,
+          agentName,
+          model,
+          attempt + 1
+        );
+      }
+
+      // If not rate limit error, or max retries exceeded, rethrow
+      throw error;
+    }
+  }
+
+  /**
    * Check rate limit before making API request
    * Implements exponential backoff if too many requests
    */
   private async checkRateLimit(): Promise<void> {
     const now = Date.now();
+
+    // Reset daily counter if a new day has started
+    if (now - this.requestMetrics.dailyRequestResetTime > 86400000) {
+      this.requestMetrics.dailyRequestCount = 0;
+      this.requestMetrics.dailyRequestResetTime = now;
+      this.requestMetrics.consecutiveRateLimitErrors = 0;
+      console.log('📅 Daily quota counter reset');
+    }
+
+    // Check daily quota (free tier limit)
+    if (this.requestMetrics.dailyRequestCount >= this.DAILY_QUOTA_FREE_TIER) {
+      const timeUntilReset =
+        86400000 - (now - this.requestMetrics.dailyRequestResetTime);
+      const hoursUntilReset = Math.ceil(timeUntilReset / 3600000);
+      console.error(
+        `🚫 DAILY QUOTA EXCEEDED: ${this.requestMetrics.dailyRequestCount}/${this.DAILY_QUOTA_FREE_TIER} requests used.`,
+        `\n⏰ Quota resets in ~${hoursUntilReset} hours.`,
+        '\n💡 Consider upgrading to paid tier for higher limits.'
+      );
+      throw new Error(
+        `Daily quota exceeded (${this.requestMetrics.dailyRequestCount}/${this.DAILY_QUOTA_FREE_TIER}). Reset in ${hoursUntilReset}h.`
+      );
+    }
 
     // Minimum interval between requests
     const timeSinceLastRequest = now - this.requestMetrics.lastRequestTime;
@@ -1163,6 +1513,9 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
     console.log(
       `  ├─ Requests this session: ${this.requestMetrics.requestsThisSession}`
     );
+    console.log(
+      `  ├─ Daily quota: ${this.requestMetrics.dailyRequestCount}/${this.DAILY_QUOTA_FREE_TIER} (free tier)`
+    );
     console.log(`  ├─ Errors: ${this.requestMetrics.errorsThisSession}`);
     console.log(
       `  ├─ Avg response time: ${Math.round(
@@ -1190,6 +1543,18 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
+  }
+
+  /**
+   * Format token count for display (e.g., 1048576 → "1.0M")
+   */
+  formatTokenCount(tokens: number): string {
+    if (tokens >= 1000000) {
+      return (tokens / 1000000).toFixed(1) + 'M';
+    } else if (tokens >= 1000) {
+      return (tokens / 1000).toFixed(1) + 'K';
+    }
+    return tokens.toString();
   }
 
   // Export functionality

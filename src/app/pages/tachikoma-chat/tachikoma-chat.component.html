@@ -123,12 +123,91 @@
     <!-- Header -->
     <header class="chat-header">
         <div class="header-left">
-            <div class="version-badge">V3.2</div>
+            <div class="version-badge">V4.0</div>
             <div class="header-title-section">
                 <h1 class="protocol-title glitch">TACHIKOMA PROTOCOL</h1>
                 <div class="sync-status">
                     <span class="status-dot"></span>
                     SYNC MODE: SECURE-LINK
+                </div>
+
+                <!-- Metrics Dashboard -->
+                <div class="metrics-dashboard">
+                    <!-- Per-Model Metrics -->
+                    <div *ngFor="let model of getModelsInUse()" class="model-group">
+                        <div class="model-header">
+                            <span class="model-name">{{ model.replace('models/', '') }}</span>
+                            <span class="agent-count">({{ getAgentsForModel(model).length }} agents)</span>
+                        </div>
+
+                        <!-- TPM for this model -->
+                        <div class="meter-item" *ngIf="getModelMetrics(model) as metrics">
+                            <div class="meter-label">TPM</div>
+                            <div class="meter-bar-container">
+                                <div class="meter-bar"
+                                    [style.width.%]="(metrics.tokensThisMinute / metrics.tokensPerMinute) * 100"
+                                    [class.meter-warning]="metrics.tokensThisMinute > metrics.tokensPerMinute * TOKEN_WARNING_THRESHOLD"
+                                    [class.meter-danger]="metrics.tokensThisMinute > metrics.tokensPerMinute * 0.95">
+                                </div>
+                            </div>
+                            <div class="meter-info">
+                                {{ formatTokenCount(metrics.tokensThisMinute) }} / {{
+                                formatTokenCount(metrics.tokensPerMinute) }}
+                            </div>
+                        </div>
+
+                        <!-- Context for this model -->
+                        <div class="meter-item" *ngIf="getModelMetrics(model) as metrics">
+                            <div class="meter-label">CONTEXT</div>
+                            <div class="meter-bar-container">
+                                <div class="meter-bar"
+                                    [style.width.%]="(metrics.conversationContextTokens / metrics.inputTokenLimit) * 100"
+                                    [class.meter-warning]="metrics.conversationContextTokens > metrics.inputTokenLimit * TOKEN_WARNING_THRESHOLD"
+                                    [class.meter-danger]="metrics.conversationContextTokens > metrics.inputTokenLimit * 0.95">
+                                </div>
+                            </div>
+                            <div class="meter-info">
+                                {{ formatTokenCount(metrics.conversationContextTokens) }} / {{
+                                formatTokenCount(metrics.inputTokenLimit) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account-Wide Limits Section -->
+                    <div class="account-limits"
+                        *ngIf="requestMetrics.requestTimestamps.length > 0 || requestMetrics.dailyRequestCount > 0">
+                        <div class="section-header">Account-Wide Limits</div>
+
+                        <!-- Requests Per Minute (RPM) -->
+                        <div class="meter-item" *ngIf="requestMetrics.requestTimestamps.length > 0">
+                            <div class="meter-label">RPM</div>
+                            <div class="meter-bar-container">
+                                <div class="meter-bar"
+                                    [style.width.%]="(requestMetrics.requestTimestamps.length / maxRequestsPerMinute) * 100"
+                                    [class.meter-warning]="requestMetrics.requestTimestamps.length > maxRequestsPerMinute * TOKEN_WARNING_THRESHOLD"
+                                    [class.meter-danger]="requestMetrics.requestTimestamps.length > maxRequestsPerMinute * 0.95">
+                                </div>
+                            </div>
+                            <div class="meter-info">
+                                {{ requestMetrics.requestTimestamps.length }} / {{ maxRequestsPerMinute }}
+                            </div>
+                        </div>
+
+                        <!-- Requests Per Day (RPD) -->
+                        <div class="meter-item" *ngIf="requestMetrics.dailyRequestCount > 0">
+                            <div class="meter-label">RPD</div>
+                            <div class="meter-bar-container">
+                                <div class="meter-bar"
+                                    [style.width.%]="(requestMetrics.dailyRequestCount / DAILY_QUOTA_FREE_TIER) * 100"
+                                    [class.meter-warning]="requestMetrics.dailyRequestCount > DAILY_QUOTA_FREE_TIER * TOKEN_WARNING_THRESHOLD"
+                                    [class.meter-danger]="requestMetrics.dailyRequestCount > DAILY_QUOTA_FREE_TIER * 0.95">
+                                </div>
+                            </div>
+                            <div class="meter-info">
+                                {{ requestMetrics.dailyRequestCount }} / {{ DAILY_QUOTA_FREE_TIER }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <!-- Action buttons next to title - visible on all screens -->
