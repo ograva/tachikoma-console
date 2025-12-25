@@ -7,6 +7,20 @@ export type SilenceProtocol =
   | 'conservative'
   | 'agreeable';
 export type AgentStatus = 'idle' | 'thinking';
+export type SystemMode = 'form' | 'xml' | 'plaintext';
+
+/**
+ * Structured system instruction fields
+ */
+export interface SystemFields {
+  role: string; // Agent's primary role
+  personality: string[]; // Personality traits (one per line)
+  instructions: string[]; // Core instructions (one per line)
+  constraints?: string[]; // What the agent must NOT do
+  outputFormat?: string; // How to format responses
+  tone?: string; // Communication tone
+  sampleDialogue?: { user: string; assistant: string }[]; // Few-shot examples
+}
 
 export interface AgentProfile extends SyncableData {
   id: string;
@@ -14,7 +28,9 @@ export interface AgentProfile extends SyncableData {
   color: string;
   hex: string;
   temp: number;
-  system: string;
+  system: string; // Final compiled system instruction (generated from systemFields or direct input)
+  systemMode?: SystemMode; // How system instruction is defined: 'form', 'xml', or 'plaintext'
+  systemFields?: SystemFields; // Structured fields when using 'form' mode
   role: AgentRole; // chatter = participates in randomized order, moderator = speaks last
   model?: string; // Gemini model to use (e.g., 'models/gemini-2.0-flash-exp')
   silenceProtocol?: SilenceProtocol;
@@ -34,6 +50,7 @@ export class AgentProfileModel {
     model: 'models/gemini-2.0-flash-exp',
     silenceProtocol: 'standard' as SilenceProtocol,
     status: 'idle' as AgentStatus,
+    systemMode: 'plaintext' as SystemMode, // Backward compatible default
   };
 
   /**
@@ -47,6 +64,7 @@ export class AgentProfileModel {
       silenceProtocol:
         profile.silenceProtocol ?? AgentProfileModel.DEFAULTS.silenceProtocol,
       status: profile.status ?? AgentProfileModel.DEFAULTS.status,
+      systemMode: profile.systemMode ?? AgentProfileModel.DEFAULTS.systemMode,
       createdAt: profile.createdAt ?? Date.now(),
       updatedAt: profile.updatedAt ?? Date.now(),
     } as AgentProfile;
@@ -190,5 +208,200 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       typeof obj.role === 'string' &&
       (obj.role === 'chatter' || obj.role === 'moderator')
     );
+  }
+
+  /**
+   * Convert SystemFields to XML format
+   */
+  static fieldsToXml(fields: SystemFields): string {
+    let xml = '<system>\n';
+
+    // Role
+    if (fields.role) {
+      xml += `  <role>${this.escapeXml(fields.role)}</role>\n\n`;
+    }
+
+    // Personality
+    if (fields.personality && fields.personality.length > 0) {
+      xml += '  <personality>\n';
+      fields.personality.forEach((trait) => {
+        if (trait.trim()) {
+          xml += `    <trait>${this.escapeXml(trait.trim())}</trait>\n`;
+        }
+      });
+      xml += '  </personality>\n\n';
+    }
+
+    // Instructions
+    if (fields.instructions && fields.instructions.length > 0) {
+      xml += '  <instructions>\n';
+      fields.instructions.forEach((instruction) => {
+        if (instruction.trim()) {
+          xml += `    <instruction>${this.escapeXml(
+            instruction.trim()
+          )}</instruction>\n`;
+        }
+      });
+      xml += '  </instructions>\n\n';
+    }
+
+    // Constraints
+    if (fields.constraints && fields.constraints.length > 0) {
+      xml += '  <constraints>\n';
+      fields.constraints.forEach((constraint) => {
+        if (constraint.trim()) {
+          xml += `    <constraint>${this.escapeXml(
+            constraint.trim()
+          )}</constraint>\n`;
+        }
+      });
+      xml += '  </constraints>\n\n';
+    }
+
+    // Format
+    if (fields.outputFormat || fields.tone) {
+      xml += '  <format>\n';
+      if (fields.outputFormat) {
+        xml += `    <output_style>${this.escapeXml(
+          fields.outputFormat
+        )}</output_style>\n`;
+      }
+      if (fields.tone) {
+        xml += `    <tone>${this.escapeXml(fields.tone)}</tone>\n`;
+      }
+      xml += '  </format>\n\n';
+    }
+
+    // Sample Dialogue (Few-shot examples)
+    if (fields.sampleDialogue && fields.sampleDialogue.length > 0) {
+      xml += '  <examples>\n';
+      fields.sampleDialogue.forEach((example, index) => {
+        xml += `    <example id="${index + 1}">\n`;
+        xml += `      <user>${this.escapeXml(example.user)}</user>\n`;
+        xml += `      <assistant>${this.escapeXml(
+          example.assistant
+        )}</assistant>\n`;
+        xml += '    </example>\n';
+      });
+      xml += '  </examples>\n\n';
+    }
+
+    xml += '</system>';
+    return xml;
+  }
+
+  /**
+   * Parse XML to SystemFields (basic parser)
+   */
+  static xmlToFields(xml: string): SystemFields | null {
+    try {
+      const fields: SystemFields = {
+        role: '',
+        personality: [],
+        instructions: [],
+      };
+
+      // Extract role
+      const roleMatch = xml.match(/<role>(.*?)<\/role>/s);
+      if (roleMatch) fields.role = this.unescapeXml(roleMatch[1].trim());
+
+      // Extract personality traits
+      const personalityMatch = xml.match(/<personality>(.*?)<\/personality>/s);
+      if (personalityMatch) {
+        const traits = personalityMatch[1].match(/<trait>(.*?)<\/trait>/gs);
+        if (traits) {
+          fields.personality = traits.map((t) =>
+            this.unescapeXml(t.replace(/<\/?trait>/g, '').trim())
+          );
+        }
+      }
+
+      // Extract instructions
+      const instructionsMatch = xml.match(
+        /<instructions>(.*?)<\/instructions>/s
+      );
+      if (instructionsMatch) {
+        const instructions = instructionsMatch[1].match(
+          /<instruction>(.*?)<\/instruction>/gs
+        );
+        if (instructions) {
+          fields.instructions = instructions.map((i) =>
+            this.unescapeXml(i.replace(/<\/?instruction>/g, '').trim())
+          );
+        }
+      }
+
+      // Extract constraints
+      const constraintsMatch = xml.match(/<constraints>(.*?)<\/constraints>/s);
+      if (constraintsMatch) {
+        const constraints = constraintsMatch[1].match(
+          /<constraint>(.*?)<\/constraint>/gs
+        );
+        if (constraints) {
+          fields.constraints = constraints.map((c) =>
+            this.unescapeXml(c.replace(/<\/?constraint>/g, '').trim())
+          );
+        }
+      }
+
+      // Extract format
+      const outputStyleMatch = xml.match(
+        /<output_style>(.*?)<\/output_style>/s
+      );
+      if (outputStyleMatch)
+        fields.outputFormat = this.unescapeXml(outputStyleMatch[1].trim());
+
+      const toneMatch = xml.match(/<tone>(.*?)<\/tone>/s);
+      if (toneMatch) fields.tone = this.unescapeXml(toneMatch[1].trim());
+
+      // Extract examples
+      const examplesMatch = xml.match(/<examples>(.*?)<\/examples>/s);
+      if (examplesMatch) {
+        const examples = examplesMatch[1].match(
+          /<example[^>]*>(.*?)<\/example>/gs
+        );
+        if (examples) {
+          fields.sampleDialogue = examples.map((ex) => {
+            const userMatch = ex.match(/<user>(.*?)<\/user>/s);
+            const assistantMatch = ex.match(/<assistant>(.*?)<\/assistant>/s);
+            return {
+              user: userMatch ? this.unescapeXml(userMatch[1].trim()) : '',
+              assistant: assistantMatch
+                ? this.unescapeXml(assistantMatch[1].trim())
+                : '',
+            };
+          });
+        }
+      }
+
+      return fields;
+    } catch (error) {
+      console.error('Failed to parse XML:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Escape XML special characters
+   */
+  private static escapeXml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /**
+   * Unescape XML special characters
+   */
+  private static unescapeXml(str: string): string {
+    return str
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, '&');
   }
 }

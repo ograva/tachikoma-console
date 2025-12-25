@@ -6,6 +6,11 @@ import {
   AgentProfileService,
   AgentProfile,
 } from '../../services/agent-profile.service';
+import {
+  SystemMode,
+  SystemFields,
+  AgentProfileModel,
+} from '../../models/agent-profile.model';
 
 @Component({
   selector: 'app-tachikoma-profiles',
@@ -27,7 +32,22 @@ export class TachikomaProfilesComponent {
     role: 'chatter',
     model: 'models/gemini-2.0-flash-exp',
     system: '',
+    systemMode: 'plaintext',
     silenceProtocol: 'standard',
+  };
+
+  // Current system mode for new/edit forms
+  currentSystemMode = signal<SystemMode>('plaintext');
+
+  // System fields for form mode
+  systemFields: SystemFields = {
+    role: '',
+    personality: [],
+    instructions: [],
+    constraints: [],
+    outputFormat: '',
+    tone: '',
+    sampleDialogue: [],
   };
 
   silenceProtocolOptions = [
@@ -129,6 +149,20 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
   startEdit(profile: AgentProfile): void {
     this.editingProfile.set({ ...profile });
     this.isAddingNew.set(false);
+
+    // Load system mode and fields
+    const mode = profile.systemMode || 'plaintext';
+    this.currentSystemMode.set(mode);
+
+    if (mode === 'form' && profile.systemFields) {
+      this.systemFields = { ...profile.systemFields };
+    } else if (mode === 'xml' && profile.system) {
+      // Try to parse XML to fields for form view
+      const parsed = AgentProfileModel.xmlToFields(profile.system);
+      if (parsed) {
+        this.systemFields = parsed;
+      }
+    }
   }
 
   cancelEdit(): void {
@@ -137,9 +171,21 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
   }
 
   saveNew(): void {
-    if (!this.newProfile.name || !this.newProfile.system) {
+    if (
+      !this.newProfile.name ||
+      (!this.newProfile.system && this.currentSystemMode() !== 'form')
+    ) {
       alert('Name and System Prompt are required');
       return;
+    }
+
+    // Compile system from fields if in form mode
+    let finalSystem = this.newProfile.system;
+    let finalSystemFields = this.newProfile.systemFields;
+
+    if (this.currentSystemMode() === 'form') {
+      finalSystem = AgentProfileModel.fieldsToXml(this.systemFields);
+      finalSystemFields = { ...this.systemFields };
     }
 
     this.profileService.addProfile({
@@ -148,7 +194,11 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       hex: this.newProfile.hex || '#00f3ff',
       temp: this.newProfile.temp || 0.5,
       role: this.newProfile.role || 'chatter',
-      system: this.newProfile.system,
+      model: this.newProfile.model,
+      system: finalSystem,
+      systemMode: this.currentSystemMode(),
+      systemFields: finalSystemFields,
+      silenceProtocol: this.newProfile.silenceProtocol,
     });
 
     this.loadProfiles();
@@ -159,9 +209,21 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     const profile = this.editingProfile();
     if (!profile) return;
 
-    if (!profile.name || !profile.system) {
+    if (
+      !profile.name ||
+      (!profile.system && this.currentSystemMode() !== 'form')
+    ) {
       alert('Name and System Prompt are required');
       return;
+    }
+
+    // Compile system from fields if in form mode
+    let finalSystem = profile.system;
+    let finalSystemFields = profile.systemFields;
+
+    if (this.currentSystemMode() === 'form') {
+      finalSystem = AgentProfileModel.fieldsToXml(this.systemFields);
+      finalSystemFields = { ...this.systemFields };
     }
 
     this.profileService.updateProfile(profile.id, {
@@ -170,7 +232,11 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       hex: profile.hex,
       temp: profile.temp,
       role: profile.role,
-      system: profile.system,
+      model: profile.model,
+      system: finalSystem,
+      systemMode: this.currentSystemMode(),
+      systemFields: finalSystemFields,
+      silenceProtocol: profile.silenceProtocol,
     });
 
     this.loadProfiles();
@@ -199,5 +265,255 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     return role === 'chatter'
       ? 'Chatter (Random Order)'
       : 'Moderator (Speaks Last)';
+  }
+
+  // System Mode Management
+
+  switchSystemMode(
+    mode: SystemMode,
+    profile?: AgentProfile | Partial<AgentProfile>
+  ): void {
+    const targetProfile = profile || this.newProfile;
+    console.log(
+      '🔄 Switching system mode to:',
+      mode,
+      'from:',
+      targetProfile.systemMode
+    );
+    this.currentSystemMode.set(mode);
+
+    if (mode === 'form') {
+      // Convert current system to form fields
+      if (targetProfile.systemMode === 'xml' && targetProfile.system) {
+        const parsed = AgentProfileModel.xmlToFields(targetProfile.system);
+        if (parsed) {
+          this.systemFields = parsed;
+          console.log('✅ Converted XML to form fields:', this.systemFields);
+        }
+      } else if (
+        !this.systemFields.role &&
+        this.systemFields.personality.length === 0
+      ) {
+        // Only initialize empty form if systemFields is actually empty
+        // (don't overwrite if AI conversion just populated it)
+        this.systemFields = {
+          role: '',
+          personality: [],
+          instructions: [],
+          constraints: [],
+          outputFormat: '',
+          tone: '',
+          sampleDialogue: [],
+        };
+        console.log('🆕 Initialized empty form fields');
+      } else {
+        console.log('✅ Using existing form fields:', this.systemFields);
+      }
+      // Otherwise, keep existing systemFields (e.g., from AI conversion)
+    } else if (mode === 'xml') {
+      // Generate XML from form fields if they have data
+      if (
+        this.systemFields.role ||
+        this.systemFields.personality.length > 0 ||
+        this.systemFields.instructions.length > 0
+      ) {
+        targetProfile.system = AgentProfileModel.fieldsToXml(this.systemFields);
+        console.log('✅ Generated XML from form fields:', targetProfile.system);
+      } else if (!targetProfile.system) {
+        // Initialize empty XML template if no data exists
+        targetProfile.system = '';
+        console.log('🆕 Initialized empty XML');
+      }
+    }
+
+    // Update the profile's system mode
+    targetProfile.systemMode = mode;
+    console.log('✅ Profile system mode updated to:', mode);
+  }
+
+  // Add/remove dynamic array items
+  addPersonalityTrait(): void {
+    this.systemFields.personality.push('');
+  }
+
+  removePersonalityTrait(index: number): void {
+    this.systemFields.personality.splice(index, 1);
+  }
+
+  addInstruction(): void {
+    this.systemFields.instructions.push('');
+  }
+
+  removeInstruction(index: number): void {
+    this.systemFields.instructions.splice(index, 1);
+  }
+
+  addConstraint(): void {
+    if (!this.systemFields.constraints) this.systemFields.constraints = [];
+    this.systemFields.constraints.push('');
+  }
+
+  removeConstraint(index: number): void {
+    this.systemFields.constraints?.splice(index, 1);
+  }
+
+  addSampleDialogue(): void {
+    if (!this.systemFields.sampleDialogue)
+      this.systemFields.sampleDialogue = [];
+    this.systemFields.sampleDialogue.push({ user: '', assistant: '' });
+  }
+
+  removeSampleDialogue(index: number): void {
+    this.systemFields.sampleDialogue?.splice(index, 1);
+  }
+
+  // Compile system instruction from form fields
+  compileSystemFromFields(): string {
+    if (this.currentSystemMode() === 'form') {
+      return AgentProfileModel.fieldsToXml(this.systemFields);
+    }
+    return this.newProfile.system || '';
+  }
+
+  // AI-Assisted Plain Text to Structured Conversion
+  isConverting = signal<boolean>(false);
+
+  async convertPlainTextToStructured(
+    profile?: AgentProfile | Partial<AgentProfile>
+  ): Promise<void> {
+    const targetProfile = profile || this.newProfile;
+    const plainText = targetProfile.system;
+
+    if (!plainText || plainText.trim().length === 0) {
+      alert(
+        'No plain text to convert. Please enter a system instruction first.'
+      );
+      return;
+    }
+
+    // Check if API key is available
+    const apiKey = localStorage.getItem('gemini_api_key');
+    console.log('🔑 API key check:', apiKey ? 'Found' : 'Not found');
+    if (!apiKey) {
+      alert(
+        '⚠️ API key not found. Please initialize your Gemini API key in the chat interface first.'
+      );
+      return;
+    }
+
+    this.isConverting.set(true);
+
+    try {
+      const prompt = `You are an expert at analyzing AI system prompts and extracting structured information.
+
+TASK: Parse the following plain text AI system instruction and extract structured fields in valid JSON format.
+
+PLAIN TEXT INSTRUCTION:
+"""
+${plainText}
+"""
+
+OUTPUT REQUIREMENTS:
+Extract the following fields and return ONLY valid JSON (no markdown, no code blocks, no explanations):
+
+{
+  "role": "The primary role/identity statement",
+  "personality": ["trait1", "trait2", "trait3"],
+  "instructions": ["instruction1", "instruction2"],
+  "constraints": ["constraint1", "constraint2"],
+  "outputFormat": "How to format responses",
+  "tone": "Communication tone"
+}
+
+EXTRACTION RULES:
+- "role": Extract the main identity/role. Look for phrases like "You are...", "Your role:", or identity descriptions
+- "personality": Extract character traits, behaviors, backgrounds, characteristics. Look for descriptive phrases about who/what the agent is
+- "instructions": Extract core directives and tasks. Look for "Always...", "If...", action verbs, behavioral commands
+- "constraints": Extract limitations, things NOT to do, conditions, special protocols (like "SILENCE")
+- "outputFormat": Extract any specified output formatting or structure requirements
+- "tone": Extract communication style. Look for "Your tone:", "tone:", adjectives describing how to communicate
+- Break down compound sentences into individual array items
+- If a field cannot be extracted, use empty string "" or empty array []
+- Return ONLY the JSON object - no markdown code blocks, no explanations, no extra text`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 2048,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) {
+        console.error('❌ No response from AI. Full response:', data);
+        throw new Error('No response from AI');
+      }
+
+      console.log('🤖 Raw AI response:', text);
+
+      // Extract JSON from response (remove markdown code blocks if present)
+      let jsonText = text.trim();
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      }
+
+      console.log('📝 Cleaned JSON text:', jsonText);
+
+      const extracted = JSON.parse(jsonText);
+      console.log('✅ Parsed JSON:', extracted);
+
+      // Populate systemFields
+      this.systemFields = {
+        role: extracted.role || '',
+        personality: Array.isArray(extracted.personality)
+          ? extracted.personality.filter((t: string) => t.trim())
+          : [],
+        instructions: Array.isArray(extracted.instructions)
+          ? extracted.instructions.filter((i: string) => i.trim())
+          : [],
+        constraints: Array.isArray(extracted.constraints)
+          ? extracted.constraints.filter((c: string) => c.trim())
+          : [],
+        outputFormat: extracted.outputFormat || '',
+        tone: extracted.tone || '',
+        sampleDialogue: [],
+      };
+
+      // Switch to form mode
+      this.switchSystemMode('form', targetProfile);
+
+      console.log(
+        '✅ Plain text converted to structured fields:',
+        this.systemFields
+      );
+      alert(
+        '✅ Conversion successful! Review the extracted fields and make any adjustments.'
+      );
+    } catch (error: any) {
+      console.error('❌ Conversion failed:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+      });
+      alert(
+        `❌ Conversion failed: ${error.message}\n\nPlease check the browser console for details, then try again or convert manually.`
+      );
+    } finally {
+      this.isConverting.set(false);
+    }
   }
 }

@@ -141,6 +141,157 @@
   }
 }
 
+// System Instruction Form Styles
+.system-mode-selector {
+  margin: 16px 0;
+  
+  label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--neon-blue, #00f3ff);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  mat-button-toggle-group {
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    
+    mat-button-toggle {
+      color: #888;
+      
+      &.mat-button-toggle-checked {
+        background: rgba(0, 243, 255, 0.2);
+        color: var(--neon-blue, #00f3ff);
+      }
+      
+      mat-icon {
+        margin-right: 4px;
+        font-size: 18px;
+        height: 18px;
+        width: 18px;
+      }
+    }
+  }
+}
+
+.system-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(0, 243, 255, 0.03);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 4px;
+}
+
+.array-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  
+  .field-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    
+    label {
+      color: var(--neon-green, #00ff41);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    button {
+      color: var(--neon-green, #00ff41);
+    }
+  }
+  
+  .array-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .flex-grow {
+      flex: 1;
+    }
+    
+    button {
+      color: var(--neon-pink, #ff00de);
+      margin-top: -8px; // Align with input field
+    }
+  }
+}
+
+.dialogue-item {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  
+  .dialogue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    
+    span {
+      color: var(--neon-green, #00ff41);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    
+    button {
+      color: var(--neon-pink, #ff00de);
+    }
+  }
+}
+
+.xml-editor {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.8rem !important;
+  line-height: 1.5;
+  color: var(--neon-blue, #00f3ff);
+}
+
+.plaintext-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conversion-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    mat-icon {
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+    }
+    
+    mat-spinner {
+      display: inline-block;
+    }
+  }
+
+  .hint-text {
+    font-size: 0.75rem;
+    color: rgba(255, 215, 0, 0.8);
+    font-style: italic;
+  }
+}
+
 // Material overrides for cyberpunk theme
 ::ng-deep {
   .profiles-container {

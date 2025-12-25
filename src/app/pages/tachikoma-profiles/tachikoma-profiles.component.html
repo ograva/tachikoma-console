@@ -84,11 +84,162 @@
                     <mat-hint>How the agent decides when to stay silent</mat-hint>
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>System Prompt</mat-label>
-                    <textarea matInput [(ngModel)]="newProfile.system" rows="8"
-                        placeholder="Define the agent's personality, role, and behavior..."></textarea>
+                <!-- System Instruction Mode Selector -->
+                <div class="system-mode-selector full-width">
+                    <label>System Instruction Mode:</label>
+                    <mat-button-toggle-group [(value)]="currentSystemMode" (change)="switchSystemMode($event.value)">
+                        <mat-button-toggle value="form">
+                            <mat-icon>view_list</mat-icon> Form
+                        </mat-button-toggle>
+                        <mat-button-toggle value="xml">
+                            <mat-icon>code</mat-icon> XML
+                        </mat-button-toggle>
+                        <mat-button-toggle value="plaintext">
+                            <mat-icon>text_fields</mat-icon> Plain Text
+                        </mat-button-toggle>
+                    </mat-button-toggle-group>
+                </div>
+
+                <!-- FORM MODE -->
+                <div *ngIf="currentSystemMode() === 'form'" class="system-form full-width">
+                    <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Role</mat-label>
+                        <input matInput [(ngModel)]="systemFields.role"
+                            placeholder="e.g., You are LOGIKOMA, an analytical AI agent">
+                        <mat-hint>Primary role and identity of the agent</mat-hint>
+                    </mat-form-field>
+
+                    <!-- Personality Traits -->
+                    <div class="array-field">
+                        <div class="field-header">
+                            <label>Personality Traits</label>
+                            <button mat-icon-button type="button" (click)="addPersonalityTrait()"
+                                matTooltip="Add trait">
+                                <mat-icon>add</mat-icon>
+                            </button>
+                        </div>
+                        <div *ngFor="let trait of systemFields.personality; let i = index" class="array-item">
+                            <mat-form-field appearance="outline" class="flex-grow">
+                                <input matInput [(ngModel)]="systemFields.personality[i]"
+                                    placeholder="e.g., Precise and data-driven">
+                            </mat-form-field>
+                            <button mat-icon-button type="button" (click)="removePersonalityTrait(i)"
+                                matTooltip="Remove">
+                                <mat-icon>remove</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="array-field">
+                        <div class="field-header">
+                            <label>Instructions</label>
+                            <button mat-icon-button type="button" (click)="addInstruction()"
+                                matTooltip="Add instruction">
+                                <mat-icon>add</mat-icon>
+                            </button>
+                        </div>
+                        <div *ngFor="let instruction of systemFields.instructions; let i = index" class="array-item">
+                            <mat-form-field appearance="outline" class="flex-grow">
+                                <input matInput [(ngModel)]="systemFields.instructions[i]"
+                                    placeholder="e.g., Analyze prompts for logical structure">
+                            </mat-form-field>
+                            <button mat-icon-button type="button" (click)="removeInstruction(i)" matTooltip="Remove">
+                                <mat-icon>remove</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Constraints (Optional) -->
+                    <div class="array-field">
+                        <div class="field-header">
+                            <label>Constraints (Optional)</label>
+                            <button mat-icon-button type="button" (click)="addConstraint()" matTooltip="Add constraint">
+                                <mat-icon>add</mat-icon>
+                            </button>
+                        </div>
+                        <div *ngFor="let constraint of systemFields.constraints; let i = index" class="array-item">
+                            <mat-form-field appearance="outline" class="flex-grow">
+                                <input matInput [(ngModel)]="systemFields.constraints![i]"
+                                    placeholder="e.g., Never speculate without data">
+                            </mat-form-field>
+                            <button mat-icon-button type="button" (click)="removeConstraint(i)" matTooltip="Remove">
+                                <mat-icon>remove</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Output Format & Tone -->
+                    <mat-form-field appearance="outline">
+                        <mat-label>Output Format (Optional)</mat-label>
+                        <input matInput [(ngModel)]="systemFields.outputFormat" placeholder="e.g., Technical, concise">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                        <mat-label>Tone (Optional)</mat-label>
+                        <input matInput [(ngModel)]="systemFields.tone" placeholder="e.g., Neutral, objective">
+                    </mat-form-field>
+
+                    <!-- Sample Dialogue (Few-shot examples) -->
+                    <div class="array-field full-width">
+                        <div class="field-header">
+                            <label>Sample Dialogue (Optional - Few-shot Examples)</label>
+                            <button mat-icon-button type="button" (click)="addSampleDialogue()"
+                                matTooltip="Add example">
+                                <mat-icon>add</mat-icon>
+                            </button>
+                        </div>
+                        <div *ngFor="let example of systemFields.sampleDialogue; let i = index" class="dialogue-item">
+                            <div class="dialogue-header">
+                                <span>Example {{i + 1}}</span>
+                                <button mat-icon-button type="button" (click)="removeSampleDialogue(i)"
+                                    matTooltip="Remove">
+                                    <mat-icon>remove</mat-icon>
+                                </button>
+                            </div>
+                            <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>User</mat-label>
+                                <textarea matInput [(ngModel)]="systemFields.sampleDialogue![i].user" rows="2"
+                                    placeholder="What the user says..."></textarea>
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>Assistant</mat-label>
+                                <textarea matInput [(ngModel)]="systemFields.sampleDialogue![i].assistant" rows="3"
+                                    placeholder="How the agent should respond..."></textarea>
+                            </mat-form-field>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- XML MODE -->
+                <mat-form-field *ngIf="currentSystemMode() === 'xml'" appearance="outline" class="full-width">
+                    <mat-label>System Instruction (XML)</mat-label>
+                    <textarea matInput [(ngModel)]="newProfile.system" rows="12" class="xml-editor"
+                        placeholder="<system>&#10;  <role>Your role here...</role>&#10;  <personality>&#10;    <trait>Trait 1</trait>&#10;  </personality>&#10;</system>"></textarea>
+                    <mat-hint>Edit XML directly for advanced control</mat-hint>
                 </mat-form-field>
+
+                <!-- PLAIN TEXT MODE -->
+                <div *ngIf="currentSystemMode() === 'plaintext'" class="plaintext-mode full-width">
+                    <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>System Prompt</mat-label>
+                        <textarea matInput [(ngModel)]="newProfile.system" rows="8"
+                            placeholder="Define the agent's personality, role, and behavior..."></textarea>
+                        <mat-hint>Legacy plain text format</mat-hint>
+                    </mat-form-field>
+
+                    <!-- AI-Assisted Conversion Button -->
+                    <div class="conversion-actions">
+                        <button mat-raised-button color="accent" type="button" (click)="convertPlainTextToStructured()"
+                            [disabled]="!newProfile.system || newProfile.system.trim().length === 0 || isConverting()"
+                            matTooltip="Use AI to parse this text into structured form fields">
+                            <mat-icon *ngIf="!isConverting()">auto_awesome</mat-icon>
+                            <mat-spinner *ngIf="isConverting()" diameter="20"></mat-spinner>
+                            {{ isConverting() ? 'Converting...' : 'Convert to Form/XML' }}
+                        </button>
+                        <span class="hint-text">AI will extract role, personality, instructions, and more</span>
+                    </div>
+                </div>
             </div>
         </mat-card-content>
         <mat-card-actions>
@@ -182,10 +333,170 @@
                             </mat-select>
                         </mat-form-field>
 
-                        <mat-form-field appearance="outline" class="full-width">
-                            <mat-label>System Prompt</mat-label>
-                            <textarea matInput [(ngModel)]="editingProfile()!.system" rows="8"></textarea>
+                        <!-- System Instruction Mode Selector -->
+                        <div class="system-mode-selector full-width">
+                            <label>System Instruction Mode:</label>
+                            <mat-button-toggle-group [(value)]="currentSystemMode"
+                                (change)="switchSystemMode($event.value, editingProfile()!)">
+                                <mat-button-toggle value="form">
+                                    <mat-icon>view_list</mat-icon> Form
+                                </mat-button-toggle>
+                                <mat-button-toggle value="xml">
+                                    <mat-icon>code</mat-icon> XML
+                                </mat-button-toggle>
+                                <mat-button-toggle value="plaintext">
+                                    <mat-icon>text_fields</mat-icon> Plain Text
+                                </mat-button-toggle>
+                            </mat-button-toggle-group>
+                        </div>
+
+                        <!-- FORM MODE -->
+                        <div *ngIf="currentSystemMode() === 'form'" class="system-form full-width">
+                            <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>Role</mat-label>
+                                <input matInput [(ngModel)]="systemFields.role"
+                                    placeholder="e.g., You are LOGIKOMA, an analytical AI agent">
+                                <mat-hint>Primary role and identity of the agent</mat-hint>
+                            </mat-form-field>
+
+                            <!-- Personality Traits -->
+                            <div class="array-field">
+                                <div class="field-header">
+                                    <label>Personality Traits</label>
+                                    <button mat-icon-button type="button" (click)="addPersonalityTrait()"
+                                        matTooltip="Add trait">
+                                        <mat-icon>add</mat-icon>
+                                    </button>
+                                </div>
+                                <div *ngFor="let trait of systemFields.personality; let i = index" class="array-item">
+                                    <mat-form-field appearance="outline" class="flex-grow">
+                                        <input matInput [(ngModel)]="systemFields.personality[i]"
+                                            placeholder="e.g., Precise and data-driven">
+                                    </mat-form-field>
+                                    <button mat-icon-button type="button" (click)="removePersonalityTrait(i)"
+                                        matTooltip="Remove">
+                                        <mat-icon>remove</mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Instructions -->
+                            <div class="array-field">
+                                <div class="field-header">
+                                    <label>Instructions</label>
+                                    <button mat-icon-button type="button" (click)="addInstruction()"
+                                        matTooltip="Add instruction">
+                                        <mat-icon>add</mat-icon>
+                                    </button>
+                                </div>
+                                <div *ngFor="let instruction of systemFields.instructions; let i = index"
+                                    class="array-item">
+                                    <mat-form-field appearance="outline" class="flex-grow">
+                                        <input matInput [(ngModel)]="systemFields.instructions[i]"
+                                            placeholder="e.g., Analyze prompts for logical structure">
+                                    </mat-form-field>
+                                    <button mat-icon-button type="button" (click)="removeInstruction(i)"
+                                        matTooltip="Remove">
+                                        <mat-icon>remove</mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Constraints (Optional) -->
+                            <div class="array-field">
+                                <div class="field-header">
+                                    <label>Constraints (Optional)</label>
+                                    <button mat-icon-button type="button" (click)="addConstraint()"
+                                        matTooltip="Add constraint">
+                                        <mat-icon>add</mat-icon>
+                                    </button>
+                                </div>
+                                <div *ngFor="let constraint of systemFields.constraints; let i = index"
+                                    class="array-item">
+                                    <mat-form-field appearance="outline" class="flex-grow">
+                                        <input matInput [(ngModel)]="systemFields.constraints![i]"
+                                            placeholder="e.g., Never speculate without data">
+                                    </mat-form-field>
+                                    <button mat-icon-button type="button" (click)="removeConstraint(i)"
+                                        matTooltip="Remove">
+                                        <mat-icon>remove</mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Output Format & Tone -->
+                            <mat-form-field appearance="outline">
+                                <mat-label>Output Format (Optional)</mat-label>
+                                <input matInput [(ngModel)]="systemFields.outputFormat"
+                                    placeholder="e.g., Technical, concise">
+                            </mat-form-field>
+
+                            <mat-form-field appearance="outline">
+                                <mat-label>Tone (Optional)</mat-label>
+                                <input matInput [(ngModel)]="systemFields.tone" placeholder="e.g., Neutral, objective">
+                            </mat-form-field>
+
+                            <!-- Sample Dialogue (Few-shot examples) -->
+                            <div class="array-field full-width">
+                                <div class="field-header">
+                                    <label>Sample Dialogue (Optional - Few-shot Examples)</label>
+                                    <button mat-icon-button type="button" (click)="addSampleDialogue()"
+                                        matTooltip="Add example">
+                                        <mat-icon>add</mat-icon>
+                                    </button>
+                                </div>
+                                <div *ngFor="let example of systemFields.sampleDialogue; let i = index"
+                                    class="dialogue-item">
+                                    <div class="dialogue-header">
+                                        <span>Example {{i + 1}}</span>
+                                        <button mat-icon-button type="button" (click)="removeSampleDialogue(i)"
+                                            matTooltip="Remove">
+                                            <mat-icon>remove</mat-icon>
+                                        </button>
+                                    </div>
+                                    <mat-form-field appearance="outline" class="full-width">
+                                        <mat-label>User</mat-label>
+                                        <textarea matInput [(ngModel)]="systemFields.sampleDialogue![i].user" rows="2"
+                                            placeholder="What the user says..."></textarea>
+                                    </mat-form-field>
+                                    <mat-form-field appearance="outline" class="full-width">
+                                        <mat-label>Assistant</mat-label>
+                                        <textarea matInput [(ngModel)]="systemFields.sampleDialogue![i].assistant"
+                                            rows="3" placeholder="How the agent should respond..."></textarea>
+                                    </mat-form-field>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- XML MODE -->
+                        <mat-form-field *ngIf="currentSystemMode() === 'xml'" appearance="outline" class="full-width">
+                            <mat-label>System Instruction (XML)</mat-label>
+                            <textarea matInput [(ngModel)]="editingProfile()!.system" rows="12" class="xml-editor"
+                                placeholder="<system>&#10;  <role>Your role here...</role>&#10;  <personality>&#10;    <trait>Trait 1</trait>&#10;  </personality>&#10;</system>"></textarea>
+                            <mat-hint>Edit XML directly for advanced control</mat-hint>
                         </mat-form-field>
+
+                        <!-- PLAIN TEXT MODE -->
+                        <div *ngIf="currentSystemMode() === 'plaintext'" class="plaintext-mode full-width">
+                            <mat-form-field appearance="outline" class="full-width">
+                                <mat-label>System Prompt</mat-label>
+                                <textarea matInput [(ngModel)]="editingProfile()!.system" rows="8"></textarea>
+                                <mat-hint>Legacy plain text format</mat-hint>
+                            </mat-form-field>
+
+                            <!-- AI-Assisted Conversion Button -->
+                            <div class="conversion-actions">
+                                <button mat-raised-button color="accent" type="button"
+                                    (click)="convertPlainTextToStructured(editingProfile()!)"
+                                    [disabled]="!editingProfile()!.system || editingProfile()!.system.trim().length === 0 || isConverting()"
+                                    matTooltip="Use AI to parse this text into structured form fields">
+                                    <mat-icon *ngIf="!isConverting()">auto_awesome</mat-icon>
+                                    <mat-spinner *ngIf="isConverting()" diameter="20"></mat-spinner>
+                                    {{ isConverting() ? 'Converting...' : 'Convert to Form/XML' }}
+                                </button>
+                                <span class="hint-text">AI will extract role, personality, instructions, and more</span>
+                            </div>
+                        </div>
                     </div>
                 </mat-card-content>
                 <mat-card-actions>
