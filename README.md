@@ -12,21 +12,38 @@ Tachikoma Console is a cyberpunk-themed dashboard and AI chat interface featurin
 
 ## Features
 
+### Core Chat System
 * **Multi-Agent Chat Protocol**: Three specialized AI agents process queries in randomized order with SILENCE PROTOCOL (agents skip redundant responses).
-* **2-Stage Data Persistence**: Offline-first architecture with localStorage (instant) + Firestore (cloud sync) for chats, agent profiles, and settings.
-* **Encrypted Cloud Storage**: API keys encrypted with AES-256-GCM before Firestore upload, decrypted on retrieval.
-* **Smart Sync System**: User-selectable sync strategies (Merge, Cloud-to-Local, Local-to-Cloud) on login with local data detection.
+* **Per-Model Token Metering**: Independent TPM and context tracking for each Gemini model with dynamic limit fetching.
 * **Neural Activity Panel**: Real-time visualization of agent processing that appears during query execution and auto-hides when idle.
 * **First-Time User Explainer**: Interactive dialog that guides new users through the multi-agent system (localStorage-tracked).
 * **Markdown Support**: Full message rendering with code blocks, lists, and formatting via the `marked` library.
 * **Chat Export**: Download conversations as PDF or DOCX documents with file-saver integration.
+
+### Agent Management
+* **XML-Based System Instructions**: Structured semantic markup for better LLM understanding and prompt engineering.
+* **Tri-Mode Interface**: Form, XML, and Plain Text modes for managing agent prompts with seamless switching.
+* **AI-Assisted Conversion**: Intelligent parsing of plain text prompts into structured fields using Gemini 2.0 Flash.
+* **Dynamic Form Arrays**: Add/remove personality traits, instructions, constraints with Material Design controls.
+* **Few-Shot Learning**: Sample dialogue support for training agent behavior with user/assistant examples.
+* **Custom Agent Creation**: Define unlimited custom agents with unique personalities, temperatures, and models.
+
+### Data & Security
+* **2-Stage Data Persistence**: Offline-first architecture with localStorage (instant) + Firestore (cloud sync) for chats, agent profiles, and settings.
+* **Encrypted Cloud Storage**: API keys encrypted with AES-256-GCM before Firestore upload, decrypted on retrieval.
+* **Smart Sync System**: User-selectable sync strategies (Merge, Cloud-to-Local, Local-to-Cloud) on login with local data detection.
+* **Offline Mode**: Full functionality without internet via Firestore offline caching and localStorage fallback.
+
+### UI & Experience
 * **Cyberpunk UI**: Custom dark theme with neon accents (cyan, magenta, green), CRT scanlines, and glitch effects.
-* **Angular 19**: Built with latest Angular features including Signals for reactive state management and Standalone Components.
-* **Gemini API Integration**: Uses `@google/genai` SDK (v1.30.0) for Google Generative AI.
 * **Fully Responsive**: Optimized layouts for desktop, tablet, and mobile with breakpoint-aware components.
 * **PWA Ready**: Configured with manifest and icons for mobile installation.
 * **Dark Theme**: Consistent cyberpunk aesthetic across login, dashboard, and chat interfaces.
-* **Offline Mode**: Full functionality without internet via Firestore offline caching and localStorage fallback.
+
+### Technical Foundation
+* **Angular 19**: Built with latest Angular features including Signals for reactive state management and Standalone Components.
+* **Gemini API Integration**: Uses `@google/genai` SDK (v1.30.0) for Google Generative AI with support for multiple models.
+* **Firebase Integration**: Authentication and Firestore for cloud sync with offline persistence.
 
 ## Getting Started
 
@@ -71,6 +88,8 @@ tachikoma-console/
 │   │   │   ├── tachikoma-chat/          # Multi-agent chat interface
 │   │   │   │   ├── tachikoma-chat.component.ts
 │   │   │   │   ├── chat-explainer-dialog.component.ts
+│   │   │   ├── tachikoma-profiles/      # Agent profile management
+│   │   │   │   ├── tachikoma-profiles.component.ts (XML/Form/Plain Text modes)
 │   │   │   ├── starter/                 # Dashboard landing page
 │   │   │   ├── authentication/          # Login/register pages
 │   │   ├── layouts/
@@ -81,6 +100,8 @@ tachikoma-console/
 │   │   │   ├── chat-storage.service.ts  # Chat persistence (localStorage + Firestore)
 │   │   │   ├── auth.service.ts          # Firebase authentication with sync triggers
 │   │   │   ├── firestore.service.ts     # Store-forward pattern for cloud sync
+│   │   ├── models/
+│   │   │   ├── agent-profile.model.ts   # Agent data model with XML utilities
 │   │   │   ├── encryption.service.ts    # AES-256-GCM encryption for API keys
 │   │   │   ├── user-profile.service.ts  # User settings with encrypted cloud storage
 │   │   ├── components/
@@ -88,6 +109,11 @@ tachikoma-console/
 │   │   ├── material.module.ts           # Centralized Material imports
 │   │   ├── app.routes.ts                # Route configuration
 │   ├── assets/
+│   ├── reference/
+│   │   ├── tech-folder/                 # Technical documentation
+│   │   │   ├── SYSTEM_INSTRUCTIONS.md   # XML system instructions guide
+│   │   │   ├── PERSISTENCE_IMPLEMENTATION.md
+│   │   │   ├── TOKEN_COUNTER.md
 │   │   ├── images/
 │   │   │   ├── icons/                   # PWA icons
 │   │   │   ├── logos/                   # SAC branding
@@ -114,6 +140,10 @@ tachikoma-console/
 
 ### Security
 - **Per-User Isolation**: Firestore rules ensure users only access their own data
+- **XML System Instructions**: Structured semantic markup for role, personality, instructions, constraints, tone, and output format
+- **AI-Assisted Parsing**: Gemini 2.0 Flash intelligently extracts structured fields from plain text prompts
+- **Tri-Mode Interface**: Switch between Form (visual), XML (semantic), and Plain Text (legacy) modes
+- **Few-Shot Learning**: Sample dialogue examples improve agent behavior consistency
 - **Encrypted API Keys**: User-specific encryption keys derived from UID with PBKDF2 (100k iterations)
 - **Timestamp Validation**: All Firestore writes require valid `updatedAt` timestamps
 - **Type Enforcement**: Firestore rules validate data structure (arrays, required fields)
@@ -151,7 +181,30 @@ The app uses a **2-stage persistence system** for offline-first functionality:
 - No authentication required
 - Full chat functionality without cloud sync
 
-### For Authenticated Users
+### For Authenticated Userssrc/reference/tech-folder/PERSISTENCE_IMPLEMENTATION.md).
+
+## System Instructions & Agent Configuration
+
+The app features a **tri-mode system instruction interface** for managing AI agent prompts:
+
+### Three Modes
+1. **Form Mode**: Visual interface with structured fields (role, personality, instructions, constraints, tone, sample dialogue)
+2. **XML Mode**: Direct semantic markup editing with `<system_instruction>` tags for advanced users
+3. **Plain Text Mode**: Legacy freeform text with AI-assisted conversion to structured format
+
+### AI-Assisted Conversion
+- Click "Convert to Form/XML" in Plain Text mode
+- Gemini 2.0 Flash intelligently extracts structured fields from unstructured prompts
+- Automatically populates form fields and generates XML
+- Review and refine extracted data before saving
+
+### Benefits
+- **Better LLM Understanding**: XML semantic tags improve model comprehension
+- **Few-Shot Learning**: Sample dialogue examples train agent behavior
+- **Maintainability**: Structured fields easier to version and modify
+- **Backward Compatible**: Plain text mode preserves existing prompts
+
+For detailed architecture and examples, see [SYSTEM_INSTRUCTIONS.md](./src/reference/tech-folder/SYSTEM_INSTRUCTIONS
 1. **Write Operations**: Data written to localStorage (instant) → Firestore (async background sync)
 2. **Read Operations**: Load from localStorage (instant display) → Sync from Firestore in background
 3. **First Login**: Sync dialog appears if local data exists, user chooses strategy:
