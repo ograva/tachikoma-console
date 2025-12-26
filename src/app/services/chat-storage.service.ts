@@ -118,7 +118,6 @@ export class ChatStorageService {
 
   async updateCurrentChat(
     messages: ChatMessage[],
-    conversationSummary: string,
     participatingAgents?: AgentProfile[]
   ): Promise<void> {
     const currentId = this.currentChatIdSignal();
@@ -134,7 +133,6 @@ export class ChatStorageService {
           updatedChat = {
             ...session,
             messages,
-            conversationSummary,
             participatingAgents:
               participatingAgents || session.participatingAgents,
             updatedAt: now,

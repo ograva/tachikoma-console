@@ -53,6 +53,7 @@ interface ChatMessage {
   isUser: boolean;
   agentId?: string;
   timestamp: number;
+  roundId?: number; // Track which round this message belongs to
 }
 
 import { MaterialModule } from '../../material.module';
@@ -78,9 +79,9 @@ export class TachikomaChatComponent {
   isProcessing = false;
   showNeuralActivity = signal<boolean>(false); // Show/hide neural activity panel
   messages: ChatMessage[] = [];
-  conversationSummary = ''; // Running summary of the conversation
-  messagesSinceLastSummary = 0; // Counter for when to trigger summary
-  readonly SUMMARY_INTERVAL = 6; // Summarize every 6 exchanges (user + agent responses)
+  currentRoundId = 0; // Track conversation rounds for context windowing
+  readonly FULL_ROUNDS_CONTEXT = 6; // Keep last N rounds in full detail
+  readonly MODERATOR_ONLY_HISTORY = true; // Include only moderator messages from older rounds
 
   // API Request Metrics for O(n) complexity tracking
   requestMetrics = {
@@ -403,7 +404,11 @@ export class TachikomaChatComponent {
     const currentChat = this.chatStorage.getCurrentChat();
     if (currentChat) {
       this.messages = currentChat.messages;
-      this.conversationSummary = currentChat.conversationSummary;
+
+      // Restore round ID from last message (or 0 if no messages)
+      const lastMessage = this.messages[this.messages.length - 1];
+      this.currentRoundId = lastMessage?.roundId ?? 0;
+      console.log(`🔄 Chat loaded. Current round: ${this.currentRoundId}`);
 
       // Reset model metrics for this chat session
       this.initializeModelMetrics();
@@ -417,9 +422,6 @@ export class TachikomaChatComponent {
         // Fallback to all agents if chat has no saved agents (legacy chats)
         this.loadAgents();
       }
-      // Reset summary counter based on messages
-      this.messagesSinceLastSummary =
-        currentChat.messages.length % this.SUMMARY_INTERVAL;
     } else {
       // Create a new chat if none exists
       this.showNewChatDialog();
@@ -452,8 +454,7 @@ export class TachikomaChatComponent {
       description
     );
     this.messages = [];
-    this.conversationSummary = '';
-    this.messagesSinceLastSummary = 0;
+    this.currentRoundId = 0;
     this.chatTitle = ''; // Clear title after creating chat
     this.chatDescription = ''; // Clear description after creating chat
     this.loadAgentsFromChat(selectedAgents);
@@ -527,7 +528,11 @@ export class TachikomaChatComponent {
     const chat = this.chatStorage.switchToChat(chatId);
     if (chat) {
       this.messages = chat.messages;
-      this.conversationSummary = chat.conversationSummary;
+
+      // Restore round ID from last message
+      const lastMessage = this.messages[this.messages.length - 1];
+      this.currentRoundId = lastMessage?.roundId ?? 0;
+
       // Load agents from this specific chat
       if (chat.participatingAgents && chat.participatingAgents.length > 0) {
         this.loadAgentsFromChat(chat.participatingAgents);
@@ -535,8 +540,6 @@ export class TachikomaChatComponent {
         // Fallback to all agents if chat has no saved agents
         this.loadAgents();
       }
-      this.messagesSinceLastSummary =
-        chat.messages.length % this.SUMMARY_INTERVAL;
       this.historyDrawerOpened.set(false); // Close drawer after switching
     }
   }
@@ -640,11 +643,7 @@ export class TachikomaChatComponent {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }));
-    await this.chatStorage.updateCurrentChat(
-      this.messages,
-      this.conversationSummary,
-      agentProfiles
-    );
+    await this.chatStorage.updateCurrentChat(this.messages, agentProfiles);
   }
 
   getAgentColor(agentId?: string): string {
@@ -986,12 +985,9 @@ export class TachikomaChatComponent {
         await this.generateChatTitle(text, currentChat.id);
       }
 
-      // Increment message counter and generate summary if needed
-      this.messagesSinceLastSummary++;
-      if (this.messagesSinceLastSummary >= this.SUMMARY_INTERVAL) {
-        console.log('🔄 Generating conversation summary...');
-        await this.generateSummary();
-      }
+      // Increment round counter for next user input
+      this.currentRoundId++;
+      console.log(`✅ Round ${this.currentRoundId} completed`);
     } finally {
       // Always reset processing state, even if errors occur
       this.isProcessing = false;
@@ -1028,7 +1024,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
   }
 
   buildConversationHistory(): string {
-    // Build a text representation of the conversation history
+    // Build a text representation with round-based context windowing
     let history = '';
 
     // Include uploaded files context if any
@@ -1042,77 +1038,63 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       history += '\n';
     }
 
-    // Include the running summary if it exists
-    if (this.conversationSummary) {
-      history += `CONVERSATION SUMMARY (from earlier exchanges):\n${this.conversationSummary}\n\n`;
-    } // Get recent messages (last 6 messages to keep context manageable)
-    const recentMessages = this.messages.slice(-6);
-
-    if (recentMessages.length === 0) {
+    if (this.messages.length === 0) {
       return 'CONVERSATION HISTORY: [New conversation]';
     }
 
-    history += 'RECENT CONVERSATION:\n';
-    for (const msg of recentMessages) {
-      if (msg.isUser) {
-        history += `USER: ${msg.text}\n`;
-      } else {
-        history += `${msg.sender}: ${msg.text}\n`;
+    // Group messages by round
+    const rounds: Map<number, ChatMessage[]> = new Map();
+    for (const msg of this.messages) {
+      const roundId = msg.roundId ?? 0;
+      if (!rounds.has(roundId)) {
+        rounds.set(roundId, []);
+      }
+      rounds.get(roundId)!.push(msg);
+    }
+
+    const sortedRoundIds = Array.from(rounds.keys()).sort((a, b) => a - b);
+    const totalRounds = sortedRoundIds.length;
+
+    // Determine cutoff: last N rounds in full, older rounds moderator-only
+    const fullRoundsStart = Math.max(0, totalRounds - this.FULL_ROUNDS_CONTEXT);
+    const fullRoundIds = sortedRoundIds.slice(fullRoundsStart);
+    const olderRoundIds = sortedRoundIds.slice(0, fullRoundsStart);
+
+    // Include moderator-only messages from older rounds
+    if (this.MODERATOR_ONLY_HISTORY && olderRoundIds.length > 0) {
+      history += 'EARLIER CONTEXT (Moderator Summaries):\n';
+      for (const roundId of olderRoundIds) {
+        const roundMessages = rounds.get(roundId)!;
+        const moderatorMsg = roundMessages.find(
+          (m) =>
+            !m.isUser &&
+            this.agents.find(
+              (a) => a.id === m.agentId && a.role === 'moderator'
+            )
+        );
+        if (moderatorMsg) {
+          history += `[Round ${roundId}] ${moderatorMsg.sender}: ${moderatorMsg.text}\n\n`;
+        }
+      }
+      history += '\n';
+    }
+
+    // Include last N rounds in full detail
+    history += `RECENT CONVERSATION (Last ${fullRoundIds.length} rounds):\n`;
+    for (const roundId of fullRoundIds) {
+      const roundMessages = rounds.get(roundId)!;
+      history += `--- Round ${roundId} ---\n`;
+      for (const msg of roundMessages) {
+        if (msg.isUser) {
+          history += `USER: ${msg.text}\n`;
+        } else {
+          history += `${msg.sender}: ${msg.text}\n`;
+        }
       }
       history += '\n';
     }
 
     return history;
-  }
-
-  async generateSummary(): Promise<void> {
-    try {
-      // Get all messages except the most recent exchange
-      const messagesToSummarize = this.messages.slice(0, -3);
-
-      if (messagesToSummarize.length === 0) {
-        return;
-      }
-
-      // Build the text to summarize
-      let textToSummarize = '';
-      if (this.conversationSummary) {
-        textToSummarize += `PREVIOUS SUMMARY:\n${this.conversationSummary}\n\n`;
-      }
-      textToSummarize += 'NEW MESSAGES TO INCORPORATE:\n';
-
-      for (const msg of messagesToSummarize) {
-        if (msg.isUser) {
-          textToSummarize += `USER: ${msg.text}\n`;
-        } else {
-          textToSummarize += `${msg.sender}: ${msg.text}\n`;
-        }
-      }
-
-      // Find a moderator to do the summary
-      const moderator = this.agents.find((a) => a.role === 'moderator');
-      if (!moderator) {
-        return;
-      }
-
-      const summaryPrompt = `${textToSummarize}\n\nTASK: Create a concise summary (2-3 sentences) of the key topics, questions, and conclusions discussed so far. Focus on what's important to remember for future context.`;
-
-      const summary = await this.callGemini(
-        summaryPrompt,
-        'You are a conversation summarizer. Create brief, focused summaries that capture essential context.',
-        0.3
-      );
-
-      this.conversationSummary = summary;
-      this.messagesSinceLastSummary = 0;
-
-      // Save updated summary
-      await this.saveCurrentChat();
-
-      console.log('📝 Conversation summary updated:', summary);
-    } catch (error) {
-      console.error('Error generating summary:', error);
-    }
   }
 
   addMessage(sender: string, text: string, isUser: boolean, agentId?: string) {
@@ -1125,6 +1107,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       isUser,
       agentId,
       timestamp: Date.now(),
+      roundId: this.currentRoundId, // Assign current round ID
     });
 
     // Auto-save to storage (fire and forget)
@@ -1482,17 +1465,23 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       (a) => a.role === 'moderator'
     ).length;
 
-    // Base requests: 1 per chatter + 1 per moderator
+    // Base requests: 1 per chatter + 1 per moderator (no more summary calls!)
     const baseRequests = numChatters + numModerators;
 
-    // Additional requests: title generation (if first message) + summary (every N messages)
-    const additionalRequests =
-      (this.messages.length === 0 ? 1 : 0) + // Title generation
-      (this.messagesSinceLastSummary >= this.SUMMARY_INTERVAL ? 1 : 0); // Summary
+    // Additional requests: title generation only (if first message)
+    const additionalRequests = this.messages.length === 0 ? 1 : 0; // Title generation
 
     const totalExpectedRequests = baseRequests + additionalRequests;
 
     this.requestMetrics.requestsPerMessage = totalExpectedRequests;
+
+    // Calculate context window efficiency
+    const totalRounds = this.currentRoundId + 1;
+    const fullRoundsInContext = Math.min(totalRounds, this.FULL_ROUNDS_CONTEXT);
+    const moderatorOnlyRounds = Math.max(
+      0,
+      totalRounds - this.FULL_ROUNDS_CONTEXT
+    );
 
     console.log('🔬 O(n) COMPLEXITY ANALYSIS');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -1501,13 +1490,25 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
     );
     console.log(`📨 Expected API Requests: ${totalExpectedRequests}`);
     console.log(`  ├─ Agent responses: ${baseRequests}`);
-    console.log(`  ├─ Title generation: ${this.messages.length === 0 ? 1 : 0}`);
+    console.log(`  └─ Title generation: ${this.messages.length === 0 ? 1 : 0}`);
+    console.log(`⚡ Complexity: O(agents) per round - constant prompt size!`);
+    console.log(`📚 Context Window Strategy:`);
+    console.log(`  ├─ Total rounds: ${totalRounds}`);
     console.log(
-      `  └─ Summary generation: ${
-        this.messagesSinceLastSummary >= this.SUMMARY_INTERVAL ? 1 : 0
-      }`
+      `  ├─ Full context: ${fullRoundsInContext} rounds (~${
+        fullRoundsInContext * 1500
+      } tokens)`
     );
-    console.log(`⚡ Complexity: O(n) where n = number of agents`);
+    console.log(
+      `  ├─ Moderator-only: ${moderatorOnlyRounds} rounds (~${
+        moderatorOnlyRounds * 500
+      } tokens)`
+    );
+    console.log(
+      `  └─ Estimated prompt size: ~${
+        fullRoundsInContext * 1500 + moderatorOnlyRounds * 500
+      } tokens`
+    );
     console.log(`📊 Current Session Stats:`);
     console.log(`  ├─ Total requests: ${this.requestMetrics.totalRequests}`);
     console.log(
