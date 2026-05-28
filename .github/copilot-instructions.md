@@ -1,392 +1,133 @@
-# Tachikoma Console - AI Coding Guidelines
+﻿# Tachikoma Console - Copilot Instructions (Synced v1.3)
 
-## Git Workflow and Versioning
+## Source of Truth
 
-### Commit and Push Protocol
+When there is any conflict, follow this order:
+1. `docs/context/CONSTRAINTS.md`
+2. `docs/context/Architecture.md`
+3. `docs/context/CanonicalDataModelSpec.md`
+4. `docs/context/PRD.md`
+5. `docs/stories/**`
 
-**CRITICAL: Always ask before committing and pushing to main branch**
+Do not treat old notes in `src/reference/tech-folder/` as canonical if they conflict with `docs/context/`.
 
-1. **Before Any Commit/Push**:
+## Branching, Commits, and Pushes
 
-   - Ask the user if they want to commit changes
-   - There may be additional fixes/changes to bundle together
-   - Never automatically commit and push without explicit approval
+- Always ask the user before committing.
+- Always ask the user before pushing to `main`.
+- Never auto-commit or auto-push.
+- If committing to `main`, update the version badge in `src/app/pages/tachikoma-chat/tachikoma-chat.component.html`.
 
-2. **Version Number Management**:
+## Platform Baseline
 
-   - When committing to main branch, increment the version number
-   - Version badge location: `src/app/pages/tachikoma-chat/tachikoma-chat.component.html`
-   - Find: `<div class="version-badge">V3.1</div>`
-   - Increment patch version for bug fixes (V3.1 → V3.2)
-   - Increment minor version for new features (V3.1 → V4.0)
-   - Include version change in commit message: "bump version to V3.2"
+- Framework: Angular 20, standalone components.
+- Language: TypeScript.
+- Styling: SCSS.
+- Build: Angular CLI.
+- Cloud: Firebase Auth + Firestore.
+- AI SDK: `@google/genai`.
+- Default model policy: Gemini 3.5 Flash, with Gemini 3.1 fallback.
+- PWA required for production builds.
 
-3. **Commit Message Format**:
+## Architecture Baseline (v1.3)
 
-   ```
-   type: Brief description
+- Treat v1.3 behavior as active scope, not future scope.
+- App is frontend-heavy and local-first.
+- Orchestration remains client-side unless explicitly re-decided.
+- Firestore is a forwarded cloud mirror for authenticated users.
 
-   Detailed explanation
-   - Point 1
-   - Point 2
+### Mandatory v1.3 Behaviors
 
-   Version: V3.x
-   ```
+1. Persona creation defaults to AI-assisted basic mode:
+   - User describes intent in plain language.
+   - System generates draft persona.
+   - Advanced form/XML/plaintext editing remains optional.
 
-### Example Workflow
+2. Context assembly uses layered token budgeting:
+   - Pinned facts
+   - Recent rolling rounds
+   - Compact summary
+   - Current user turn
 
-```
-AI: "I've fixed the issue. Would you like me to commit and push these changes?"
-User: "Yes, commit them"
-AI: [Updates version badge V3.1 → V3.2, commits with version bump]
-```
+3. Failed persona steps are mandatory UX states:
+   - Retry is bounded.
+   - If retry is exhausted, render explicit failed-step transcript message.
+   - Silent skipping is prohibited.
 
-## Project Overview
+4. Quota handling:
+   - Distinguish API-project quota/billing from app subscription assumptions.
 
-**Tachikoma Console** is a cyberpunk-themed Angular 19 admin dashboard with an integrated AI chat interface. Originally forked from Flexy Angular Admin, it features a **multi-agent AI system** powered by Google's Gemini API, a dark cyberpunk aesthetic, and Material Design components.
+## Firestore Namespace Requirement
 
-## Core Features
+This Firebase project is shared with other apps.
 
-### Tachikoma Chat (Primary Feature)
+All SAC collections must be namespaced under:
+- `apps/sac/users/{userId}/chat_sessions/{chatId}`
+- `apps/sac/users/{userId}/agent_profiles/{agentId}`
+- `apps/sac/users/{userId}/user_profile/{userId}`
 
-A **multi-agent AI chat interface** (`/tachikoma`) featuring three distinct AI personas powered by Google Gemini 2.0 Flash Exp:
+Do not create or read SAC collections outside the `apps/sac` prefix.
 
-#### Agent System Architecture
+## Data Contract Rules
 
-- **LOGIKOMA** (Analytical Agent)
+- `src/app/models` defines canonical shapes.
+- Normalize all persisted reads to model defaults.
+- Remove `undefined` before Firestore writes.
+- Preserve `createdAt` and `updatedAt` for syncable entities.
+- Chat snapshots must keep historical participating agents.
+- Do not mutate historical chat sessions when global agent profiles change.
 
-  - Temperature: 0.2 (low creativity, high precision)
-  - Role: Pure logic and data analysis
-  - Color: Cyan (`#00f3ff`)
-  - Icon: ◈
+### ChatMessage v1.3 expectation
 
-- **GHOST-1** (Philosophical Agent)
+Chat transcript entries may include failure state fields:
+- `status?: 'ok' | 'failed'`
+- `failureCode?: string`
+- `failureMessage?: string`
 
-  - Temperature: 0.9 (high creativity, abstract thinking)
-  - Role: Questions assumptions, explores meaning
-  - Color: Magenta (`#ff00de`)
-  - Icon: ❖
+## Security Rules
 
-- **MODERATOR** (Synthesis Agent)
-  - Temperature: 0.5 (balanced)
-  - Role: Bridges logic and philosophy, provides final synthesis
-  - Color: Green (`#00ff41`)
-  - Icon: ⬢
+- Keep API keys plaintext only in localStorage.
+- Encrypt API keys before Firestore writes.
+- Keep per-user data isolation in Firestore rules and paths.
+- Do not introduce new secret storage mechanisms without an explicit architecture decision.
 
-#### Chat Protocol Flow
+## UI/UX Stack Rules
 
-1. User submits query
-2. LOGIKOMA and GHOST-1 process in **randomized order** (prevents response bias)
-3. Each agent reads prior context and implements **SILENCE PROTOCOL**: If previous agent already covered their perspective, agent outputs "SILENCE" instead of repeating
-4. MODERATOR synthesizes all responses into final answer
-5. All messages rendered with **Markdown support** via `marked` library
+- Primary components: Angular Material.
+- Interaction primitives: Angular CDK.
+- Icons: Tabler.
+- Localization: ngx-translate.
+- Avoid introducing Bootstrap/Tailwind/competing component systems by default.
 
-#### Technical Implementation
+## Implementation Guidance for Agents
 
-- **Component**: `src/app/pages/tachikoma-chat/tachikoma-chat.component.ts`
-- **API Integration**: `@google/genai` SDK (replaces deprecated `@google/generative-ai`)
-- **State Management**: Component-level signals (Angular 19 pattern)
-- **Persistence**: 2-stage system (localStorage + Firestore cloud sync)
-- **Security**: API key encryption via `EncryptionService` (AES-256-GCM) before Firestore upload
-- **UI Framework**: Custom SCSS with cyberpunk theme, no Material Design used in chat
+- Prefer smallest safe changes.
+- Preserve local-first behavior for writes.
+- Keep cloud sync async and non-blocking for UI.
+- If touching orchestration, preserve sequential deterministic behavior unless explicitly redesigning.
+- For any new v1.3 behavior, add/update story references in `docs/stories/`.
 
-#### Key Methods
+## Story Coverage Expectations
 
-```typescript
-triggerProtocol(); // Main orchestration: shuffles agents, calls API sequentially
-callGemini(); // Google Generative AI API wrapper with error handling
-getCleanKey(); // Sanitizes API key (removes non-ISO-8859-1 characters)
-saveKey(); // Persists sanitized API key to localStorage
-addMessage(); // Adds message to chat feed with Markdown parsing
-```
+Active v1.3 stories include additional required IDs:
+- `AGNT-004` Draft Persona From Intent
+- `ORCH-004` Handle Failed Persona Steps Explicitly
+- `SYNC-004` Use Firestore App Namespace
 
-#### UI/UX Features
+When implementing related features, ensure these stories remain aligned.
 
-- **Neural Activity Panel**: Real-time agent status visualization controlled by `showNeuralActivity` signal
+## Testing Focus
 
-  - Appears when `triggerProtocol()` starts processing
-  - Auto-hides when all agents complete responses
-  - Shows processing states: "INITIALIZING", "PROCESSING", "SYNTHESIZING", "COMPLETE"
-  - Responsive display: Desktop (side panel), Mobile (overlay section)
+When changing orchestration, persona creation, or sync:
+- Verify failed-step UX appears and no silent skip occurs.
+- Verify context trimming follows layered policy.
+- Verify namespaced Firestore path construction under `apps/sac`.
+- Verify local-first behavior still works offline.
 
-- **First-Time User Explainer**: Modal dialog (`ChatExplainerDialogComponent`) shown on first visit
+## What Not To Do
 
-  - Explains multi-agent system workflow
-  - Describes agent roles and capabilities
-  - Displays pro tips for optimal usage
-  - Tracked via `localStorage.getItem('tachikoma_chat_explainer_seen')`
-  - Triggered in `ngOnInit()` via `checkAndShowExplainer()`
-
-- **Chat Export**: Export conversations to PDF/DOCX formats
-  - PDF generation via jsPDF library
-  - DOCX generation via docx library
-  - File download via file-saver
-  - Export button located in chat header
-
-#### Styling Conventions
-
-- **Custom CSS Variables** in component SCSS:
-  - `--neon-green: #00ff41`
-  - `--neon-blue: #00f3ff`
-  - `--neon-pink: #ff00de`
-  - `--cyber-black: #0a0a0a`
-- **Fonts**: `JetBrains Mono` (body), `Share Tech Mono` (headers)
-- **Effects**: CRT scanlines overlay, glitch animations on hover
-- **Responsive**: Unified header layout on mobile/desktop, conditional neural activity display
-
-## Architecture
-
-### Layout System
-
-- **FullComponent** (`layouts/full/`): Main authenticated layout with header, sidebar, and content area
-- **BlankComponent** (`layouts/blank/`): Minimal layout for authentication pages
-- Routes wrapped in layout components via route configuration in `app.routes.ts`
-- Responsive breakpoints: Mobile (<768px), Tablet (769-1024px), Desktop (>1024px)
-
-### State Management Pattern
-
-Uses Angular 19 **signals** for reactive state (not RxJS Subjects):
-
-```typescript
-// Example from CoreService
-private optionsSignal = signal<AppSettings>(defaults);
-getOptions() { return this.optionsSignal(); }
-setOptions(options: Partial<AppSettings>) {
-  this.optionsSignal.update((current) => ({ ...current, ...options }));
-}
-```
-
-- `NavService.currentUrl` tracks navigation via signal
-- Avoid introducing traditional observables for new state
-
-### Module Organization
-
-- **Standalone components** (Angular 19 pattern) - no NgModules except `MaterialModule`
-- `MaterialModule`: Central re-export of all Material imports (39+ modules)
-- `TablerIconsModule`: Icon system using `angular-tabler-icons`
-- Import `MaterialModule` in components, never individual Material modules
-
-### Navigation Structure
-
-Navigation defined in `sidebar-data.ts` using `NavItem` interface:
-
-```typescript
-interface NavItem {
-  displayName?: string;
-  iconName?: string; // Tabler icon name
-  navCap?: string; // Category header
-  route?: string;
-  children?: NavItem[]; // Nested navigation
-  chip?: boolean; // PRO badge indicator
-  external?: boolean; // External link flag
-}
-```
-
-- **Primary route**: `/tachikoma` - AI Chat interface (direct route in `app.routes.ts`)
-- Dashboard features route to `/dashboard` (lazy-loaded via `pages.routes.ts`)
-- Legacy PRO features link to `https://flexy-angular-main.netlify.app/...` with `external: true`
-
-## Development Workflows
-
-### Commands
-
-```bash
-npm start          # Dev server (default port 4200)
-npm run build      # Production build → dist/Flexy
-npm run watch      # Watch mode with dev config
-npm test           # Karma + Jasmine tests
-```
-
-### Build Configuration
-
-- Production budget: 12MB (high due to AI SDK and ApexCharts)
-- Output: `dist/tachikoma-console` directory
-- Netlify SPA redirect configured via `netlify.toml`
-
-### Styling System
-
-- **SCSS architecture** in `src/assets/scss/`:
-  - `style.scss`: Root import file
-  - `_variables.scss`: Global Sass variables
-  - `helpers/`: Utility classes (spacing, flexbox, colors)
-  - `override-component/`: Material component customizations
-  - `themecolors/`: Theme definitions (default: orange_theme)
-- Component styles use `styleUrls` with SCSS
-- Material theme applied via `@use "@angular/material" as mat;`
-
-## Project-Specific Conventions
-
-### Component Creation
-
-```typescript
-// Standalone pattern (Angular 19)
-@Component({
-  selector: "app-example",
-  imports: [CommonModule, MaterialModule, RouterModule],
-  templateUrl: "./example.component.html",
-  styleUrls: ["./example.component.scss"],
-})
-export class ExampleComponent {}
-```
-
-- Always include `imports` array (no module declarations)
-- Selector prefix: `app-`
-- Use `ViewEncapsulation.None` only when customizing Material themes globally
-
-### Routing Patterns
-
-```typescript
-// Lazy loading with loadChildren
-{
-  path: 'feature',
-  loadChildren: () => import('./pages/feature/feature.routes')
-    .then((m) => m.FeatureRoutes)
-}
-```
-
-- Route files named `*.routes.ts` exporting `Routes` constant
-- All routes nested under `FullComponent` or `BlankComponent`
-
-### Service Injection
-
-- All services use `providedIn: 'root'` (singleton pattern)
-- No manual provider registration in components
-- Example services: `CoreService` (settings), `NavService` (navigation state)
-
-### Data Persistence Pattern (2-Stage System)
-
-**All data operations must follow this pattern:**
-
-1. **Write**: localStorage (instant) → Firestore (async)
-2. **Read**: localStorage (instant display) → Firestore (background sync if authenticated)
-
-**Key Services:**
-
-- `FirestoreService`: Store-forward pattern, sync strategies, offline cache
-- `EncryptionService`: AES-256-GCM encryption for sensitive data (API keys)
-- `AgentProfileService`: Agent configs with cloud sync (includes `createdAt`, `updatedAt`)
-- `ChatStorageService`: Chat sessions with cloud sync (async methods)
-- `UserProfileService`: User settings with encrypted API key storage
-- `AuthService`: Authentication with sync triggers on first login
-
-**Important Rules:**
-
-- All CRUD methods in storage services are **async** (return `Promise<void>`)
-- Always include `createdAt` and `updatedAt` timestamps in data models
-- Implement `SyncableData` interface for cloud-synced entities
-- API keys: plain text in localStorage, encrypted in Firestore
-- Anonymous users: localStorage only, no cloud sync
-- Authenticated users: automatic background sync to Firestore
-- First login with local data: show `SyncDialogComponent` for strategy selection
-
-### Responsive Handling
-
-```typescript
-// BreakpointObserver pattern from FullComponent
-this.breakpointObserver.observe([MOBILE_VIEW, TABLET_VIEW]).subscribe((state) => {
-  this.isMobileScreen = state.breakpoints[MOBILE_VIEW];
-});
-```
-
-- Use CDK `BreakpointObserver` for layout shifts
-- Store breakpoint state in component properties
-
-## Key Files Reference
-
-- `app.config.ts`: Application providers (router, HTTP, Material, i18n)
-- `material.module.ts`: Single source for all Material imports
-- `sidebar-data.ts`: Navigation menu configuration
-- `config.ts`: App-wide settings interface and defaults
-- `angular.json`: Build configuration with CommonJS dependency allowlist
-
-## Branding and Theme
-
-### Visual Identity
-
-- **Logo**: `sac-logo-white.png` used in sidebar (`branding.component.ts`) and login page
-- **Color Scheme**: Cyberpunk dark theme with neon accents
-  - Cyan: #00f3ff (LOGIKOMA)
-  - Magenta: #ff00de (GHOST-1)
-  - Green: #00ff41 (MODERATOR)
-  - Background: #0a0a0a gradient to #1a1a2e
-- **PWA Icons**: Located in `assets/images/icons/` with multiple sizes (36x36 to 310x310)
-  - Configured in `public/manifest.webmanifest`
-  - Linked in `src/index.html` (favicon, apple-touch-icon)
-
-### Theme Consistency
-
-- **Login Page**: Dark theme with cyberpunk aesthetic (`side-login.component.scss`)
-  - Gradient background matching main app
-  - Mat-card with rgba(26, 26, 46, 0.95) background
-  - Cyan border accents on inputs and buttons
-- **Dashboard**: Informative landing page with app introduction, feature grid, agent descriptions
-- **Chat Interface**: Full cyberpunk styling with CRT effects and neon borders
-- **No Theme Toggle**: Theme toggle button removed from header for consistent dark mode experience
-
-## Common Pitfalls
-
-- **Don't** import individual Material modules - always use `MaterialModule`
-- **Don't** use RxJS BehaviorSubject for new state - use Angular signals
-- **Don't** create NgModules - use standalone component pattern
-- **Don't** modify `allowedCommonJsDependencies` without understanding bundle impact
-- **Don't** forget to sanitize API keys - use `getCleanKey()` pattern for external APIs
-- **Don't** forget to import `TablerIconsModule` in components using `<i-tabler>` elements
-- **Don't** store sensitive data in Firestore without encryption - use `EncryptionService`
-- **Don't** make storage service methods synchronous - they must be async for cloud sync
-- **Don't** forget timestamps - all entities need `createdAt` and `updatedAt`
-- **Don't** skip `SyncableData` interface for cloud-synced data models
-- **Verify** PRO features aren't implemented locally - they should link externally
-- **Responsive Design**: Always test mobile layouts - use unified header structure, avoid desktop-only classes
-- **Offline Testing**: Verify app works without internet connection using Firestore offline cache
-
-## External Dependencies
-
-- **@google/genai**: Gemini API SDK for multi-agent AI chat (replaces deprecated `@google/generative-ai`)
-- **marked**: Markdown parser for chat message rendering
-- **jspdf**: PDF export functionality
-- **docx**: Word document export functionality
-- **file-saver**: Client-side file download utility
-- **@angular/fire**: Firebase integration (auth, firestore)
-- **Web Crypto API**: Browser-native encryption (AES-256-GCM) for sensitive data
-- **ApexCharts** (`ng-apexcharts`): Chart library for dashboards
-- **ngx-scrollbar**: Custom scrollbar styling
-- **ngx-translate**: i18n support (TranslateModule configured in app.config)
-- Material Design theming via Sass `@use` imports
-
-## Data Sync & Security
-
-### Sync Strategies (shown in `SyncDialogComponent` on first login)
-
-1. **Merge** (recommended): Combines local and cloud data, prefers newer `updatedAt` timestamps
-2. **Cloud to Local**: Overwrites local with cloud data (for device switching)
-3. **Local to Cloud**: Overwrites cloud with local data (for backup)
-
-### Encryption
-
-- **Algorithm**: AES-256-GCM with 96-bit IV
-- **Key Derivation**: PBKDF2 with 100,000 iterations from UID + static salt
-- **Usage**: API keys encrypted before Firestore, decrypted on retrieval
-- **Storage**: Plain text in localStorage (browser-secured), encrypted in Firestore
-
-### Firestore Rules (firestore.rules)
-
-- Per-user data isolation: `request.auth.uid == userId`
-- Timestamp validation: `updatedAt is timestamp`
-- Type enforcement: `messages is list` for chat sessions
-- Profile ID validation: `id == userId` for user profiles
-
-### Offline Mode
-
-- Firestore offline persistence enabled globally
-- All data available offline via localStorage + Firestore cache
-- Auto-sync when connection restored
-- Error handling: console logging, graceful fallback to localStorage
-
-## Testing Notes
-
-- Jasmine/Karma configured with Angular defaults
-- Test files: `*.spec.ts` alongside components
-- Coverage output via `karma-coverage`
-- **Test Sync Flow**: Anonymous → Login → Verify sync dialog → Choose strategy → Verify data
-- **Test Offline**: Disconnect internet → Use app → Reconnect → Verify sync
-- **Test Encryption**: Save API key → Check Firestore console → Verify encrypted field
+- Do not convert app to backend-first architecture.
+- Do not bypass model normalization.
+- Do not use deprecated Gemini defaults as system defaults.
+- Do not store unencrypted cloud API keys.
+- Do not write SAC data outside `apps/sac` namespace.

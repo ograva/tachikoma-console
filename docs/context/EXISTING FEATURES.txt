@@ -1,0 +1,17 @@
+This is an existing app that I developed directly with basic copilot. As such it already has these features
+
+User login/authentication so we can save sesssion, user config, user API Key, save/restore session until user logs out
+
+Initial set of personas, but expandable, user can configure their own personas and uses the list of personas across chats
+
+Initiate and configure chats, select which personas will be in the chat then start the chat.
+
+Chat will save and store chat history. You can go back and continue an existing chat
+
+Chat has a round robin mechanism. In each round, the user and each persona are given a chance to reply or keep quiet
+
+There was initially configured a persona to summarize each round. This persona's summary is used to compact the chat history. 
+
+We also monitor the rate of token usage. This is to maximize how long we can chat before we run out of tokens
+
+In the configuration of persona we can use which Gemini model to use for this persona. 

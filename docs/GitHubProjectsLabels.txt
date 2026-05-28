@@ -1,0 +1,5 @@
+Status : Backlog, In progress, In review, Done
+Priority: P0, P1, P2 or now low, medium, high
+Estimate: a number say 1-8
+Iteration: Current, Iteration 1, Iteration 2, Iteration 3
+Complexity: xs, s, m, l, xl
