@@ -18,7 +18,14 @@
     "test:e2e:local-fast": "node scripts/e2e-runner.mjs fast",
     "test:e2e:local-hosting-smoke": "firebase emulators:exec --only auth,firestore,storage,hosting \"node scripts/e2e-runner.mjs smoke\"",
     "test:e2e:local-hosting-regression": "firebase emulators:exec --only auth,firestore,storage,hosting \"node scripts/e2e-runner.mjs regression\"",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:smoke": "playwright test --grep @smoke",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:debug": "playwright test --debug",
     "dev:local": "concurrently -n app,firebase -c cyan,yellow \"npm run start:local\" \"npm run firebase:emulators\"",
+    "dev:e2e": "concurrently -n app,firebase -c cyan,yellow \"npm run start:local\" \"npm run firebase:emulators\"",
     "athena:setup-labels": "node scripts/athena-setup-labels.mjs",
     "athena:blast-issues": "node scripts/athena-blast-issues.mjs",
     "athena:blast-issues:dry": "node scripts/athena-blast-issues.mjs --dry-run",
@@ -69,6 +76,7 @@
     "@angular-devkit/build-angular": "^20.0.0",
     "@angular/cli": "~20.0.0",
     "@angular/compiler-cli": "^20.0.0",
+    "@playwright/test": "^1.60.0",
     "@types/jasmine": "~5.1.0",
     "concurrently": "^9.2.1",
     "firebase-tools": "^14.27.0",
@@ -78,6 +86,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "playwright": "^1.60.0",
     "typescript": "~5.8.3"
   }
 }

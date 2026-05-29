@@ -123,7 +123,7 @@
     <!-- Header -->
     <header class="chat-header">
         <div class="header-left">
-            <div class="version-badge">V4.3</div>
+            <div class="version-badge">V4.4</div>
             <div class="header-title-section">
                 <h1 class="protocol-title glitch">TACHIKOMA PROTOCOL</h1>
                 <div class="sync-status">
@@ -217,25 +217,21 @@
                 </button>
                 <div class="export-dropdown" *ngIf="messages.length > 0" (click)="$event.stopPropagation()">
                     <button (click)="toggleExportMenu()" class="export-btn" matTooltip="Export Chat"
-                        aria-label="Open export menu"
-                        data-test-id="chat-export-menu-btn">
+                        aria-label="Open export menu" data-test-id="chat-export-menu-btn">
                         <mat-icon>download</mat-icon>
                     </button>
                     <div class="export-menu" *ngIf="showExportMenu()" role="menu" aria-label="Export options">
-                        <button class="export-menu-item" (click)="exportAsText()"
-                            role="menuitem"
+                        <button class="export-menu-item" (click)="exportAsText()" role="menuitem"
                             data-test-id="chat-export-text-btn">
                             <mat-icon>description</mat-icon>
                             <span>Export as Text (.txt)</span>
                         </button>
-                        <button class="export-menu-item" (click)="exportAsPdf()"
-                            role="menuitem"
+                        <button class="export-menu-item" (click)="exportAsPdf()" role="menuitem"
                             data-test-id="chat-export-pdf-btn">
                             <mat-icon>picture_as_pdf</mat-icon>
                             <span>Export as PDF (.pdf)</span>
                         </button>
-                        <button class="export-menu-item" (click)="exportAsWord()"
-                            role="menuitem"
+                        <button class="export-menu-item" (click)="exportAsWord()" role="menuitem"
                             data-test-id="chat-export-word-btn">
                             <mat-icon>article</mat-icon>
                             <span>Export as Word (.docx)</span>
@@ -248,10 +244,8 @@
         <!-- Desktop: Initialization form on the right -->
         <div class="header-right desktop-only">
             <input type="password" [(ngModel)]="apiKey" placeholder="Enter Gemini API Key" class="api-input"
-                aria-label="Gemini API key"
-                data-test-id="chat-api-key-input" />
-            <button (click)="saveKey()" class="init-btn"
-                aria-label="Initialize API key"
+                aria-label="Gemini API key" data-test-id="chat-api-key-input" />
+            <button (click)="saveKey()" class="init-btn" aria-label="Initialize API key"
                 data-test-id="chat-init-btn">INITIALIZE</button>
         </div>
     </header>
@@ -290,32 +284,27 @@
             <main class="chat-main">
                 <!-- Chat history toggle button -->
                 <button mat-icon-button class="history-toggle-btn" (click)="toggleHistoryDrawer()"
-                    matTooltip="Chat History"
-                    aria-label="Toggle chat history drawer"
+                    matTooltip="Chat History" aria-label="Toggle chat history drawer"
                     data-test-id="chat-history-toggle-btn">
                     <mat-icon>history</mat-icon>
                 </button>
                 <!-- CHAT-004: Sticky transcript navigation -->
-                <div class="scroll-nav" [class.scroll-nav-visible]="showScrollNav()"
-                    role="navigation" aria-label="Transcript navigation">
+                <div class="scroll-nav" [class.scroll-nav-visible]="showScrollNav()" role="navigation"
+                    aria-label="Transcript navigation">
                     <button mat-mini-fab class="scroll-nav-btn" (click)="jumpToTop()"
-                        aria-label="Jump to top of transcript"
-                        matTooltip="Jump to top"
+                        aria-label="Jump to top of transcript" matTooltip="Jump to top"
                         data-test-id="chat-jump-top-btn">
                         <mat-icon>vertical_align_top</mat-icon>
                     </button>
-                    <button mat-mini-fab class="scroll-nav-btn scroll-nav-unread"
-                        *ngIf="unreadCount() > 0"
+                    <button mat-mini-fab class="scroll-nav-btn scroll-nav-unread" *ngIf="unreadCount() > 0"
                         (click)="jumpToPreviousUnread()"
                         [attr.aria-label]="'Jump to ' + unreadCount() + ' unread messages'"
-                        [matTooltip]="unreadCount() + ' unread'"
-                        data-test-id="chat-jump-unread-btn">
+                        [matTooltip]="unreadCount() + ' unread'" data-test-id="chat-jump-unread-btn">
                         <mat-icon>chat_bubble_outline</mat-icon>
                         <span class="unread-badge">{{ unreadCount() }}</span>
                     </button>
                     <button mat-mini-fab class="scroll-nav-btn" (click)="jumpToLatest()"
-                        aria-label="Jump to latest message"
-                        matTooltip="Jump to latest"
+                        aria-label="Jump to latest message" matTooltip="Jump to latest"
                         data-test-id="chat-jump-latest-btn">
                         <mat-icon>vertical_align_bottom</mat-icon>
                     </button>
@@ -335,19 +324,15 @@
                         [ngClass]="{'user-msg': msg.isUser, 'agent-msg': !msg.isUser, 'failed-step-msg': msg.messageType === 'failed-step' || msg.messageType === 'rate-limit'}">
 
                         <!-- User Message -->
-                        <div *ngIf="msg.isUser" class="user-bubble"
-                            data-test-id="chat-user-message">
+                        <div *ngIf="msg.isUser" class="user-bubble" data-test-id="chat-user-message">
                             <div class="msg-header">USER // AUTHENTICATED</div>
                             <div class="msg-content" [innerHTML]="msg.html"></div>
                         </div>
 
                         <!-- ORCH-004: Failed Step Transcript Card -->
                         <div *ngIf="!msg.isUser && (msg.messageType === 'failed-step' || msg.messageType === 'rate-limit')"
-                            class="failed-step-card"
-                            [class.rate-limit-card]="msg.messageType === 'rate-limit'"
-                            role="alert"
-                            aria-label="Agent step failed"
-                            data-test-id="chat-failed-step-card">
+                            class="failed-step-card" [class.rate-limit-card]="msg.messageType === 'rate-limit'"
+                            role="alert" aria-label="Agent step failed" data-test-id="chat-failed-step-card">
                             <div class="failed-step-header">
                                 <mat-icon class="failed-icon">warning</mat-icon>
                                 <span class="failed-agent-name">{{ msg.sender }}</span>
@@ -368,8 +353,7 @@
                         <div *ngIf="!msg.isUser && msg.messageType !== 'failed-step' && msg.messageType !== 'rate-limit'"
                             class="agent-card" [ngClass]="msg.agentId || ''"
                             [style.border-color]="getAgentColor(msg.agentId)"
-                            [style.background]="getAgentColor(msg.agentId) + '0D'"
-                            data-test-id="chat-agent-message">
+                            [style.background]="getAgentColor(msg.agentId) + '0D'" data-test-id="chat-agent-message">
                             <div class="agent-header">
                                 <span class="agent-icon">
                                     <ng-container [ngSwitch]="msg.agentId">
@@ -388,10 +372,8 @@
 
                     <!-- OPER-001: Round cost estimate badge (shown after last message of each round) -->
                     <ng-container *ngFor="let roundId of getRoundIdsWithEstimates()">
-                        <div *ngIf="getRoundEstimate(roundId) as est"
-                            class="round-cost-badge"
-                            [attr.data-round]="roundId"
-                            aria-label="Round token and cost estimate"
+                        <div *ngIf="getRoundEstimate(roundId) as est" class="round-cost-badge"
+                            [attr.data-round]="roundId" aria-label="Round token and cost estimate"
                             data-test-id="chat-round-cost-badge">
                             <mat-icon class="cost-icon">token</mat-icon>
                             <span>Round {{ roundId }}</span>
@@ -479,8 +461,7 @@
                         </div>
                     </div>
 
-                    <div *ngIf="getChatSessions().length === 0" class="empty-state"
-                        data-test-id="chat-history-empty">
+                    <div *ngIf="getChatSessions().length === 0" class="empty-state" data-test-id="chat-history-empty">
                         No saved chats yet
                     </div>
                 </div>
@@ -496,8 +477,7 @@
                 SHARED CONTEXT ({{ uploadedFiles().length }} file(s))
             </span>
             <button mat-icon-button (click)="clearAllFiles()" matTooltip="Clear all files" class="clear-all-btn"
-                aria-label="Clear all uploaded files"
-                data-test-id="chat-clear-files-btn">
+                aria-label="Clear all uploaded files" data-test-id="chat-clear-files-btn">
                 <mat-icon>clear_all</mat-icon>
             </button>
         </div>
@@ -506,8 +486,7 @@
                 <mat-icon class="file-icon">description</mat-icon>
                 <span class="file-name">{{ file.name }}</span>
                 <button mat-icon-button (click)="removeFile(i)" class="remove-file-btn"
-                    [attr.aria-label]="'Remove file ' + file.name"
-                    data-test-id="chat-remove-file-btn">
+                    [attr.aria-label]="'Remove file ' + file.name" data-test-id="chat-remove-file-btn">
                     <mat-icon>close</mat-icon>
                 </button>
             </div>
@@ -515,9 +494,7 @@
     </div>
 
     <!-- OPER-002: Soft limit warning banner -->
-    <div *ngIf="contextSoftWarning" class="soft-limit-banner"
-        role="alert"
-        aria-live="polite"
+    <div *ngIf="contextSoftWarning" class="soft-limit-banner" role="alert" aria-live="polite"
         data-test-id="chat-soft-limit-banner">
         <mat-icon class="banner-icon">warning</mat-icon>
         <span>Context approaching limit for <strong>{{ contextSoftWarning.model.replace('models/', '') }}</strong>
@@ -533,17 +510,14 @@
                 accept=".txt,.md,.json,.csv,.xml,.log,text/*">
             <button mat-icon-button (click)="fileInput.click()" class="attach-btn"
                 matTooltip="Upload file(s) for shared context" [disabled]="isUploadingFile()"
-                aria-label="Attach file for shared context"
-                data-test-id="chat-attach-file-btn">
+                aria-label="Attach file for shared context" data-test-id="chat-attach-file-btn">
                 <mat-icon *ngIf="!isUploadingFile()">attach_file</mat-icon>
                 <mat-icon *ngIf="isUploadingFile()" class="spinning">sync</mat-icon>
             </button>
             <input type="text" [(ngModel)]="userInput" (keydown.enter)="triggerProtocol()" class="chat-input"
-                placeholder="Send packet to the net..."
-                aria-label="Chat message input"
+                placeholder="Send packet to the net..." aria-label="Chat message input"
                 data-test-id="chat-message-input">
-            <button (click)="triggerProtocol()" class="send-btn"
-                aria-label="Send message"
+            <button (click)="triggerProtocol()" class="send-btn" aria-label="Send message"
                 data-test-id="chat-send-btn">SEND</button>
         </div>
     </footer>
