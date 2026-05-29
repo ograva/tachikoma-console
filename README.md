@@ -52,6 +52,7 @@ Tachikoma Console is a cyberpunk-themed dashboard and AI chat interface featurin
 * Node.js (v18 or higher)
 * npm or yarn
 * A Google Gemini API Key
+* Java 17+ (required for Firestore emulator)
 
 ### Installation
 
@@ -77,6 +78,101 @@ Tachikoma Console is a cyberpunk-themed dashboard and AI chat interface featurin
 4. Open your browser to `http://localhost:4200/`.
 
 5. Navigate to **Tachikoma Chat** and enter your Gemini API Key to initialize the protocol.
+
+## Firebase Emulator Local Mode
+
+This workspace supports a dedicated local Firebase emulator profile using `environment.local.ts` and Angular's `local` configuration.
+
+### What is configured
+
+* Auth emulator: `127.0.0.1:9098`
+* Firestore emulator: `127.0.0.1:8085`
+* Storage emulator: `127.0.0.1:9199`
+* Emulator UI: `127.0.0.1:8080`
+* Hosting emulator: `127.0.0.1:5000`
+
+Firestore database id remains `tachikoma-chat` in all environments.
+
+### Run locally with emulators
+
+1. Start both Angular app and Firebase emulators:
+
+    ```bash
+    npm run dev:local
+    ```
+
+2. Or run them separately in two terminals:
+
+    ```bash
+    npm run firebase:emulators
+    npm run start:local
+    ```
+
+3. Open the emulator dashboard:
+
+    ```
+    http://127.0.0.1:8080
+    ```
+
+### Emulator data import/export
+
+* Start with import and export on exit:
+
+  ```bash
+  npm run firebase:emulators
+  ```
+
+* Export emulator state explicitly:
+
+  ```bash
+  npm run firebase:emulators:export
+  ```
+
+### Seed, reset, and smoke test
+
+* Reset local emulator data folder:
+
+    ```bash
+    npm run firebase:emulators:reset
+    ```
+
+* Seed baseline auth/profile/agent/chat data into emulators:
+
+    ```bash
+    npm run firebase:emulators:seed
+    ```
+
+* One-command connectivity smoke test (Auth + Firestore + Storage):
+
+    ```bash
+    npm run firebase:emulators:smoke
+    ```
+
+### E2E runtime scripts (draft-to-concrete)
+
+Use ng-serve for fix/debug loops and Hosting emulator for smoke/regression confidence runs.
+
+* Fast local E2E loop (expects app already running on `:4200`):
+
+    ```bash
+    npm run test:e2e:local-fast
+    ```
+
+* Hosting smoke run (`@smoke` tests) on built output + emulators (`:5000`):
+
+    ```bash
+    npm run test:e2e:local-hosting-smoke
+    ```
+
+* Hosting regression run (full suite) on built output + emulators (`:5000`):
+
+    ```bash
+    npm run test:e2e:local-hosting-regression
+    ```
+
+Notes:
+* Scripts auto-skip with a message if no specs exist under `e2e/`.
+* Playwright base URL is injected via `PLAYWRIGHT_BASE_URL` (`4200` for fast, `5000` for hosting modes).
 
 ## Project Structure
 

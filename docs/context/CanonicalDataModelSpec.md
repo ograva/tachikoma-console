@@ -18,7 +18,7 @@ The model contract here is subordinate to [CONSTRAINTS.md](CONSTRAINTS.md). When
 4. Timestamps use Unix epoch milliseconds.
 5. Firestore documents are user-scoped and must be isolated by authenticated user id.
 6. Syncable entities preserve both `createdAt` and `updatedAt` whenever the record exists outside local memory.
-7. SAC Firestore documents are namespaced under `apps/sac`.
+7. SAC Firestore documents are stored in a dedicated Firestore database and use root user-scoped collection paths.
 
 ## 3. Interfaces and Classes
 
@@ -183,9 +183,9 @@ Factory / normalization contract:
 
 ### Firestore collections observed in code
 
-- `apps/sac/users/{userId}/chat_sessions/{chatId}`
-- `apps/sac/users/{userId}/agent_profiles/{agentId}`
-- `apps/sac/users/{userId}/user_profile/{userId}`
+- `users/{userId}/chat_sessions/{chatId}`
+- `users/{userId}/agent_profiles/{agentId}`
+- `users/{userId}/user_profile/{userId}`
 
 ### Firestore normalization rule
 
@@ -198,4 +198,4 @@ Write-time sanitization must recursively remove `undefined` fields. Read-time no
 - `geminiApiKeyEncrypted` is the cloud-only secret storage field; plaintext `geminiApiKey` is used locally.
 - The code currently tracks `status` on agent profiles and should preserve that field when persisted.
 - The default model family and any future model substitutions must remain compatible with [CONSTRAINTS.md §2](CONSTRAINTS.md#2-core-platform-constraints).
-- Firestore path construction must include the `apps/sac` namespace prefix.
+- Firestore path construction must resolve to `/users/{userId}/...` within the SAC-dedicated Firestore database.

@@ -1,7 +1,7 @@
 <div class="blank-layout-container justify-content-center align-items-center">
   <div class="position-relative row w-100 h-100 bg-gredient justify-content-center">
     <div class="col-lg-4 d-flex align-items-center">
-      <mat-card class="cardWithShadow boxed-auth">
+      <mat-card class="cardWithShadow boxed-auth" data-test-id="auth-login-card">
         <mat-card-content class="p-32">
           <div class="text-center">
             <a [routerLink]="['/dashboard']">
@@ -11,14 +11,16 @@
 
           <!-- Error Message -->
           @if (errorMessage()) {
-          <div class="alert alert-error m-t-16 m-b-16">
+          <div class="alert alert-error m-t-16 m-b-16" role="alert" data-test-id="auth-error-message">
             {{ errorMessage() }}
           </div>
           }
 
           <div class="row m-t-24 custom-row">
             <div class="col-12">
-              <button mat-stroked-button class="w-100" (click)="signInWithGoogle()" [disabled]="isLoading()">
+              <button mat-stroked-button class="w-100" (click)="signInWithGoogle()" [disabled]="isLoading()"
+                aria-label="Sign in with Google"
+                data-test-id="auth-google-signin-btn">
                 <div class="d-flex align-items-center justify-content-center">
                   <img src="/assets/images/svgs/google-icon.svg" alt="google" width="16" class="m-r-8" />
                   <span>Sign in with Google</span>
@@ -29,10 +31,12 @@
 
           <div class="or-border m-t-30">or sign in with email</div>
 
-          <form class="m-t-30" [formGroup]="form" (ngSubmit)="submit()">
+          <form class="m-t-30" [formGroup]="form" (ngSubmit)="submit()" data-test-id="auth-login-form">
             <mat-label class="f-s-14 f-w-600 m-b-12 d-block">Email</mat-label>
             <mat-form-field appearance="outline" class="w-100" color="primary">
-              <input matInput formControlName="email" type="email" />
+              <input matInput formControlName="email" type="email"
+                aria-label="Email address"
+                data-test-id="auth-email-input" />
               @if (f.email.touched && f.email.errors?.['required']) {
               <mat-error>Email is required</mat-error>
               }
@@ -43,34 +47,39 @@
             <!-- password -->
             <mat-label class="f-s-14 f-w-600 m-b-12 d-block">Password</mat-label>
             <mat-form-field appearance="outline" class="w-100" color="primary">
-              <input matInput type="password" formControlName="password" />
+              <input matInput type="password" formControlName="password"
+                aria-label="Password"
+                data-test-id="auth-password-input" />
               @if (f.password.touched && f.password.errors?.['required']) {
               <mat-error>Password is required</mat-error>
               }
             </mat-form-field>
 
             <div class="d-flex align-items-center m-b-12">
-              <mat-checkbox color="primary">Remember this Device</mat-checkbox>
+              <mat-checkbox color="primary" data-test-id="auth-remember-checkbox">Remember this Device</mat-checkbox>
               <a [routerLink]="['/']" class="text-primary f-w-600 text-decoration-none m-l-auto f-s-14">Forgot
                 Password?</a>
             </div>
             <button mat-flat-button color="primary" class="w-100" type="submit"
-              [disabled]="isLoading() || form.invalid">
+              [disabled]="isLoading() || form.invalid"
+              data-test-id="auth-signin-submit-btn">
               @if (isLoading()) {
               <mat-spinner diameter="20" class="m-r-8"></mat-spinner>
               }
               Sign In
             </button>
-            <!-- input -->
           </form>
           <span class="d-block f-w-500 text-center m-t-24">New to Tachikoma?
-            <a [routerLink]="['/authentication/register']" class="text-decoration-none text-primary f-w-500 f-s-14">
+            <a [routerLink]="['/authentication/register']" class="text-decoration-none text-primary f-w-500 f-s-14"
+              data-test-id="auth-register-link">
               Create an account</a>
           </span>
 
           <div class="or-border m-t-24">or</div>
 
-          <button mat-stroked-button class="w-100 m-t-24" (click)="continueAsGuest()" [disabled]="isLoading()">
+          <button mat-stroked-button class="w-100 m-t-24" (click)="continueAsGuest()" [disabled]="isLoading()"
+            aria-label="Continue as guest without signing in"
+            data-test-id="auth-guest-btn">
             <div class="d-flex align-items-center justify-content-center">
               <i-tabler name="user" class="icon-20 m-r-8"></i-tabler>
               <span>Continue as Guest</span>

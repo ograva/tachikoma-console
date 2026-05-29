@@ -1,4 +1,4 @@
-# ORCH-004 Handle Failed Persona Steps Explicitly
+﻿# ORCH-004 Handle Failed Persona Steps Explicitly
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | ORCH-004 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #54 |
 | **Complexity** | M |
 | **Depends On** | ORCH-001 |
 
@@ -30,3 +31,5 @@ Implement explicit failed-step handling so persona failures are visible and poli
 - Touch points: `src/app/pages/tachikoma-chat/*`, `src/app/models/chat-message.model.ts`.
 - Constraint-critical: silent skipping is prohibited.
 - UI Task Ref: UI-TB-001.
+
+

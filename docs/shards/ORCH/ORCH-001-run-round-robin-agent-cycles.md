@@ -1,4 +1,4 @@
-# ORCH-001 Run Round-Robin Agent Cycles
+﻿# ORCH-001 Run Round-Robin Agent Cycles
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | ORCH-001 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #51 |
 | **Complexity** | L |
 | **Depends On** | CHAT-001, AGNT-002 |
 
@@ -30,3 +31,5 @@ Implement deterministic round-robin protocol execution across selected personas 
 - Touch points: `src/app/pages/tachikoma-chat/*`.
 - Keep client-side orchestration boundary per constraints.
 - UI Task Ref: UI-TB-001.
+
+

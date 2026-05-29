@@ -1,4 +1,4 @@
-# SYNC-001 Save Locally Before Cloud Sync
+﻿# SYNC-001 Save Locally Before Cloud Sync
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | SYNC-001 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #55 |
 | **Complexity** | M |
 | **Depends On** | AUTH-001 |
 
@@ -29,3 +30,5 @@ Implement local-first persistence as the mandatory first write path before any c
 
 - Touch points: `src/app/services/chat-storage.service.ts`, `src/app/services/agent-profile.service.ts`, `src/app/services/user-profile.service.ts`.
 - Constraint-critical: Firestore cannot be treated as primary runtime state store.
+
+

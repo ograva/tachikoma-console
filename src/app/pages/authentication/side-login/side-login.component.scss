@@ -108,4 +108,13 @@
       }
     }
   }
+
+  // OPER-006: Explicit focus-visible treatment for keyboard nav
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible {
+    outline: 2px solid #00f3ff;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 }

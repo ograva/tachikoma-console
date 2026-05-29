@@ -1,4 +1,4 @@
-# OPER-006 Aria and Focus-Visible Hardening
+﻿# OPER-006 Aria and Focus-Visible Hardening
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | None |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #64 |
 | **Complexity** | M |
 | **Depends On** | None |
 
@@ -30,3 +31,5 @@ Improve accessibility fidelity by adding explicit aria labeling and consistent f
 - Touch points: `src/app/pages/tachikoma-chat/tachikoma-chat.component.html`, `src/app/pages/tachikoma-chat/tachikoma-chat.component.scss`, `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html`, `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.scss`, `src/app/pages/profile/profile.component.html`.
 - Align focus-visible styles with shared token system and avoid color-only status cues.
 - UI Task Ref: UI-TB-009.
+
+

@@ -19,3 +19,4 @@
 | ADL-015 | 2026-05-29 | Draft | Treat v1.3 architecture behaviors as immediate PRD baseline scope rather than deferred enhancements. |
 | ADL-016 | 2026-05-29 | Draft | Make failed-persona-step UX mandatory in v1.3 with explicit transcript state and user-facing failure messaging after bounded retry exhaustion. |
 | ADL-017 | 2026-05-29 | Draft | Namespace SAC Firestore collections under `/apps/sac` to prevent collisions with other apps in shared Firebase projects. |
+| ADL-018 | 2026-05-29 | Draft | Replace `/apps/sac` path prefixing with dedicated Firestore database isolation for SAC; keep canonical collection paths as `/users/{userId}/...` within the SAC database to simplify rules and reduce cross-app collision risk. |

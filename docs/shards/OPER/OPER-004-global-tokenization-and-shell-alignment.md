@@ -1,4 +1,4 @@
-# OPER-004 Global Tokenization and Shell Alignment
+﻿# OPER-004 Global Tokenization and Shell Alignment
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | None |
 | **Priority** | Medium |
 | **Status** | Not Started |
+| **GitHub Issue** | #62 |
 | **Complexity** | M |
 | **Depends On** | None |
 
@@ -30,3 +31,5 @@ Implement global UI tokenization and shell alignment so core application surface
 - Touch points: `src/assets/scss/style.scss`, `src/assets/scss/themecolors/_orange_theme.scss`, `src/app/layouts/full/full.component.html`, `src/app/layouts/full/header/header.component.html`, `src/app/layouts/full/sidebar/sidebar.component.html`.
 - Preserve Material behavior ownership and use tokens for layout and visual consistency.
 - UI Task Ref: UI-TB-006.
+
+

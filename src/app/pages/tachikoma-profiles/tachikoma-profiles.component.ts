@@ -2,6 +2,8 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MaterialModule } from '../../material.module';
+import { MatDialog } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
 import {
   AgentProfileService,
   AgentProfile,
@@ -11,11 +13,15 @@ import {
   SystemFields,
   AgentProfileModel,
 } from '../../models/agent-profile.model';
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from '../../components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-tachikoma-profiles',
   standalone: true,
-  imports: [CommonModule, FormsModule, MaterialModule],
+  imports: [CommonModule, FormsModule, MaterialModule, ConfirmDialogComponent],
   templateUrl: './tachikoma-profiles.component.html',
   styleUrls: ['./tachikoma-profiles.component.scss'],
 })
@@ -117,8 +123,26 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     },
   ];
 
-  constructor(private profileService: AgentProfileService) {
+  constructor(
+    private profileService: AgentProfileService,
+    private dialog: MatDialog
+  ) {
     this.loadProfiles();
+  }
+
+  private async confirm(data: ConfirmDialogData): Promise<boolean> {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data,
+      width: '420px',
+      maxWidth: '90vw',
+      autoFocus: data.alertOnly ? 'dialog' : 'first-tabbable',
+      restoreFocus: true,
+    });
+    return !!(await firstValueFrom(ref.afterClosed()));
+  }
+
+  private alert(message: string, title = 'NOTICE'): Promise<void> {
+    return this.confirm({ title, message, alertOnly: true }).then(() => undefined);
   }
 
   loadProfiles(): void {
@@ -175,7 +199,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       !this.newProfile.name ||
       (!this.newProfile.system && this.currentSystemMode() !== 'form')
     ) {
-      alert('Name and System Prompt are required');
+      this.alert('Name and System Prompt are required.', 'VALIDATION ERROR');
       return;
     }
 
@@ -213,7 +237,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
       !profile.name ||
       (!profile.system && this.currentSystemMode() !== 'form')
     ) {
-      alert('Name and System Prompt are required');
+      this.alert('Name and System Prompt are required.', 'VALIDATION ERROR');
       return;
     }
 
@@ -243,19 +267,29 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     this.editingProfile.set(null);
   }
 
-  deleteProfile(id: string): void {
-    if (confirm('Delete this agent profile? This cannot be undone.')) {
+  async deleteProfile(id: string): Promise<void> {
+    const confirmed = await this.confirm({
+      title: 'DELETE AGENT PROFILE',
+      message: 'Delete this agent profile? This action cannot be undone.',
+      confirmLabel: 'DELETE',
+      cancelLabel: 'CANCEL',
+      confirmColor: 'warn',
+    });
+    if (confirmed) {
       this.profileService.deleteProfile(id);
       this.loadProfiles();
     }
   }
 
-  resetToDefaults(): void {
-    if (
-      confirm(
-        'Reset all profiles to defaults? This will delete all custom agents.'
-      )
-    ) {
+  async resetToDefaults(): Promise<void> {
+    const confirmed = await this.confirm({
+      title: 'RESET TO DEFAULTS',
+      message: 'Reset all profiles to defaults? This will permanently delete all custom agents.',
+      confirmLabel: 'RESET',
+      cancelLabel: 'CANCEL',
+      confirmColor: 'warn',
+    });
+    if (confirmed) {
       this.profileService.resetToDefaults();
       this.loadProfiles();
     }
@@ -375,6 +409,132 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     return this.newProfile.system || '';
   }
 
+  // AGNT-004: Draft persona from intent
+  intentText = '';
+  isDrafting = signal<boolean>(false);
+  draftResult = signal<Partial<AgentProfile> | null>(null);
+
+  async draftFromIntent(): Promise<void> {
+    if (!this.intentText.trim()) {
+      this.alert('Please describe the kind of agent you want to create.', 'INTENT REQUIRED');
+      return;
+    }
+
+    const apiKey = localStorage.getItem('gemini_api_key');
+    if (!apiKey) {
+      this.alert('API key not found. Please initialize your Gemini API key in the chat interface first.', 'API KEY REQUIRED');
+      return;
+    }
+
+    this.isDrafting.set(true);
+    this.draftResult.set(null);
+
+    try {
+      const prompt = `You are an AI agent profile generator for a multi-agent chat platform.
+
+USER INTENT: "${this.intentText}"
+
+Generate a complete agent profile as valid JSON only (no markdown, no code blocks):
+
+{
+  "name": "SHORT_UPPERCASE_NAME",
+  "color": "css-class-name",
+  "hex": "#hexcolor",
+  "temp": 0.5,
+  "role": "chatter",
+  "silenceProtocol": "standard",
+  "system": "Full system prompt defining role, personality, tone, and silence protocol."
+}
+
+RULES:
+- name: 1-2 words, uppercase, evocative (e.g. AXIOM, EMBER, VELOS)
+- color: lowercase kebab-case version of name
+- hex: a color that matches the persona theme
+- temp: 0.1-0.3 = analytical, 0.5 = balanced, 0.7-0.9 = creative
+- role: "chatter" for most agents, "moderator" only if explicitly a synthesizer/judge
+- silenceProtocol: "standard"|"always_speak"|"conservative"|"agreeable"
+- system: 3-5 sentences defining the agent completely, include silence protocol instructions at the end
+
+Return ONLY the JSON object.`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error('No response from AI');
+
+      let jsonText = text.trim().replace(/^```json\n?/g, '').replace(/```\n?$/g, '');
+      const draft = JSON.parse(jsonText) as Partial<AgentProfile>;
+
+      // Normalize and provide defaults for any missing fields
+      const normalized: Partial<AgentProfile> = {
+        name: draft.name || 'AGENT',
+        color: draft.color || (draft.name || 'agent').toLowerCase().replace(/\s+/g, '-'),
+        hex: draft.hex || '#888888',
+        temp: typeof draft.temp === 'number' ? Math.min(1, Math.max(0, draft.temp)) : 0.5,
+        role: draft.role === 'moderator' ? 'moderator' : 'chatter',
+        silenceProtocol: (['standard','always_speak','conservative','agreeable'] as const).includes(draft.silenceProtocol as any)
+          ? draft.silenceProtocol : 'standard',
+        system: draft.system || '',
+        model: 'models/gemini-2.0-flash-exp',
+        systemMode: 'plaintext',
+      };
+
+      this.draftResult.set(normalized);
+    } catch (error: any) {
+      console.error('Draft from intent failed:', error);
+      this.alert(`Draft failed: ${error.message}. Please try again.`, 'DRAFT FAILED');
+    } finally {
+      this.isDrafting.set(false);
+    }
+  }
+
+  applyDraft(): void {
+    const draft = this.draftResult();
+    if (!draft) return;
+    this.newProfile = { ...draft };
+    this.currentSystemMode.set('plaintext');
+    this.draftResult.set(null);
+    this.intentText = '';
+    this.isAddingNew.set(true);
+  }
+
+  async saveDraftDirectly(): Promise<void> {
+    const draft = this.draftResult();
+    if (!draft?.name || !draft.system) return;
+    await this.profileService.addProfile({
+      name: draft.name!,
+      color: draft.color || draft.name!.toLowerCase().replace(/\s+/g, '-'),
+      hex: draft.hex || '#00f3ff',
+      temp: draft.temp ?? 0.5,
+      role: draft.role || 'chatter',
+      model: draft.model || 'models/gemini-2.0-flash-exp',
+      system: draft.system!,
+      systemMode: 'plaintext',
+      silenceProtocol: draft.silenceProtocol,
+    });
+    this.loadProfiles();
+    this.draftResult.set(null);
+    this.intentText = '';
+  }
+
+  discardDraft(): void {
+    this.draftResult.set(null);
+    this.intentText = '';
+  }
+
   // AI-Assisted Plain Text to Structured Conversion
   isConverting = signal<boolean>(false);
 
@@ -385,9 +545,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     const plainText = targetProfile.system;
 
     if (!plainText || plainText.trim().length === 0) {
-      alert(
-        'No plain text to convert. Please enter a system instruction first.'
-      );
+      this.alert('No plain text to convert. Please enter a system instruction first.', 'NOTHING TO CONVERT');
       return;
     }
 
@@ -395,9 +553,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
     const apiKey = localStorage.getItem('gemini_api_key');
     console.log('🔑 API key check:', apiKey ? 'Found' : 'Not found');
     if (!apiKey) {
-      alert(
-        '⚠️ API key not found. Please initialize your Gemini API key in the chat interface first.'
-      );
+      this.alert('API key not found. Please initialize your Gemini API key in the chat interface first.', 'API KEY REQUIRED');
       return;
     }
 
@@ -500,18 +656,14 @@ EXTRACTION RULES:
         '✅ Plain text converted to structured fields:',
         this.systemFields
       );
-      alert(
-        '✅ Conversion successful! Review the extracted fields and make any adjustments.'
-      );
+      this.alert('Conversion successful! Review the extracted fields and make any adjustments.', 'CONVERSION COMPLETE');
     } catch (error: any) {
       console.error('❌ Conversion failed:', error);
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
       });
-      alert(
-        `❌ Conversion failed: ${error.message}\n\nPlease check the browser console for details, then try again or convert manually.`
-      );
+      this.alert(`Conversion failed: ${error.message}. Please check the browser console for details, then try again or convert manually.`, 'CONVERSION FAILED');
     } finally {
       this.isConverting.set(false);
     }

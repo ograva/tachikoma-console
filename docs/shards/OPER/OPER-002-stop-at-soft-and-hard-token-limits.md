@@ -1,4 +1,4 @@
-# OPER-002 Stop at Soft and Hard Token Limits
+﻿# OPER-002 Stop at Soft and Hard Token Limits
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | OPER-002 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #60 |
 | **Complexity** | M |
 | **Depends On** | OPER-001, ORCH-001 |
 
@@ -29,3 +30,5 @@ Implement soft and hard token guardrails so rounds terminate safely before budge
 
 - Touch points: `src/app/pages/tachikoma-chat/*`.
 - Coordinate with ORCH-004 failure-step rendering for limit-exhausted transcript states.
+
+

@@ -127,7 +127,7 @@ Evidence: src/app/pages/starter/starter.component.html.
 
 Impact: Expectation mismatch and narrative drift from current architecture and product baseline.
 
-Recommended fix: Refresh card copy and getting-started steps to current model policy, profile flow, and namespace-safe sync messaging.
+Recommended fix: Refresh card copy and getting-started steps to current model policy, profile flow, and dedicated-database sync messaging.
 
 Finding M3: Auth visual parity mismatch between login and register
 

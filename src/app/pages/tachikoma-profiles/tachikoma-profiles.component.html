@@ -4,14 +4,83 @@
         <p class="subtitle">Configure AI personas for multi-agent chat protocol</p>
 
         <div class="action-buttons">
-            <button mat-raised-button color="primary" (click)="startAddNew()" [disabled]="isAddingNew()">
+            <button mat-raised-button color="primary" (click)="startAddNew()" [disabled]="isAddingNew()"
+                data-test-id="profiles-new-agent-btn">
                 <mat-icon>add</mat-icon> NEW AGENT
             </button>
-            <button mat-stroked-button color="warn" (click)="resetToDefaults()">
+            <button mat-stroked-button color="warn" (click)="resetToDefaults()"
+                data-test-id="profiles-reset-defaults-btn">
                 <mat-icon>restore</mat-icon> RESET TO DEFAULTS
             </button>
         </div>
     </div>
+
+    <!-- AGNT-004: Draft Persona From Intent -->
+    <mat-card class="profile-form intent-draft-card" data-test-id="profiles-intent-draft-panel">
+        <mat-card-header>
+            <mat-card-title>
+                <mat-icon>auto_awesome</mat-icon>
+                DRAFT PERSONA FROM INTENT
+            </mat-card-title>
+            <mat-card-subtitle>Describe the kind of agent you want — AI will generate a draft for you</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>What kind of agent do you want?</mat-label>
+                <textarea matInput
+                    [(ngModel)]="intentText"
+                    rows="3"
+                    maxlength="500"
+                    placeholder="e.g. A skeptical devil's advocate who challenges assumptions and plays the contrarian role"
+                    aria-label="Describe the agent persona you want to create"
+                    data-test-id="profiles-intent-input">
+                </textarea>
+                <mat-hint align="end">{{ intentText.length }}/500</mat-hint>
+            </mat-form-field>
+
+            <!-- Draft Result Preview -->
+            <div *ngIf="draftResult()" class="draft-preview" data-test-id="profiles-draft-preview">
+                <h3>DRAFT RESULT — Review before saving</h3>
+                <div class="draft-fields">
+                    <div class="draft-field"><strong>Name:</strong> {{ draftResult()!.name }}</div>
+                    <div class="draft-field"><strong>Role:</strong> {{ draftResult()!.role }}</div>
+                    <div class="draft-field"><strong>Model:</strong> {{ draftResult()!.model }}</div>
+                    <div class="draft-field"><strong>Temperature:</strong> {{ draftResult()!.temp }}</div>
+                    <div class="draft-field"><strong>Silence:</strong> {{ draftResult()!.silenceProtocol }}</div>
+                    <div class="draft-field draft-system"><strong>System Prompt:</strong><br>{{ draftResult()!.system }}</div>
+                </div>
+                <div class="draft-actions">
+                    <button mat-raised-button color="primary" (click)="saveDraftDirectly()"
+                        aria-label="Save draft agent profile directly"
+                        data-test-id="profiles-save-draft-btn">
+                        <mat-icon>save</mat-icon> SAVE NOW
+                    </button>
+                    <button mat-stroked-button (click)="applyDraft()"
+                        aria-label="Open draft in advanced editor"
+                        data-test-id="profiles-apply-draft-btn">
+                        <mat-icon>edit</mat-icon> EDIT FIRST
+                    </button>
+                    <button mat-icon-button color="warn" (click)="discardDraft()"
+                        aria-label="Discard draft"
+                        matTooltip="Discard draft"
+                        data-test-id="profiles-discard-draft-btn">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </div>
+            </div>
+        </mat-card-content>
+        <mat-card-actions>
+            <button mat-raised-button color="accent"
+                (click)="draftFromIntent()"
+                [disabled]="isDrafting() || !intentText.trim()"
+                aria-label="Generate agent draft from intent description"
+                data-test-id="profiles-draft-btn">
+                <mat-spinner *ngIf="isDrafting()" diameter="18"></mat-spinner>
+                <mat-icon *ngIf="!isDrafting()">psychology</mat-icon>
+                {{ isDrafting() ? 'GENERATING...' : 'GENERATE DRAFT' }}
+            </button>
+        </mat-card-actions>
+    </mat-card>
 
     <!-- Add New Form -->
     <mat-card *ngIf="isAddingNew()" class="profile-form new-profile">
@@ -243,8 +312,8 @@
             </div>
         </mat-card-content>
         <mat-card-actions>
-            <button mat-raised-button color="primary" (click)="saveNew()">SAVE</button>
-            <button mat-button (click)="cancelEdit()">CANCEL</button>
+            <button mat-raised-button color="primary" (click)="saveNew()" data-test-id="profiles-save-new-btn">SAVE</button>
+            <button mat-button (click)="cancelEdit()" data-test-id="profiles-cancel-new-btn">CANCEL</button>
         </mat-card-actions>
     </mat-card>
 
@@ -268,10 +337,14 @@
                     <div class="system-preview">{{ profile.system }}</div>
                 </mat-card-content>
                 <mat-card-actions>
-                    <button mat-icon-button (click)="startEdit(profile)" matTooltip="Edit">
+                    <button mat-icon-button (click)="startEdit(profile)" matTooltip="Edit"
+                        aria-label="Edit agent profile"
+                        data-test-id="profiles-edit-btn">
                         <mat-icon>edit</mat-icon>
                     </button>
-                    <button mat-icon-button color="warn" (click)="deleteProfile(profile.id)" matTooltip="Delete">
+                    <button mat-icon-button color="warn" (click)="deleteProfile(profile.id)" matTooltip="Delete"
+                        aria-label="Delete agent profile"
+                        data-test-id="profiles-delete-btn">
                         <mat-icon>delete</mat-icon>
                     </button>
                 </mat-card-actions>
@@ -500,8 +573,8 @@
                     </div>
                 </mat-card-content>
                 <mat-card-actions>
-                    <button mat-raised-button color="primary" (click)="saveEdit()">SAVE</button>
-                    <button mat-button (click)="cancelEdit()">CANCEL</button>
+                    <button mat-raised-button color="primary" (click)="saveEdit()" data-test-id="profiles-save-edit-btn">SAVE</button>
+                    <button mat-button (click)="cancelEdit()" data-test-id="profiles-cancel-edit-btn">CANCEL</button>
                 </mat-card-actions>
             </div>
         </mat-card>

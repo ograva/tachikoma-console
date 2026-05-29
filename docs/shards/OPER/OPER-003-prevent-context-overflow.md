@@ -1,4 +1,4 @@
-# OPER-003 Prevent Context Overflow
+﻿# OPER-003 Prevent Context Overflow
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | OPER-003 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #61 |
 | **Complexity** | L |
 | **Depends On** | ORCH-003, OPER-001 |
 
@@ -30,3 +31,5 @@ Implement layered context budgeting to prevent overflow while preserving coheren
 - Touch points: `src/app/pages/tachikoma-chat/*`.
 - Constraint-critical: layered context budgeting is mandatory v1.3 behavior.
 - UI Task Ref: UI-TB-003.
+
+

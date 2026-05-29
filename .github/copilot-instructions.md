@@ -3,6 +3,7 @@
 ## Source of Truth
 
 When there is any conflict, follow this order:
+
 1. `docs/context/CONSTRAINTS.md`
 2. `docs/context/Architecture.md`
 3. `docs/context/CanonicalDataModelSpec.md`
@@ -57,16 +58,19 @@ Do not treat old notes in `src/reference/tech-folder/` as canonical if they conf
 4. Quota handling:
    - Distinguish API-project quota/billing from app subscription assumptions.
 
-## Firestore Namespace Requirement
+## Firestore Database Isolation Requirement
 
 This Firebase project is shared with other apps.
 
-All SAC collections must be namespaced under:
-- `apps/sac/users/{userId}/chat_sessions/{chatId}`
-- `apps/sac/users/{userId}/agent_profiles/{agentId}`
-- `apps/sac/users/{userId}/user_profile/{userId}`
+All SAC data must be stored in a dedicated Firestore database (for example, `sac`).
 
-Do not create or read SAC collections outside the `apps/sac` prefix.
+Canonical collection paths inside the SAC database:
+
+- `users/{userId}/chat_sessions/{chatId}`
+- `users/{userId}/agent_profiles/{agentId}`
+- `users/{userId}/user_profile/{userId}`
+
+Do not create or read SAC data outside the SAC-dedicated Firestore database.
 
 ## Data Contract Rules
 
@@ -80,6 +84,7 @@ Do not create or read SAC collections outside the `apps/sac` prefix.
 ### ChatMessage v1.3 expectation
 
 Chat transcript entries may include failure state fields:
+
 - `status?: 'ok' | 'failed'`
 - `failureCode?: string`
 - `failureMessage?: string`
@@ -110,18 +115,20 @@ Chat transcript entries may include failure state fields:
 ## Story Coverage Expectations
 
 Active v1.3 stories include additional required IDs:
+
 - `AGNT-004` Draft Persona From Intent
 - `ORCH-004` Handle Failed Persona Steps Explicitly
-- `SYNC-004` Use Firestore App Namespace
+- `SYNC-004` Use Dedicated Firestore Database Isolation
 
 When implementing related features, ensure these stories remain aligned.
 
 ## Testing Focus
 
 When changing orchestration, persona creation, or sync:
+
 - Verify failed-step UX appears and no silent skip occurs.
 - Verify context trimming follows layered policy.
-- Verify namespaced Firestore path construction under `apps/sac`.
+- Verify Firestore database selection resolves to the SAC-dedicated database.
 - Verify local-first behavior still works offline.
 
 ## What Not To Do
@@ -130,4 +137,4 @@ When changing orchestration, persona creation, or sync:
 - Do not bypass model normalization.
 - Do not use deprecated Gemini defaults as system defaults.
 - Do not store unencrypted cloud API keys.
-- Do not write SAC data outside `apps/sac` namespace.
+- Do not write SAC data outside the SAC-dedicated Firestore database.

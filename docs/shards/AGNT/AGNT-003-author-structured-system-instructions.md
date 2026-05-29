@@ -1,4 +1,4 @@
-# AGNT-003 Author Structured System Instructions
+﻿# AGNT-003 Author Structured System Instructions
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | AGNT-003 |
 | **Priority** | Medium |
 | **Status** | Not Started |
+| **GitHub Issue** | #44 |
 | **Complexity** | M |
 | **Depends On** | AGNT-001 |
 
@@ -30,3 +31,5 @@ Implement structured instruction authoring across plaintext, form, and XML modes
 - Touch points: `src/app/pages/tachikoma-profiles/*`, `src/app/models/agent-profile.model.ts`.
 - Maintain canonical model shape consistency on persistence.
 - Keep validation feedback explicit for malformed XML.
+
+

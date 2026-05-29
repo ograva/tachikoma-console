@@ -30,7 +30,7 @@ The rules below reflect the live codebase, the current dependency baseline, and 
 - Use Firebase Authentication for sign-in, anonymous mode, and optional Google sign-in.
 - Use Firestore only as an authenticated cloud sync layer, not as the primary runtime state store.
 - Use the compatible Firebase SDK stack already present in the workspace (`firebase` and `@angular/fire` aligned to Angular 20).
-- Namespace SAC Firestore collections under `/apps/sac` for shared Firebase projects.
+- Isolate SAC data in a dedicated Firestore database for shared Firebase projects; use root user-scoped collections (`/users/{userId}/...`) inside that database.
 
 ### Google AI / GenAI
 

@@ -1,4 +1,4 @@
-# AGNT-004 Draft Persona from Intent
+﻿# AGNT-004 Draft Persona from Intent
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | AGNT-004 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #45 |
 | **Complexity** | M |
 | **Depends On** | AGNT-001 |
 
@@ -30,3 +31,5 @@ Implement AI-assisted persona drafting from freeform intent as the default onboa
 - Touch points: `src/app/pages/tachikoma-profiles/*`, `src/app/services/agent-profile.service.ts`, `src/app/models/agent-profile.model.ts`.
 - Maintain deterministic defaults for role, model, and silence mode when missing.
 - UI Task Ref: UI-TB-011.
+
+

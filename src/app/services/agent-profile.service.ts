@@ -88,13 +88,13 @@ export class AgentProfileService {
     profile: Omit<AgentProfile, 'id' | 'status' | 'createdAt' | 'updatedAt'>
   ): Promise<void> {
     const now = Date.now();
-    const newProfile = {
+    const newProfile = AgentProfileModel.normalize({
       ...profile,
       id: this.generateId(),
       status: 'idle' as const,
       createdAt: now,
       updatedAt: now,
-    } as AgentProfile;
+    });
 
     // Update local state immediately
     this.profilesSignal.update((profiles) => [...profiles, newProfile]);

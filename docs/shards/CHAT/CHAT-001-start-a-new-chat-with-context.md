@@ -1,4 +1,4 @@
-# CHAT-001 Start a New Chat with Context
+﻿# CHAT-001 Start a New Chat with Context
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | CHAT-001 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #47 |
 | **Complexity** | M |
 | **Depends On** | AGNT-001 |
 
@@ -30,3 +31,5 @@ Implement new chat creation with metadata and selected roster so each session be
 - Touch points: `src/app/pages/tachikoma-chat/*`, `src/app/models/chat-session.model.ts`.
 - Keep one source of truth for current chat identity and selected agents.
 - Ensure required `data-test-id` attributes remain present in dialog controls.
+
+

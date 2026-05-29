@@ -1,7 +1,8 @@
 import {
   ApplicationConfig,
   provideZoneChangeDetection,
-  importProvidersFrom, isDevMode,
+  importProvidersFrom,
+  isDevMode,
 } from '@angular/core';
 import {
   HttpClient,
@@ -32,10 +33,26 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { provideServiceWorker } from '@angular/service-worker';
 
 // Firebase
-import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
-import { provideAuth, getAuth } from '@angular/fire/auth';
-import { provideFirestore, getFirestore } from '@angular/fire/firestore';
+import { provideFirebaseApp, initializeApp, getApp } from '@angular/fire/app';
+import { provideAuth, getAuth, connectAuthEmulator } from '@angular/fire/auth';
+import {
+  provideFirestore,
+  getFirestore,
+  connectFirestoreEmulator,
+} from '@angular/fire/firestore';
+import {
+  provideStorage,
+  getStorage,
+  connectStorageEmulator,
+} from '@angular/fire/storage';
 import { environment } from '../environments/environment';
+
+const firestoreDatabaseId = environment.firebase.firestoreDatabaseId?.trim();
+const useEmulators = !!environment.useEmulators;
+
+let authEmulatorConnected = false;
+let firestoreEmulatorConnected = false;
+let storageEmulatorConnected = false;
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -46,7 +63,7 @@ export const appConfig: ApplicationConfig = {
         scrollPositionRestoration: 'enabled',
         anchorScrolling: 'enabled',
       }),
-      withComponentInputBinding()
+      withComponentInputBinding(),
     ),
     provideHttpClient(withInterceptorsFromDi()),
     provideClientHydration(),
@@ -64,7 +81,49 @@ export const appConfig: ApplicationConfig = {
     }),
     // Firebase providers
     provideFirebaseApp(() => initializeApp(environment.firebase)),
-    provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore()),
+    provideAuth(() => {
+      const auth = getAuth();
+
+      if (useEmulators && !authEmulatorConnected) {
+        connectAuthEmulator(
+          auth,
+          `http://${environment.emulators.auth.host}:${environment.emulators.auth.port}`,
+          { disableWarnings: true },
+        );
+        authEmulatorConnected = true;
+      }
+
+      return auth;
+    }),
+    provideFirestore(() => {
+      const firestore = firestoreDatabaseId
+        ? getFirestore(getApp(), firestoreDatabaseId)
+        : getFirestore();
+
+      if (useEmulators && !firestoreEmulatorConnected) {
+        connectFirestoreEmulator(
+          firestore,
+          environment.emulators.firestore.host,
+          environment.emulators.firestore.port,
+        );
+        firestoreEmulatorConnected = true;
+      }
+
+      return firestore;
+    }),
+    provideStorage(() => {
+      const storage = getStorage();
+
+      if (useEmulators && !storageEmulatorConnected) {
+        connectStorageEmulator(
+          storage,
+          environment.emulators.storage.host,
+          environment.emulators.storage.port,
+        );
+        storageEmulatorConnected = true;
+      }
+
+      return storage;
+    }),
   ],
 };

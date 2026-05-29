@@ -1,17 +1,22 @@
 @use "../variables" as *;
 
+// OPER-004: Shell header — SAC token-driven styling
 html .topbar {
   position: sticky;
   top: 0;
   z-index: 9;
-  height: $header-height;
-  background-color: var(--mat-sys-background);
-  
-  // Dark theme header
+  height: var(--sac-header-height, $header-height);
+  background-color: var(--sac-header-bg, var(--mat-sys-background));
+  border-bottom: var(--sac-header-border, none);
+  font-family: var(--sac-font-mono, monospace);
+  color: var(--sac-color-text-primary, #e0e0e0);
+  transition: background-color var(--sac-transition-normal, 250ms ease);
+
+  // Dark theme header — use SAC tokens over Material defaults
   &.dark-theme .topbar,
   html.dark-theme & {
-    background-color: var(--cyber-black);
-    border-bottom: 1px solid var(--mat-sys-outline);
+    background-color: var(--sac-header-bg, var(--cyber-black));
+    border-bottom: var(--sac-header-border, 1px solid var(--mat-sys-outline));
   }
 }
 

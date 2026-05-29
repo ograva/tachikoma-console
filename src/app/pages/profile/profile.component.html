@@ -53,17 +53,20 @@
                 <input matInput [value]="displayNameInput()" (input)="displayNameInput.set($any($event.target).value)"
                   placeholder="Enter display name" />
               </mat-form-field>
-              <button mat-icon-button color="primary" (click)="saveDisplayName()" [disabled]="isLoading()">
+              <button mat-icon-button color="primary" (click)="saveDisplayName()" [disabled]="isLoading()"
+                aria-label="Save display name" data-test-id="profile-save-displayname-btn">
                 <i-tabler name="check" class="icon-18"></i-tabler>
               </button>
-              <button mat-icon-button (click)="cancelEditDisplayName()">
+              <button mat-icon-button (click)="cancelEditDisplayName()"
+                aria-label="Cancel display name edit" data-test-id="profile-cancel-displayname-btn">
                 <i-tabler name="x" class="icon-18"></i-tabler>
               </button>
             </div>
             } @else {
             <div class="info-value-with-edit">
               <span>{{ profile()?.displayName || 'Not set' }}</span>
-              <button mat-icon-button (click)="startEditDisplayName()">
+              <button mat-icon-button (click)="startEditDisplayName()"
+                aria-label="Edit display name" data-test-id="profile-edit-displayname-btn">
                 <i-tabler name="edit" class="icon-16"></i-tabler>
               </button>
             </div>
@@ -83,17 +86,20 @@
                   placeholder="Enter chat username" maxlength="20" />
                 <mat-hint>This name appears in chat messages</mat-hint>
               </mat-form-field>
-              <button mat-icon-button color="primary" (click)="saveChatUsername()" [disabled]="isLoading()">
+              <button mat-icon-button color="primary" (click)="saveChatUsername()" [disabled]="isLoading()"
+                aria-label="Save chat username" data-test-id="profile-save-username-btn">
                 <i-tabler name="check" class="icon-18"></i-tabler>
               </button>
-              <button mat-icon-button (click)="cancelEditChatUsername()">
+              <button mat-icon-button (click)="cancelEditChatUsername()"
+                aria-label="Cancel chat username edit" data-test-id="profile-cancel-username-btn">
                 <i-tabler name="x" class="icon-18"></i-tabler>
               </button>
             </div>
             } @else {
             <div class="info-value-with-edit">
               <span class="username-preview">{{ profile()?.chatUsername || 'USER' }}</span>
-              <button mat-icon-button (click)="startEditChatUsername()">
+              <button mat-icon-button (click)="startEditChatUsername()"
+                aria-label="Edit chat username" data-test-id="profile-edit-username-btn">
                 <i-tabler name="edit" class="icon-16"></i-tabler>
               </button>
             </div>
@@ -134,14 +140,16 @@
               }
             </mat-form-field>
             <button mat-icon-button color="primary" (click)="saveApiKey()"
-              [disabled]="isLoading() || isValidatingApiKey()">
+              [disabled]="isLoading() || isValidatingApiKey()"
+              aria-label="Save API key" data-test-id="profile-save-apikey-btn">
               @if (isValidatingApiKey()) {
               <mat-spinner diameter="18"></mat-spinner>
               } @else {
               <i-tabler name="check" class="icon-18"></i-tabler>
               }
             </button>
-            <button mat-icon-button (click)="cancelEditApiKey()" [disabled]="isValidatingApiKey()">
+            <button mat-icon-button (click)="cancelEditApiKey()" [disabled]="isValidatingApiKey()"
+              aria-label="Cancel API key edit" data-test-id="profile-cancel-apikey-btn">
               <i-tabler name="x" class="icon-18"></i-tabler>
             </button>
           </div>
@@ -161,7 +169,8 @@
               Not set
               }
             </span>
-            <button mat-icon-button (click)="startEditApiKey()">
+            <button mat-icon-button (click)="startEditApiKey()"
+              aria-label="Edit API key" data-test-id="profile-edit-apikey-btn">
               <i-tabler name="edit" class="icon-16"></i-tabler>
             </button>
           </div>
@@ -176,7 +185,9 @@
           </mat-label>
           <mat-form-field appearance="outline" class="model-select">
             <mat-select [value]="profile()?.geminiModel || 'gemini-2.5-flash'"
-              (selectionChange)="onModelChange($event.value)">
+              (selectionChange)="onModelChange($event.value)"
+              aria-label="Select Gemini model"
+              data-test-id="profile-model-select">
               @for (model of geminiModels; track model.value) {
               <mat-option [value]="model.value">{{ model.label }}</mat-option>
               }
@@ -240,7 +251,9 @@
           </div>
 
           <button mat-stroked-button color="primary" (click)="syncChatsToCloud()"
-            [disabled]="isSyncingChats() || isLoading()">
+            [disabled]="isSyncingChats() || isLoading()"
+            aria-label="Sync chats to cloud"
+            data-test-id="profile-sync-chats-btn">
             @if (isSyncingChats()) {
             <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
             } @else {
@@ -268,7 +281,9 @@
           </div>
 
           <button mat-stroked-button color="accent" (click)="syncAgentsToCloud()"
-            [disabled]="isSyncingAgents() || isLoading()">
+            [disabled]="isSyncingAgents() || isLoading()"
+            aria-label="Sync agent profiles to cloud"
+            data-test-id="profile-sync-agents-btn">
             @if (isSyncingAgents()) {
             <mat-spinner diameter="18" class="m-r-8"></mat-spinner>
             } @else {
@@ -281,7 +296,9 @@
 
       <!-- Actions -->
       <div class="profile-actions m-t-24">
-        <button mat-flat-button color="warn" (click)="logout()">
+        <button mat-flat-button color="warn" (click)="logout()"
+          aria-label="Log out of account"
+          data-test-id="profile-logout-btn">
           <i-tabler name="logout" class="icon-18 m-r-8"></i-tabler>
           Logout
         </button>

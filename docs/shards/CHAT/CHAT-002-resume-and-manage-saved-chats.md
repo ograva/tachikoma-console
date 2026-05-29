@@ -1,4 +1,4 @@
-# CHAT-002 Resume and Manage Saved Chats
+﻿# CHAT-002 Resume and Manage Saved Chats
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | CHAT-002 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #48 |
 | **Complexity** | M |
 | **Depends On** | CHAT-001 |
 
@@ -30,3 +31,5 @@ Implement reliable chat resume and management controls so long-running work rema
 - Touch points: `src/app/pages/tachikoma-chat/*`, `src/app/services/chat-storage.service.ts`.
 - UI Task Ref: UI-TB-002.
 - Preserve stable ordering and avoid destructive side effects when switching sessions.
+
+

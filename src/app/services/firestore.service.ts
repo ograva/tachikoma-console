@@ -32,6 +32,13 @@ export class FirestoreService {
   private offlineEnabled = false;
   private firestoreConfigured = false;
 
+  private getUserCollectionPath(
+    userId: string,
+    collectionName: string,
+  ): string {
+    return `users/${userId}/${collectionName}`;
+  }
+
   constructor() {
     try {
       this.firestore = inject(Firestore);
@@ -39,7 +46,7 @@ export class FirestoreService {
       this.enableOfflineSupport();
     } catch (error) {
       console.warn(
-        'Firestore not configured. Cloud storage features will be disabled.'
+        'Firestore not configured. Cloud storage features will be disabled.',
       );
       this.firestoreConfigured = false;
     }
@@ -65,11 +72,11 @@ export class FirestoreService {
     } catch (error: any) {
       if (error.code === 'failed-precondition') {
         console.warn(
-          'Multiple tabs open, offline persistence only works in one tab at a time.'
+          'Multiple tabs open, offline persistence only works in one tab at a time.',
         );
       } else if (error.code === 'unimplemented') {
         console.warn(
-          'The current browser does not support offline persistence.'
+          'The current browser does not support offline persistence.',
         );
       } else {
         console.error('Error enabling offline persistence:', error);
@@ -92,7 +99,7 @@ export class FirestoreService {
    */
   private storeInLocalStorage<T extends SyncableData>(
     collectionName: string,
-    data: T[]
+    data: T[],
   ): void {
     const key = this.getLocalStorageKey(collectionName);
     localStorage.setItem(key, JSON.stringify(data));
@@ -102,7 +109,7 @@ export class FirestoreService {
    * Get data from localStorage
    */
   private getFromLocalStorage<T extends SyncableData>(
-    collectionName: string
+    collectionName: string,
   ): T[] {
     const key = this.getLocalStorageKey(collectionName);
     const stored = localStorage.getItem(key);
@@ -124,7 +131,7 @@ export class FirestoreService {
    */
   async saveDocument<T extends SyncableData>(
     collectionName: string,
-    data: T
+    data: T,
   ): Promise<void> {
     // 1. Update localStorage first for immediate access
     this.updateLocalStorageDocument(collectionName, data);
@@ -142,11 +149,8 @@ export class FirestoreService {
 
     // 2. Forward to Firestore
     try {
-      const docRef = firestoreDoc(
-        this.firestore,
-        `users/${userId}/${collectionName}`,
-        data.id
-      );
+      const path = this.getUserCollectionPath(userId, collectionName);
+      const docRef = firestoreDoc(this.firestore, path, data.id);
 
       // Sanitize data: Remove undefined fields (Firestore doesn't allow undefined)
       const sanitizedData = this.sanitizeForFirestore({
@@ -211,7 +215,7 @@ export class FirestoreService {
    */
   private updateLocalStorageDocument<T extends SyncableData>(
     collectionName: string,
-    data: T
+    data: T,
   ): void {
     const existing = this.getFromLocalStorage<T>(collectionName);
     const index = existing.findIndex((item) => item.id === data.id);
@@ -230,7 +234,7 @@ export class FirestoreService {
    * Retrieves from Firestore and updates localStorage
    */
   async getDocuments<T extends SyncableData>(
-    collectionName: string
+    collectionName: string,
   ): Promise<T[]> {
     // If Firestore not configured, return localStorage data
     if (!this.firestore || !this.firestoreConfigured) {
@@ -245,10 +249,8 @@ export class FirestoreService {
     }
 
     try {
-      const collRef = collection(
-        this.firestore,
-        `users/${userId}/${collectionName}`
-      );
+      const path = this.getUserCollectionPath(userId, collectionName);
+      const collRef = collection(this.firestore, path);
       const snapshot = await getDocs(collRef);
       const data = snapshot.docs.map((doc) => doc.data() as T);
 
@@ -267,7 +269,7 @@ export class FirestoreService {
    */
   async getDocument<T extends SyncableData>(
     collectionName: string,
-    documentId: string
+    documentId: string,
   ): Promise<T | null> {
     // If Firestore not configured, return localStorage data
     if (!this.firestore || !this.firestoreConfigured) {
@@ -284,11 +286,8 @@ export class FirestoreService {
     }
 
     try {
-      const docRef = firestoreDoc(
-        this.firestore,
-        `users/${userId}/${collectionName}`,
-        documentId
-      );
+      const path = this.getUserCollectionPath(userId, collectionName);
+      const docRef = firestoreDoc(this.firestore, path, documentId);
       const snapshot = await getDoc(docRef);
 
       if (snapshot.exists()) {
@@ -312,7 +311,7 @@ export class FirestoreService {
    */
   async deleteDocument(
     collectionName: string,
-    documentId: string
+    documentId: string,
   ): Promise<void> {
     // Remove from localStorage
     const existing = this.getFromLocalStorage<SyncableData>(collectionName);
@@ -331,11 +330,8 @@ export class FirestoreService {
 
     // Delete from Firestore
     try {
-      const docRef = firestoreDoc(
-        this.firestore,
-        `users/${userId}/${collectionName}`,
-        documentId
-      );
+      const path = this.getUserCollectionPath(userId, collectionName);
+      const docRef = firestoreDoc(this.firestore, path, documentId);
       await deleteDoc(docRef);
     } catch (error) {
       console.error('Error deleting from Firestore:', error);
@@ -348,7 +344,7 @@ export class FirestoreService {
    */
   async saveBatch<T extends SyncableData>(
     collectionName: string,
-    documents: T[]
+    documents: T[],
   ): Promise<void> {
     // Update localStorage first
     documents.forEach((doc) => {
@@ -367,13 +363,10 @@ export class FirestoreService {
 
     try {
       const batch = writeBatch(this.firestore);
+      const path = this.getUserCollectionPath(userId, collectionName);
 
       documents.forEach((item) => {
-        const docRef = firestoreDoc(
-          this.firestore!,
-          `users/${userId}/${collectionName}`,
-          item.id
-        );
+        const docRef = firestoreDoc(this.firestore!, path, item.id);
         batch.set(docRef, { ...item, userId });
       });
 
@@ -389,7 +382,7 @@ export class FirestoreService {
    */
   async getDocumentsPaginated<T extends SyncableData>(
     collectionName: string,
-    documentIds: string[]
+    documentIds: string[],
   ): Promise<T[]> {
     // If Firestore not configured, return localStorage data
     if (!this.firestore || !this.firestoreConfigured) {
@@ -409,10 +402,8 @@ export class FirestoreService {
       // Fetch in chunks of 10 (Firestore 'in' query limit)
       for (let i = 0; i < documentIds.length; i += 10) {
         const chunk = documentIds.slice(i, i + 10);
-        const collRef = collection(
-          this.firestore,
-          `users/${userId}/${collectionName}`
-        );
+        const path = this.getUserCollectionPath(userId, collectionName);
+        const collRef = collection(this.firestore, path);
         const q = query(collRef, where('id', 'in', chunk));
         const snapshot = await getDocs(q);
 
@@ -434,7 +425,7 @@ export class FirestoreService {
    * User chooses to merge or overwrite
    */
   async syncOnLogin(
-    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud'
+    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud',
   ): Promise<void> {
     // Skip if Firestore not configured
     if (!this.firestore || !this.firestoreConfigured) {
@@ -469,7 +460,7 @@ export class FirestoreService {
    */
   private async syncCollection(
     collectionName: string,
-    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud'
+    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud',
   ): Promise<void> {
     // Skip if Firestore not configured
     if (!this.firestore || !this.firestoreConfigured) {
@@ -507,10 +498,8 @@ export class FirestoreService {
       }
 
       // Get Firestore data
-      const collRef = collection(
-        this.firestore,
-        `users/${userId}/${collectionName}`
-      );
+      const path = this.getUserCollectionPath(userId, collectionName);
+      const collRef = collection(this.firestore, path);
       const snapshot = await getDocs(collRef);
       const firestoreData = new Map<string, SyncableData>();
       snapshot.docs.forEach((docSnap) => {
@@ -526,7 +515,7 @@ export class FirestoreService {
           // Overwrite local with cloud data
           finalData = Array.from(firestoreData.values());
           console.log(
-            `${collectionName}: Overwriting local with ${finalData.length} cloud items`
+            `${collectionName}: Overwriting local with ${finalData.length} cloud items`,
           );
           break;
 
@@ -534,17 +523,13 @@ export class FirestoreService {
           // Overwrite cloud with local data
           finalData = localData;
           console.log(
-            `${collectionName}: Overwriting cloud with ${finalData.length} local items`
+            `${collectionName}: Overwriting cloud with ${finalData.length} local items`,
           );
 
           // Delete all existing cloud documents
           const deleteBatch = writeBatch(this.firestore);
           firestoreData.forEach((_, id) => {
-            const docRef = firestoreDoc(
-              this.firestore!,
-              `users/${userId}/${collectionName}`,
-              id
-            );
+            const docRef = firestoreDoc(this.firestore!, path, id);
             deleteBatch.delete(docRef);
           });
           await deleteBatch.commit();
@@ -578,11 +563,7 @@ export class FirestoreService {
         const batch = writeBatch(this.firestore);
 
         for (const item of finalData) {
-          const docRef = firestoreDoc(
-            this.firestore,
-            `users/${userId}/${collectionName}`,
-            item.id
-          );
+          const docRef = firestoreDoc(this.firestore, path, item.id);
           batch.set(docRef, { ...item, userId });
         }
 

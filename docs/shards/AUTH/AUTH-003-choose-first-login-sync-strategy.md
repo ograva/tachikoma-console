@@ -1,4 +1,4 @@
-# AUTH-003 Choose First-Login Sync Strategy
+﻿# AUTH-003 Choose First-Login Sync Strategy
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | AUTH-003 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #41 |
 | **Complexity** | M |
 | **Depends On** | AUTH-001 |
 
@@ -30,3 +31,5 @@ Implement first-login sync strategy selection when both local and cloud state ex
 - Touch points: `src/app/components/sync-dialog/*`, `src/app/services/firestore.service.ts`, `src/app/services/auth.service.ts`.
 - Keep dialog actions explicit and keyboard navigable.
 - Preserve local-first constraints while applying strategy outcomes.
+
+

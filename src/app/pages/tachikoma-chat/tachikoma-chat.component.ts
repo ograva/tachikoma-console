@@ -5,6 +5,7 @@ import {
   signal,
   inject,
   effect,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -45,6 +46,8 @@ interface Agent {
   silenceProtocol?: 'standard' | 'always_speak' | 'conservative' | 'agreeable';
 }
 
+type ChatMessageType = 'normal' | 'failed-step' | 'rate-limit';
+
 interface ChatMessage {
   id: string;
   sender: string;
@@ -54,6 +57,8 @@ interface ChatMessage {
   agentId?: string;
   timestamp: number;
   roundId?: number; // Track which round this message belongs to
+  messageType?: ChatMessageType;
+  retryCount?: number;
 }
 
 import { MaterialModule } from '../../material.module';
@@ -121,6 +126,47 @@ export class TachikomaChatComponent {
     conversationContextTokens: 0,
     estimatedCost: 0,
   });
+  // OPER-001: Per-round token/cost estimate tracking
+  roundTokenEstimates = signal<Map<number, { inputTokens: number; outputTokens: number; estimatedCostUSD: number }>>(new Map());
+  private currentRoundInputTokens = 0;
+  private currentRoundOutputTokens = 0;
+
+  /** Gemini Flash approximate pricing (USD per 1M tokens) */
+  private readonly COST_PER_1M_INPUT = 0.075;
+  private readonly COST_PER_1M_OUTPUT = 0.30;
+
+  private trackRoundTokens(inputTokens: number, outputTokens: number): void {
+    this.currentRoundInputTokens += inputTokens;
+    this.currentRoundOutputTokens += outputTokens;
+  }
+
+  private finalizeRoundCostEstimate(): void {
+    const cost = (this.currentRoundInputTokens / 1_000_000) * this.COST_PER_1M_INPUT
+      + (this.currentRoundOutputTokens / 1_000_000) * this.COST_PER_1M_OUTPUT;
+    const estimates = new Map(this.roundTokenEstimates());
+    estimates.set(this.currentRoundId, {
+      inputTokens: this.currentRoundInputTokens,
+      outputTokens: this.currentRoundOutputTokens,
+      estimatedCostUSD: cost,
+    });
+    this.roundTokenEstimates.set(estimates);
+    this.currentRoundInputTokens = 0;
+    this.currentRoundOutputTokens = 0;
+  }
+
+  getRoundEstimate(roundId: number) {
+    return this.roundTokenEstimates().get(roundId);
+  }
+
+  getRoundIdsWithEstimates(): number[] {
+    return Array.from(this.roundTokenEstimates().keys()).sort((a, b) => a - b);
+  }
+
+  formatCostEstimate(usd: number): string {
+    if (usd < 0.001) return '< $0.001';
+    return `~$${usd.toFixed(4)}`;
+  }
+
   readonly REQUEST_WINDOW_MS = 60000; // Track requests in 1-minute windows
   readonly MIN_REQUEST_INTERVAL_MS = 1000; // Minimum 1 second between requests
   readonly DAILY_QUOTA_FREE_TIER = 20; // Gemini 2.5 Flash free tier daily limit
@@ -171,6 +217,57 @@ export class TachikomaChatComponent {
 
   // Chat history drawer state
   historyDrawerOpened = signal<boolean>(false);
+
+  // CHAT-004: Sticky transcript navigation utilities
+  showTranscriptNav = signal<boolean>(false);
+  lastReadIndex = signal<number>(-1);
+  private _navIdleTimer: ReturnType<typeof setTimeout> | null = null;
+
+  @HostListener('window:scroll', ['$event'])
+  onWindowScroll(): void { this._onChatFeedScroll(); }
+
+  onChatFeedScroll(): void { this._onChatFeedScroll(); }
+
+  private _onChatFeedScroll(): void {
+    this.showTranscriptNav.set(true);
+    if (this._navIdleTimer) clearTimeout(this._navIdleTimer);
+    this._navIdleTimer = setTimeout(() => this.showTranscriptNav.set(false), 3000);
+  }
+
+  jumpToTop(): void {
+    const el = this.chatFeed?.nativeElement;
+    if (el) el.scrollTop = 0;
+    this._onChatFeedScroll();
+  }
+
+  jumpToLatest(): void {
+    const el = this.chatFeed?.nativeElement;
+    if (el) el.scrollTop = el.scrollHeight;
+    this.lastReadIndex.set(this.messages.length - 1);
+    this._onChatFeedScroll();
+  }
+
+  jumpToPreviousUnread(): void {
+    const unreadIdx = this.lastReadIndex() + 1;
+    if (unreadIdx >= this.messages.length) return;
+    const el = this.chatFeed?.nativeElement;
+    if (!el) return;
+    const msgEls = el.querySelectorAll('[data-msg-index]');
+    const target = msgEls[unreadIdx] as HTMLElement;
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.lastReadIndex.set(unreadIdx);
+    this._onChatFeedScroll();
+  }
+
+  get hasUnread(): boolean {
+    return this.lastReadIndex() < this.messages.length - 1;
+  }
+
+  showScrollNav(): boolean { return this.showTranscriptNav(); }
+
+  unreadCount(): number {
+    return Math.max(0, this.messages.length - 1 - this.lastReadIndex());
+  }
 
   // Edit chat dialog state
   showEditDialog = signal<boolean>(false);
@@ -808,6 +905,48 @@ export class TachikomaChatComponent {
     this.modelMetrics.set(metricsMap);
   }
 
+  // OPER-002: Soft/hard limit thresholds
+  readonly SOFT_LIMIT_THRESHOLD = 0.80; // Show warning banner
+  readonly HARD_LIMIT_THRESHOLD = 0.95; // Block new rounds
+
+  /** Returns the model nearest its context limit (for soft-warning banner) */
+  get contextSoftWarning(): { model: string; pct: number } | null {
+    let worst: { model: string; pct: number } | null = null;
+    for (const [model, metrics] of this.modelMetrics()) {
+      const pct = metrics.conversationContextTokens / metrics.inputTokenLimit;
+      if (pct >= this.SOFT_LIMIT_THRESHOLD) {
+        if (!worst || pct > worst.pct) worst = { model, pct };
+      }
+    }
+    return worst;
+  }
+
+  /** OPER-002: Check if any model's context has hit the hard limit before starting a round */
+  private checkContextHardLimit(): { exceeded: boolean; model?: string; used?: number; limit?: number } {
+    for (const [model, metrics] of this.modelMetrics()) {
+      if (metrics.conversationContextTokens >= metrics.inputTokenLimit * this.HARD_LIMIT_THRESHOLD) {
+        return { exceeded: true, model, used: metrics.conversationContextTokens, limit: metrics.inputTokenLimit };
+      }
+    }
+    return { exceeded: false };
+  }
+
+  /** OPER-002: Add an inline hard-limit notice to the transcript */
+  private addHardLimitCard(model: string, used: number, limit: number): void {
+    const text = `HARD LIMIT REACHED — ${model.replace('models/', '')}: ${this.formatTokenCount(used)}/${this.formatTokenCount(limit)} tokens. Context window is full. Start a new chat to continue.`;
+    this.messages.push({
+      id: `limit_${Date.now()}`,
+      sender: 'SYSTEM',
+      text,
+      html: `<div class="hard-limit-card"><strong>HARD LIMIT REACHED</strong><p>${model.replace('models/', '')}: context window full (${this.formatTokenCount(used)}/${this.formatTokenCount(limit)} tokens).</p><p>Start a new chat to continue.</p></div>`,
+      isUser: false,
+      timestamp: Date.now(),
+      roundId: this.currentRoundId,
+      messageType: 'failed-step',
+    });
+    this.saveCurrentChat().catch(() => {});
+  }
+
   async triggerProtocol() {
     if (!this.userInput.trim() || this.isProcessing) return;
 
@@ -815,6 +954,13 @@ export class TachikomaChatComponent {
     const cleanKey = this.getCleanKey();
     if (!cleanKey) {
       alert('PLEASE ENTER A VALID API KEY');
+      return;
+    }
+
+    // OPER-002: Pre-flight hard limit check
+    const hardLimitCheck = this.checkContextHardLimit();
+    if (hardLimitCheck.exceeded) {
+      this.addHardLimitCard(hardLimitCheck.model!, hardLimitCheck.used!, hardLimitCheck.limit!);
       return;
     }
 
@@ -925,17 +1071,12 @@ export class TachikomaChatComponent {
           agent.status = 'idle';
           console.error(`${agent.name} Error:`, error);
 
-          // Check if it's a rate limit error
+          // ORCH-004: render explicit failed-step card; protocol continues for remaining agents
           const isRateLimitError =
             error.message?.includes('429') ||
             error.message?.includes('quota') ||
             error.message?.includes('RESOURCE_EXHAUSTED');
-
-          const errorMsg = isRateLimitError
-            ? `[RATE LIMIT: Daily quota exceeded. Try again tomorrow or upgrade your API plan at https://ai.google.dev/pricing]`
-            : `[SYSTEM ERROR: Unable to process]`;
-
-          this.addMessage(agent.name, errorMsg, false, agent.id);
+          this.addFailedStepCard(agent.name, agent.id, isRateLimitError ? 'rate-limit' : 'error', this.MAX_RETRY_ATTEMPTS);
         }
       }
 
@@ -961,17 +1102,12 @@ export class TachikomaChatComponent {
           moderator.status = 'idle';
           console.error(`${moderator.name} Error:`, error);
 
-          // Check if it's a rate limit error
+          // ORCH-004: render explicit failed-step card for moderator failures too
           const isRateLimitError =
             error.message?.includes('429') ||
             error.message?.includes('quota') ||
             error.message?.includes('RESOURCE_EXHAUSTED');
-
-          const errorMsg = isRateLimitError
-            ? `[RATE LIMIT: Daily quota exceeded. Try again tomorrow or upgrade your API plan at https://ai.google.dev/pricing]`
-            : `[SYSTEM ERROR: Unable to process]`;
-
-          this.addMessage(moderator.name, errorMsg, false, moderator.id);
+          this.addFailedStepCard(moderator.name, moderator.id, isRateLimitError ? 'rate-limit' : 'error', this.MAX_RETRY_ATTEMPTS);
         }
       }
 
@@ -984,6 +1120,9 @@ export class TachikomaChatComponent {
       ) {
         await this.generateChatTitle(text, currentChat.id);
       }
+
+      // OPER-001: finalize cost estimate before incrementing round counter
+      this.finalizeRoundCostEstimate();
 
       // Increment round counter for next user input
       this.currentRoundId++;
@@ -1097,7 +1236,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
     return history;
   }
 
-  addMessage(sender: string, text: string, isUser: boolean, agentId?: string) {
+  addMessage(sender: string, text: string, isUser: boolean, agentId?: string, messageType: ChatMessageType = 'normal') {
     const html = marked.parse(text) as string;
     this.messages.push({
       id: Date.now().toString() + Math.random(),
@@ -1107,13 +1246,41 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       isUser,
       agentId,
       timestamp: Date.now(),
-      roundId: this.currentRoundId, // Assign current round ID
+      roundId: this.currentRoundId,
+      messageType,
     });
 
     // Auto-save to storage (fire and forget)
     this.saveCurrentChat().catch((err) =>
       console.error('Error saving chat:', err)
     );
+
+    // CHAT-004: show nav when new agent messages arrive so user can jump to unread
+    if (!isUser) this._onChatFeedScroll();
+  }
+
+  /** ORCH-004: Render an explicit failed-step transcript card instead of silently skipping */
+  private addFailedStepCard(agentName: string, agentId: string, reason: 'rate-limit' | 'error', retryCount: number): void {
+    const isRateLimit = reason === 'rate-limit';
+    const text = isRateLimit
+      ? `⚠️ STEP FAILED — ${agentName} exceeded quota after ${retryCount} attempt(s).\nDaily API quota exhausted. Resume tomorrow or upgrade your API plan.`
+      : `⚠️ STEP FAILED — ${agentName} could not respond after ${retryCount} attempt(s).\nA processing error occurred. The conversation continues with the remaining agents.`;
+    const html = `<div class="failed-step-card"><span class="failed-step-icon">⚠</span><strong>${agentName} — STEP FAILED</strong><p>${isRateLimit ? 'Daily API quota exhausted. Resume tomorrow or upgrade your API plan.' : 'A processing error occurred. The conversation continues with the remaining agents.'}</p><small>Attempts: ${retryCount}</small></div>`;
+    const msgType: ChatMessageType = isRateLimit ? 'rate-limit' : 'failed-step';
+    this.messages.push({
+      id: Date.now().toString() + Math.random(),
+      sender: agentName,
+      text,
+      html,
+      isUser: false,
+      agentId,
+      timestamp: Date.now(),
+      roundId: this.currentRoundId,
+      messageType: msgType,
+      retryCount,
+    });
+    this.saveCurrentChat().catch((err) => console.error('Error saving chat:', err));
+    console.warn(`[ORCH-004] Failed step recorded for ${agentName} (${reason}, ${retryCount} attempts)`);
   }
 
   async callGemini(
@@ -1244,6 +1411,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
       // Track output tokens
       if (response.usageMetadata) {
         const outputTokens = response.usageMetadata.candidatesTokenCount || 0;
+        const inputTokensActual = response.usageMetadata.promptTokenCount || 0;
 
         // Update metrics for this specific model
         const metricsMap = new Map(this.modelMetrics());
@@ -1258,6 +1426,9 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
             `📤 Output tokens: ${outputTokens} (${modelToUse}) | Total: ${text.length} chars`
           );
         }
+
+        // OPER-001: accumulate round-level token counts for cost estimate
+        this.trackRoundTokens(inputTokensActual, outputTokens);
       }
 
       // Debug: Log response details

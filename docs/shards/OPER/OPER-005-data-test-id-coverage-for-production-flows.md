@@ -1,4 +1,4 @@
-# OPER-005 data-test-id Coverage for Production Flows
+﻿# OPER-005 data-test-id Coverage for Production Flows
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | None |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #63 |
 | **Complexity** | M |
 | **Depends On** | None |
 
@@ -30,3 +31,5 @@ Harden UI automation reliability by adding complete data-test-id coverage to int
 - Touch points: `src/app/pages/tachikoma-chat/tachikoma-chat.component.html`, `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html`, `src/app/pages/profile/profile.component.html`, `src/app/pages/authentication/side-login/side-login.component.html`, `src/app/pages/authentication/side-register/side-register.component.html`, `src/app/pages/starter/starter.component.html`.
 - Apply selectors to interactive elements and major state containers only; avoid decorative-only hooks.
 - UI Task Ref: UI-TB-008.
+
+

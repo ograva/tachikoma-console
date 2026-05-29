@@ -1,4 +1,4 @@
-# AUTH-001 Sign In and Resume
+﻿# AUTH-001 Sign In and Resume
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | AUTH-001 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #39 |
 | **Complexity** | M |
 | **Depends On** | None |
 
@@ -31,3 +32,5 @@ Implement the authentication and resume baseline so users can enter SAC using em
 - Touch points: `src/app/services/auth.service.ts`, `src/app/pages/authentication/*`, `src/app/app.routes.ts`.
 - Ensure `data-test-id` values in story are preserved on interactive auth controls.
 - UI Task Ref: UI-TB-007.
+
+

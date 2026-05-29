@@ -1,4 +1,4 @@
-# AUTH-002 Save API Credentials Safely
+﻿# AUTH-002 Save API Credentials Safely
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | AUTH-002 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #40 |
 | **Complexity** | M |
 | **Depends On** | AUTH-001 |
 
@@ -31,3 +32,5 @@ Implement safe API credential management so users can store and reuse their key 
 - Touch points: `src/app/services/user-profile.service.ts`, `src/app/services/encryption.service.ts`, `src/app/pages/profile/*`.
 - Keep API key feedback and controls discoverable and keyboard accessible.
 - UI Task Ref: UI-TB-007.
+
+

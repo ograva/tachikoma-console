@@ -1,4 +1,4 @@
-# AGNT-001 Create and Edit Agent Profiles
+﻿# AGNT-001 Create and Edit Agent Profiles
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | AGNT-001 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #42 |
 | **Complexity** | M |
 | **Depends On** | AUTH-001 |
 
@@ -30,3 +31,5 @@ Implement robust create/edit profile workflows so users can build custom persona
 - Touch points: `src/app/pages/tachikoma-profiles/*`, `src/app/services/agent-profile.service.ts`, `src/app/models/agent-profile.model.ts`.
 - Preserve default agent protection rules and snapshot semantics.
 - UI Task Ref: UI-TB-011.
+
+

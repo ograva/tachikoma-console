@@ -1,0 +1,99 @@
+// OPER-004 + OPER-006: SAC Global Token System and accessibility baseline
+// Canonical CSS custom properties for all SAC shell surfaces.
+// Consumed by: header, sidebar, full layout, chat, profiles, auth pages.
+
+:root {
+  // ── Color Palette ─────────────────────────────────────────────────────────
+  --sac-color-bg-primary:       #0a0a0a;  // Cyber black — page background
+  --sac-color-bg-secondary:     #111111;  // Slightly lighter panel background
+  --sac-color-bg-surface:       #1a1a1a;  // Cards, modals, drawers
+  --sac-color-bg-hover:         rgba(255, 255, 255, 0.04);
+
+  --sac-color-green:            #00ff41;  // Neon green — primary accent
+  --sac-color-blue:             #00f3ff;  // Neon blue — secondary accent
+  --sac-color-pink:             #ff00de;  // Neon pink — tertiary / GHOST-1
+  --sac-color-orange:           #ffa500;  // NEUTRAL agent / warning tints
+  --sac-color-red:              #f44336;  // Error / destructive
+
+  --sac-color-text-primary:     #e0e0e0;  // Main body text
+  --sac-color-text-secondary:   rgba(255, 255, 255, 0.60);
+  --sac-color-text-muted:       rgba(255, 255, 255, 0.35);
+  --sac-color-text-inverse:     #0a0a0a;  // Text on bright accent backgrounds
+
+  // ── Border & Glow ─────────────────────────────────────────────────────────
+  --sac-border-subtle:          1px solid rgba(255, 255, 255, 0.08);
+  --sac-border-accent:          1px solid rgba(0, 255, 65, 0.30);
+  --sac-border-active:          1px solid #00ff41;
+
+  --sac-glow-green:             0 0 12px rgba(0, 255, 65, 0.35);
+  --sac-glow-blue:              0 0 12px rgba(0, 243, 255, 0.35);
+  --sac-glow-pink:              0 0 12px rgba(255, 0, 222, 0.35);
+
+  // ── Typography ────────────────────────────────────────────────────────────
+  --sac-font-mono:              'JetBrains Mono', 'Share Tech Mono', monospace;
+  --sac-font-size-xs:           0.65rem;
+  --sac-font-size-sm:           0.75rem;
+  --sac-font-size-md:           0.875rem;
+  --sac-font-size-lg:           1rem;
+  --sac-font-size-xl:           1.25rem;
+  --sac-letter-spacing-caps:    0.08em;
+
+  // ── Spacing ───────────────────────────────────────────────────────────────
+  --sac-spacing-xs:             0.25rem;
+  --sac-spacing-sm:             0.5rem;
+  --sac-spacing-md:             1rem;
+  --sac-spacing-lg:             1.5rem;
+  --sac-spacing-xl:             2rem;
+
+  // ── Layout Shell ──────────────────────────────────────────────────────────
+  --sac-header-height:          70px;
+  --sac-sidebar-width:          270px;
+  --sac-sidebar-mini-width:     80px;
+  --sac-header-bg:              rgba(10, 10, 10, 0.97);
+  --sac-header-border:          1px solid rgba(0, 255, 65, 0.15);
+  --sac-sidebar-bg:             #0d0d0d;
+  --sac-sidebar-border:         1px solid rgba(0, 255, 65, 0.10);
+
+  // ── Radius & Transitions ──────────────────────────────────────────────────
+  --sac-radius-sm:              4px;
+  --sac-radius-md:              8px;
+  --sac-radius-lg:              12px;
+  --sac-transition-fast:        150ms ease;
+  --sac-transition-normal:      250ms ease;
+
+  // ── Component-specific tokens ─────────────────────────────────────────────
+  --sac-input-bg:               rgba(0, 0, 0, 0.4);
+  --sac-input-border:           rgba(0, 243, 255, 0.3);
+  --sac-input-border-focus:     #00f3ff;
+  --sac-input-color:            #00ff41;
+
+  --sac-button-primary-bg:      #00ff41;
+  --sac-button-primary-color:   #0a0a0a;
+  --sac-button-primary-hover-shadow: 0 0 16px rgba(0, 255, 65, 0.5);
+
+  // ── Focus visibility (OPER-006 alignment) ─────────────────────────────────
+  --sac-focus-ring:             2px solid #00ff41;
+  --sac-focus-ring-offset:      2px;
+  --sac-focus-ring-color:       #00ff41;
+}
+
+// OPER-006: Global focus-visible baseline
+// Ensures keyboard navigation is always visible on interactive elements.
+// Components may override with a same-color or more specific focus style.
+*:focus-visible {
+  outline: var(--sac-focus-ring);
+  outline-offset: var(--sac-focus-ring-offset);
+}
+
+// Angular Material overrides — restore focus ring on mat-buttons
+// (Material suppresses the native outline by default)
+.mat-mdc-button:focus-visible,
+.mat-mdc-icon-button:focus-visible,
+.mat-mdc-raised-button:focus-visible,
+.mat-mdc-stroked-button:focus-visible,
+.mat-mdc-flat-button:focus-visible,
+.mat-mdc-fab:focus-visible,
+.mat-mdc-mini-fab:focus-visible {
+  outline: var(--sac-focus-ring) !important;
+  outline-offset: var(--sac-focus-ring-offset) !important;
+}

@@ -1,4 +1,4 @@
-# CHAT-004 Sticky Transcript Utilities
+﻿# CHAT-004 Sticky Transcript Utilities
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | None |
 | **Priority** | Low |
 | **Status** | Not Started |
+| **GitHub Issue** | #50 |
 | **Complexity** | S |
 | **Depends On** | CHAT-001 |
 
@@ -30,3 +31,5 @@ Add sticky transcript utilities for fast vertical navigation in long chat sessio
 - Touch points: `src/app/pages/tachikoma-chat/tachikoma-chat.component.html`, `src/app/pages/tachikoma-chat/tachikoma-chat.component.scss`, `src/app/pages/tachikoma-chat/tachikoma-chat.component.ts`.
 - Keep touch targets at least 44x44 and keyboard activation parity for utility actions.
 - UI Task Ref: UI-TB-005.
+
+

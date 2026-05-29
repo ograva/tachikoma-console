@@ -1,6 +1,9 @@
 @use "sass:map";
 @use "@angular/material" as mat;
 
+// OPER-004: SAC global token system (canonical CSS custom properties)
+@use "sac-tokens";
+
 @use "themecolors/orange_theme";
 
 @use "variables" as *;

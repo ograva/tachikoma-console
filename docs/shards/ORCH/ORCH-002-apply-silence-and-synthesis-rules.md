@@ -1,4 +1,4 @@
-# ORCH-002 Apply Silence and Synthesis Rules
+﻿# ORCH-002 Apply Silence and Synthesis Rules
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | ORCH-002 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #52 |
 | **Complexity** | M |
 | **Depends On** | ORCH-001 |
 
@@ -29,3 +30,5 @@ Implement silence filtering and synthesis behavior so protocol output remains co
 
 - Touch points: `src/app/pages/tachikoma-chat/*`, `src/app/models/agent-profile.model.ts`.
 - Keep behavior deterministic and avoid brittle string-matching where possible.
+
+

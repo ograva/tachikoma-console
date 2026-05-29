@@ -292,6 +292,54 @@
   }
 }
 
+// OPER-006: Consistent focus-visible treatment for keyboard navigation
+:focus-visible {
+  outline: 2px solid var(--neon-cyan, #00f3ff);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--neon-cyan, #00f3ff);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.intent-draft-card {
+  margin-bottom: 24px;
+  border: 1px solid rgba(160, 90, 255, 0.3);
+
+  mat-card-title { display: flex; align-items: center; gap: 8px; font-size: 1rem; }
+}
+
+.draft-preview {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 4px;
+
+  h3 { margin: 0 0 12px; font-size: 0.85rem; color: var(--neon-green, #00ff41); }
+
+  .draft-fields { display: flex; flex-direction: column; gap: 8px; }
+
+  .draft-field { font-size: 0.85rem; color: #ccc; }
+
+  .draft-system {
+    margin-top: 8px;
+    white-space: pre-wrap;
+    background: rgba(255,255,255,0.04);
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+
+  .draft-actions { display: flex; gap: 12px; margin-top: 16px; }
+}
+
 // Material overrides for cyberpunk theme
 ::ng-deep {
   .profiles-container {

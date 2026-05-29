@@ -1,4 +1,4 @@
-# OPER-001 Show Token and Cost Estimates
+﻿# OPER-001 Show Token and Cost Estimates
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | OPER-001 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #59 |
 | **Complexity** | M |
 | **Depends On** | ORCH-001 |
 
@@ -30,3 +31,5 @@ Implement runtime token and cost estimate visibility to improve user trust and c
 - Touch points: `src/app/pages/tachikoma-chat/*`.
 - UI Task Ref: UI-TB-004.
 - Keep estimate confidence messaging explicit where exact counts are unavailable.
+
+

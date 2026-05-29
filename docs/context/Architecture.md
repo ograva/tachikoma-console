@@ -126,7 +126,7 @@ Key stories: SYNC-001, SYNC-002, SYNC-003, SYNC-004.
 
 Architectural note: localStorage is the immediate source of truth; Firestore is a forwarded cloud mirror for authenticated users.
 
-v1.3 requirement: SAC Firestore data must be namespaced under `/apps/sac` to avoid collisions in shared Firebase projects.
+v1.3 requirement: SAC Firestore data must be stored in a dedicated Firestore database (for example, `sac`) to avoid collisions in shared Firebase projects.
 
 ### OPER - Operational Guardrails, Quotas, and Quality Signals
 
@@ -169,13 +169,13 @@ Architectural rule: `createdAt` is treated as a practical persistence field even
 | Firestore chat sync | Service write | `ChatSession` | Persisted doc | Authenticated for cloud |
 | API-key encryption | Service transform | plaintext key + user id | AES-GCM ciphertext | Authenticated/cloud |
 
-### Firestore Namespace Policy
+### Firestore Database Isolation Policy
 
-- SAC collections are namespaced under `/apps/sac`.
-- Canonical paths:
-  - `/apps/sac/users/{userId}/chat_sessions/{chatId}`
-  - `/apps/sac/users/{userId}/agent_profiles/{agentId}`
-  - `/apps/sac/users/{userId}/user_profile/{userId}`
+- SAC data uses a dedicated Firestore database (for example, database id `sac`).
+- Canonical paths inside the SAC database:
+  - `/users/{userId}/chat_sessions/{chatId}`
+  - `/users/{userId}/agent_profiles/{agentId}`
+  - `/users/{userId}/user_profile/{userId}`
 
 ### Runtime Model/Protocol Integration
 
@@ -294,4 +294,4 @@ These are the highest-value improvements to consider next:
 - Introduce explicit conflict-resolution semantics for sync merges.
 - Add a stronger UI-visible quota/token dashboard and make quota-source assumptions explicit.
 - Make silence behavior more explicit and less string-fragile.
-- Complete implementation-level alignment for `/apps/sac` Firestore namespacing across all services.
+- Complete implementation-level alignment for dedicated SAC Firestore database selection across all services.

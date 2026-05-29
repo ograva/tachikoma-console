@@ -1097,6 +1097,68 @@
     font-size: 0.75rem;
 }
 
+/* CHAT-004: Sticky transcript navigation */
+.scroll-nav {
+    position: absolute;
+    right: 1rem;
+    bottom: 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+
+    &.scroll-nav-visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+.scroll-nav-btn {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    background: rgba(10, 10, 10, 0.92) !important;
+    border: 1px solid rgba(0, 255, 65, 0.4) !important;
+    color: #00ff41 !important;
+    position: relative;
+
+    &:hover {
+        border-color: #00ff41 !important;
+        box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+    }
+
+    &:focus-visible {
+        outline: 2px solid #00ff41;
+        outline-offset: 2px;
+    }
+}
+
+.scroll-nav-unread {
+    background: rgba(0, 243, 255, 0.15) !important;
+    border-color: rgba(0, 243, 255, 0.5) !important;
+    color: #00f3ff !important;
+}
+
+.unread-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #00f3ff;
+    color: #000;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+}
+
 .chat-feed {
     flex: 1;
     overflow-y: auto;
@@ -1105,6 +1167,103 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+}
+
+/* OPER-001: Round cost estimate badge */
+.round-cost-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    background: rgba(0, 243, 255, 0.05);
+    border: 1px solid rgba(0, 243, 255, 0.2);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: rgba(0, 243, 255, 0.7);
+    align-self: center;
+    font-family: 'JetBrains Mono', monospace;
+    width: fit-content;
+
+    .cost-icon {
+        font-size: 0.85rem;
+        width: 0.85rem;
+        height: 0.85rem;
+        color: rgba(0, 243, 255, 0.5);
+    }
+
+    .cost-sep { color: rgba(255, 255, 255, 0.3); }
+
+    .cost-value {
+        color: #00f3ff;
+        font-weight: 600;
+    }
+
+    .cost-label {
+        color: rgba(255, 255, 255, 0.35);
+        font-size: 0.65rem;
+    }
+}
+
+/* ORCH-004: Failed step transcript card */
+.failed-step-card {
+    width: 100%;
+    border: 1px solid rgba(255, 165, 0, 0.5);
+    border-radius: 6px;
+    background: rgba(255, 100, 0, 0.08);
+    padding: 0.75rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+
+    &.rate-limit-card {
+        border-color: rgba(244, 67, 54, 0.6);
+        background: rgba(244, 67, 54, 0.08);
+    }
+}
+
+.failed-step-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+
+    .failed-icon {
+        color: #ff9800;
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+    }
+
+    .rate-limit-card & .failed-icon { color: #f44336; }
+
+    .failed-agent-name {
+        font-weight: 700;
+        color: #ff9800;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .rate-limit-card & .failed-agent-name { color: #f44336; }
+
+    .failed-label {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.8rem;
+    }
+}
+
+.failed-step-body {
+    p {
+        margin: 0 0 0.25rem;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.5;
+    }
+    small {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.45);
+    }
+}
+
+.failed-step-msg {
+    justify-content: stretch;
 }
 
 .intro-message {
@@ -1379,6 +1538,41 @@
     }
 }
 
+/* OPER-002: Soft limit warning banner */
+.soft-limit-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 152, 0, 0.12);
+    border-top: 1px solid rgba(255, 152, 0, 0.4);
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: #ffb74d;
+    flex-shrink: 0;
+
+    .banner-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+        color: #ff9800;
+        flex-shrink: 0;
+    }
+
+    strong { color: #ffcc02; }
+
+    &:focus-visible {
+        outline: 2px solid #ff9800;
+        outline-offset: -2px;
+    }
+}
+
+/* OPER-002: Hard limit card (reuses failed-step styles with distinct color) */
+.hard-limit-card {
+    strong { display: block; margin-bottom: 0.25rem; color: #f44336; }
+    p { margin: 0.25rem 0; font-size: 0.8rem; color: rgba(255,255,255,0.75); }
+}
+
 /* Footer */
 .chat-footer {
     background-color: black;
@@ -1492,4 +1686,65 @@
 @keyframes typing {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1); }
+}
+
+// ORCH-004: Failed-step transcript card styles
+::ng-deep .failed-step-card {
+    background: rgba(255, 60, 60, 0.08);
+    border: 1px solid rgba(255, 60, 60, 0.4);
+    border-left: 3px solid #ff3c3c;
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: #ff9999;
+
+    .failed-step-icon { margin-right: 6px; }
+    strong { color: #ff6666; display: block; margin-bottom: 4px; }
+    p { margin: 4px 0; color: #cc8888; }
+    small { color: #886666; font-size: 0.75rem; }
+}
+
+// CHAT-004: Sticky transcript navigation utilities
+.transcript-nav {
+    position: fixed;
+    right: 20px;
+    bottom: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+
+    &.visible {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    button {
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 0, 0, 0.75);
+        border: 1px solid rgba(0, 243, 255, 0.4);
+        border-radius: 50%;
+        color: #00f3ff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s, border-color 0.2s;
+        min-width: 44px;
+        min-height: 44px;
+
+        &:hover, &:focus-visible {
+            background: rgba(0, 243, 255, 0.15);
+            border-color: #00f3ff;
+            outline: 2px solid #00f3ff;
+            outline-offset: 2px;
+        }
+
+        mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    }
 }

@@ -1,7 +1,7 @@
 <div class="blank-layout-container justify-content-center align-items-center bg-light">
   <div class="position-relative row w-100 h-100 bg-gredient justify-content-center">
     <div class="col-lg-4 d-flex align-items-center">
-      <mat-card class="cardWithShadow boxed-auth">
+      <mat-card class="cardWithShadow boxed-auth" data-test-id="auth-register-card">
         <mat-card-content class="p-32">
           <div class="text-center">
             <a [routerLink]="['/dashboard']">
@@ -11,14 +11,16 @@
 
           <!-- Error Message -->
           @if (errorMessage()) {
-            <div class="alert alert-error m-t-16 m-b-16">
+            <div class="alert alert-error m-t-16 m-b-16" role="alert" data-test-id="auth-register-error">
               {{ errorMessage() }}
             </div>
           }
 
           <div class="row m-t-24 custom-row">
             <div class="col-12">
-              <button mat-stroked-button class="w-100" (click)="signInWithGoogle()" [disabled]="isLoading()">
+              <button mat-stroked-button class="w-100" (click)="signInWithGoogle()" [disabled]="isLoading()"
+                aria-label="Sign up with Google"
+                data-test-id="auth-register-google-btn">
                 <div class="d-flex align-items-center justify-content-center">
                   <img src="/assets/images/svgs/google-icon.svg" alt="google" width="16" class="m-r-8" />
                   Sign up with Google
@@ -29,10 +31,12 @@
 
           <div class="or-border m-t-30">or sign up with email</div>
 
-          <form class="m-t-30" [formGroup]="form" (ngSubmit)="submit()">
+          <form class="m-t-30" [formGroup]="form" (ngSubmit)="submit()" data-test-id="auth-register-form">
             <mat-label class="f-s-14 f-w-600 m-b-12 d-block">Email Address</mat-label>
             <mat-form-field appearance="outline" class="w-100" color="primary">
-              <input matInput type="email" formControlName="email" />
+              <input matInput type="email" formControlName="email"
+                aria-label="Email address"
+                data-test-id="auth-register-email-input" />
               @if (f.email.touched && f.email.errors?.['required']) {
                 <mat-error>Email is required</mat-error>
               }
@@ -43,7 +47,9 @@
             <!-- password -->
             <mat-label class="f-s-14 f-w-600 m-b-12 d-block">Password</mat-label>
             <mat-form-field appearance="outline" class="w-100" color="primary">
-              <input matInput type="password" formControlName="password" />
+              <input matInput type="password" formControlName="password"
+                aria-label="Password"
+                data-test-id="auth-register-password-input" />
               @if (f.password.touched && f.password.errors?.['required']) {
                 <mat-error>Password is required</mat-error>
               }
@@ -54,22 +60,26 @@
             <!-- confirm password -->
             <mat-label class="f-s-14 f-w-600 m-b-12 d-block">Confirm Password</mat-label>
             <mat-form-field appearance="outline" class="w-100" color="primary">
-              <input matInput type="password" formControlName="confirmPassword" />
+              <input matInput type="password" formControlName="confirmPassword"
+                aria-label="Confirm password"
+                data-test-id="auth-register-confirm-input" />
               @if (f.confirmPassword.touched && f.confirmPassword.errors?.['required']) {
                 <mat-error>Please confirm your password</mat-error>
               }
             </mat-form-field>
 
-            <button mat-flat-button color="primary" class="w-100" type="submit" [disabled]="isLoading() || form.invalid">
+            <button mat-flat-button color="primary" class="w-100" type="submit"
+              [disabled]="isLoading() || form.invalid"
+              data-test-id="auth-register-submit-btn">
               @if (isLoading()) {
                 <mat-spinner diameter="20" class="m-r-8"></mat-spinner>
               }
               Sign Up
             </button>
-            <!-- input -->
           </form>
           <span class="d-block f-w-500 text-center m-t-24">Already have an Account?
-            <a [routerLink]="['/authentication/login']" class="text-decoration-none text-primary f-w-500 f-s-14">
+            <a [routerLink]="['/authentication/login']" class="text-decoration-none text-primary f-w-500 f-s-14"
+              data-test-id="auth-login-link">
               Sign In</a>
           </span>
         </mat-card-content>

@@ -17,7 +17,7 @@ Acceptance Criteria:
 - Restore logic preserves timestamps needed for conflict resolution.
 - Encrypted fields are decrypted only after authorized retrieval.
 - Recovery logic respects the user's chosen sync strategy.
-- Restored SAC records resolve from namespaced Firestore paths under `apps/sac`.
+- Restored SAC records resolve from canonical `/users/{userId}/...` paths in the SAC-dedicated Firestore database.
 
 data-test-id:
 

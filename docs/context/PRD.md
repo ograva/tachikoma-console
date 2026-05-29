@@ -84,14 +84,14 @@ This module governs the two-stage persistence model: instant local writes with a
 
 Current baseline: localStorage-first persistence, Firestore backup, encryption hooks, sync dialog, timestamps, and offline-friendly behavior exist. The product requirement is local-first continuity with cloud sync as a forward-only enhancement for authenticated users.
 
-SAC cloud data paths are namespaced under `/apps/sac` to prevent collisions with other apps sharing the same Firebase project.
+SAC cloud data is isolated in a dedicated Firestore database to prevent collisions with other apps sharing the same Firebase project.
 
 Stories:
 
 - SYNC-001 Save Locally Before Cloud Sync
 - SYNC-002 Restore Data Across Devices
 - SYNC-003 Support Offline-First Operation
-- SYNC-004 Use Firestore App Namespace
+- SYNC-004 Use Dedicated Firestore Database Isolation
 
 ### OPER - Operational Guardrails, Quotas, and Quality Signals
 
@@ -127,7 +127,7 @@ Accessibility: All new SAC workflows must meet WCAG 2.1 AA for keyboard navigati
 
 Offline/PWA support: Existing local chats, profiles, and settings must remain available when offline. Local changes made offline must queue for later synchronization when authentication and network conditions allow.
 
-Scalability: The product must support at least 1,000 stored chat sessions per user and 100 agent profiles per user without making core lists unusable. Cloud sync should remain incremental and timestamp-based where avoidable, with SAC records namespaced under `/apps/sac`.
+Scalability: The product must support at least 1,000 stored chat sessions per user and 100 agent profiles per user without making core lists unusable. Cloud sync should remain incremental and timestamp-based where avoidable, with SAC records stored in the SAC-dedicated Firestore database.
 
 ## 6. Out of Scope
 

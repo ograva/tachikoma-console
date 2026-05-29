@@ -1,4 +1,4 @@
-# CHAT-003 Export Conversation Records
+﻿# CHAT-003 Export Conversation Records
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | CHAT-003 |
 | **Priority** | Medium |
 | **Status** | Not Started |
+| **GitHub Issue** | #49 |
 | **Complexity** | S |
 | **Depends On** | CHAT-002 |
 
@@ -30,3 +31,5 @@ Implement export flows that preserve transcript integrity for external reuse. Th
 - Touch points: `src/app/pages/tachikoma-chat/*`.
 - Use existing export libraries; avoid introducing new UI frameworks.
 - Keep export menu controls keyboard accessible.
+
+

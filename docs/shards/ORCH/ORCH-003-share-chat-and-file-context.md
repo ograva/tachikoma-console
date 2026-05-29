@@ -1,4 +1,4 @@
-# ORCH-003 Share Chat and File Context
+﻿# ORCH-003 Share Chat and File Context
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | ORCH-003 |
 | **Priority** | Medium |
 | **Status** | Not Started |
+| **GitHub Issue** | #53 |
 | **Complexity** | M |
 | **Depends On** | ORCH-001, CHAT-001 |
 
@@ -30,3 +31,5 @@ Implement shared context assembly across chat metadata and uploaded files so all
 - Touch points: `src/app/pages/tachikoma-chat/*`.
 - Keep context handling transparent in diagnostics.
 - Validate payload growth against token governance policies.
+
+

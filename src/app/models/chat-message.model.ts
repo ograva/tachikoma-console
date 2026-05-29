@@ -1,3 +1,5 @@
+export type ChatMessageType = 'normal' | 'failed-step' | 'rate-limit';
+
 /**
  * Individual chat message interface
  */
@@ -9,6 +11,10 @@ export interface ChatMessage {
   isUser: boolean;
   agentId?: string;
   timestamp: number;
+  /** Explicit message type for failed-step and rate-limit transcript cards (ORCH-004) */
+  messageType?: ChatMessageType;
+  /** Number of retry attempts made before failure */
+  retryCount?: number;
 }
 
 /**

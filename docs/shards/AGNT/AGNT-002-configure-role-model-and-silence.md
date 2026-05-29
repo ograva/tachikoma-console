@@ -1,4 +1,4 @@
-# AGNT-002 Configure Role, Model, and Silence
+﻿# AGNT-002 Configure Role, Model, and Silence
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | AGNT-002 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #43 |
 | **Complexity** | M |
 | **Depends On** | AGNT-001 |
 
@@ -30,3 +31,5 @@ Implement role, model, and silence configuration guardrails for each persona pro
 - Touch points: `src/app/pages/tachikoma-profiles/*`, `src/app/models/agent-profile.model.ts`.
 - Keep model policy aligned to constraints and canonical data model spec.
 - Coordinate with ORCH shards that consume silence/role configuration.
+
+

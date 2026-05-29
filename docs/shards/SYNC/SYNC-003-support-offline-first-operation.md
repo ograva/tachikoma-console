@@ -1,4 +1,4 @@
-# SYNC-003 Support Offline-First Operation
+﻿# SYNC-003 Support Offline-First Operation
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | SYNC-003 |
 | **Priority** | Medium |
 | **Status** | Not Started |
+| **GitHub Issue** | #57 |
 | **Complexity** | M |
 | **Depends On** | SYNC-001 |
 
@@ -29,3 +30,5 @@ Implement predictable offline-first behavior so users can continue work during c
 
 - Touch points: `src/app/services/firestore.service.ts`, `src/app/services/chat-storage.service.ts`, `src/app/services/agent-profile.service.ts`.
 - Keep offline indicators clear and non-blocking.
+
+

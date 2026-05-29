@@ -1,4 +1,4 @@
-# SYNC-002 Restore Data Across Devices
+﻿# SYNC-002 Restore Data Across Devices
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | SYNC-002 |
 | **Priority** | High |
 | **Status** | Not Started |
+| **GitHub Issue** | #58 |
 | **Complexity** | M |
 | **Depends On** | SYNC-001, AUTH-003 |
 
@@ -28,4 +29,6 @@ Implement deterministic cross-device restore for authenticated users using cloud
 ## Dev Notes
 
 - Touch points: `src/app/services/firestore.service.ts`, `src/app/services/user-profile.service.ts`, `src/app/services/chat-storage.service.ts`.
-- Ensure restore logic resolves from namespaced paths once SYNC-004 is complete.
+- Ensure restore logic resolves against the SAC-dedicated Firestore database once SYNC-004 is complete.
+
+

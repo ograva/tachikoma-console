@@ -1,4 +1,4 @@
-# AGNT-005 Replace Browser Dialogs with Material Dialogs
+﻿# AGNT-005 Replace Browser Dialogs with Material Dialogs
 
 | Field | Value |
 | :--- | :--- |
@@ -7,6 +7,7 @@
 | **Story Ref** | None |
 | **Priority** | Medium |
 | **Status** | Not Started |
+| **GitHub Issue** | #46 |
 | **Complexity** | S |
 | **Depends On** | AGNT-001 |
 
@@ -30,3 +31,5 @@ Replace native browser alert and confirm interactions in the profile configurati
 - Touch points: `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.ts`, `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html`.
 - Use Angular Material dialog primitives only; avoid introducing alternate dialog systems.
 - UI Task Ref: UI-TB-010.
+
+
