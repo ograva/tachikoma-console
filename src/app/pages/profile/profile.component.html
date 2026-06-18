@@ -184,7 +184,7 @@
             <span class="label-hint">(Select your preferred AI model)</span>
           </mat-label>
           <mat-form-field appearance="outline" class="model-select">
-            <mat-select [value]="profile()?.geminiModel || 'gemini-2.5-flash'"
+            <mat-select [value]="profile()?.geminiModel || 'models/gemini-3.5-flash'"
               (selectionChange)="onModelChange($event.value)"
               aria-label="Select Gemini model"
               data-test-id="profile-model-select">

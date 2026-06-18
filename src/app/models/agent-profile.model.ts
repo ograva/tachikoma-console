@@ -58,9 +58,23 @@ export class AgentProfileModel {
    * Use this when loading data from any source (localStorage, Firestore)
    */
   static normalize(profile: Partial<AgentProfile>): AgentProfile {
+    let model = profile.model;
+    const validModels = [
+      'models/gemma-4-26b-a4b-it',
+      'models/gemma-4-31b-it',
+      'models/gemini-flash-latest',
+      'models/gemini-flash-lite-latest',
+      'models/gemini-pro-latest',
+      'models/gemini-3.1-pro-preview',
+      'models/gemini-3.1-flash-lite',
+      'models/gemini-3.5-flash'
+    ];
+    if (!model || !validModels.includes(model)) {
+      model = AgentProfileModel.DEFAULTS.model;
+    }
     return {
       ...profile,
-      model: profile.model ?? AgentProfileModel.DEFAULTS.model,
+      model,
       silenceProtocol:
         profile.silenceProtocol ?? AgentProfileModel.DEFAULTS.silenceProtocol,
       status: profile.status ?? AgentProfileModel.DEFAULTS.status,

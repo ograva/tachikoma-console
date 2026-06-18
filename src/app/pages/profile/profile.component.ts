@@ -57,7 +57,7 @@ export class ProfileComponent {
   displayNameInput = signal<string>('');
   chatUsernameInput = signal<string>('');
   apiKeyInput = signal<string>('');
-  selectedModel = signal<GeminiModel>('gemini-3.5-flash');
+  selectedModel = signal<GeminiModel>('models/gemini-3.5-flash');
 
   // API key validation state
   isValidatingApiKey = signal<boolean>(false);

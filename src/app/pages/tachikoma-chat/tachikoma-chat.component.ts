@@ -44,6 +44,10 @@ interface Agent {
   model?: string; // Gemini model to use for this agent
   status: 'idle' | 'thinking';
   silenceProtocol?: 'standard' | 'always_speak' | 'conservative' | 'agreeable';
+  systemMode?: 'form' | 'xml' | 'plaintext';
+  systemFields?: any;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 type ChatMessageType = 'normal' | 'failed-step' | 'rate-limit';
@@ -77,7 +81,7 @@ export class TachikomaChatComponent {
   private authService = inject(AuthService);
 
   apiKey = '';
-  selectedModel: GeminiModel = 'gemini-3.5-flash';
+  selectedModel: GeminiModel = 'models/gemini-3.5-flash';
   userInput = '';
   chatTitle = ''; // Title for new chat
   chatDescription = ''; // Description for new chat context
@@ -785,9 +789,12 @@ export class TachikomaChatComponent {
       hex: a.hex,
       temp: a.temp,
       system: a.system,
+      systemMode: a.systemMode,
+      systemFields: a.systemFields,
       role: a.role,
+      model: a.model,
       silenceProtocol: a.silenceProtocol,
-      createdAt: Date.now(),
+      createdAt: a.createdAt || Date.now(),
       updatedAt: Date.now(),
     }));
     await this.chatStorage.updateCurrentChat(this.messages, agentProfiles);
@@ -1320,7 +1327,7 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
   }
 
   addMessage(sender: string, text: string, isUser: boolean, agentId?: string, messageType: ChatMessageType = 'normal') {
-    const html = marked.parse(text) as string;
+    const html = marked.parse(text, { async: false }) as string;
     this.messages.push({
       id: Date.now().toString() + Math.random(),
       sender,
