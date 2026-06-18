@@ -42,7 +42,7 @@ export class UserProfileService {
     () => this.profileSignal()?.geminiApiKey || ''
   );
   readonly geminiModel = computed(
-    () => this.profileSignal()?.geminiModel || 'gemini-2.5-flash'
+    () => this.profileSignal()?.geminiModel || 'models/gemini-3.5-flash'
   );
 
   constructor() {
@@ -246,7 +246,7 @@ export class UserProfileService {
    * Get current Gemini model
    */
   getGeminiModel(): GeminiModel {
-    return this.profileSignal()?.geminiModel || 'gemini-2.5-flash';
+    return this.profileSignal()?.geminiModel || 'models/gemini-3.5-flash';
   }
 
   /**

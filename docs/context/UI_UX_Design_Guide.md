@@ -4,6 +4,7 @@
 
 | Version | Date | Author | Summary of Changes |
 | :---- | :---- | :---- | :---- |
+| v1.4 | 2026-06-18 | Eunice (UI UX Designer) | Added Landscape Roundtable Panel Layout and VS Code-Style Compact Status Bar specifications. |
 | v1.3 | 2026-05-29 | Eunice (UI UX Designer) | Added reusable template pack for tasking, sharding, component contracts, QA validation, and theme rollout gating. |
 | v1.2 | 2026-05-29 | Eunice (UI UX Designer) | Added implementation-ready task board reference mapped by file and component for Poe sharding. |
 | v1.1 | 2026-05-29 | Eunice (UI UX Designer) | Added cohesive SAC theme direction inspired by Ghost in the Shell, including token system, navigation model, component states, and implementation guidance. |
@@ -450,6 +451,8 @@ Resolution used for this theme:
 
 - Primary board for execution planning and sharding:
   - docs/context/designs/TaskBoard_UI_Implementation.md
+- Landscape Roundtable Panel Layout & Compact Status Bar Design Contract:
+  - docs/context/designs/Landscape_Roundtable_Panel_Layout.md
 
 ## Template Pack Reference
 

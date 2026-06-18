@@ -946,6 +946,15 @@
     }
 }
 
+// In landscape mode make the drawer-content a flex column so sections fill height
+.landscape-grid-mode .chat-drawer-container {
+    ::ng-deep .mat-drawer-content {
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+}
+
 /* Chat History Drawer */
 .chat-history-drawer {
     width: 320px;
@@ -1705,6 +1714,386 @@
     small { color: #886666; font-size: 0.75rem; }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// HEADER API INIT BAR (compact, shown inside header when not initialised)
+// ────────────────────────────────────────────────────────────────────────────
+.header-api-init {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+
+    .api-input {
+        width: 14rem;
+
+        @media (max-width: 900px) {
+            width: 10rem;
+        }
+    }
+
+    .init-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+        white-space: nowrap;
+    }
+}
+
+.history-toggle-btn-header {
+    color: var(--neon-blue) !important;
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 4px;
+    padding: 4px;
+
+    &:hover {
+        background: rgba(0, 243, 255, 0.1) !important;
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// VS CODE-STYLE COMPACT STATUS BAR (24px, omnipresent at bottom)
+// ────────────────────────────────────────────────────────────────────────────
+.vscode-status-bar {
+    height: 24px;
+    min-height: 24px;
+    background: #007acc;          // VS Code blue — the brand anchor
+    color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    z-index: 100;
+    gap: 4px;
+    overflow: hidden;
+
+    .status-left,
+    .status-right {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        overflow: hidden;
+    }
+
+    .status-item {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        padding: 0 5px;
+        height: 24px;
+        white-space: nowrap;
+        cursor: default;
+        transition: background 0.15s;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        &.status-warn {
+            color: #fbbf24;
+        }
+
+        &.status-danger {
+            color: #f87171;
+            animation: meterPulse 1s ease-in-out infinite;
+        }
+
+        &.status-processing {
+            color: #4ade80;
+        }
+    }
+
+    .status-sep {
+        opacity: 0.35;
+        padding: 0 2px;
+    }
+
+    .status-icon {
+        font-size: 12px;
+        width: 12px;
+        height: 12px;
+        line-height: 12px;
+    }
+
+    .status-dot-sm {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #4ade80;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        flex-shrink: 0;
+
+        &.dot-warn {
+            background: #fbbf24;
+        }
+    }
+
+    .sync-item {
+        font-weight: 600;
+    }
+
+    .spin-icon {
+        animation: spinOnce 1.5s linear infinite;
+    }
+}
+
+@keyframes spinOnce {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// LANDSCAPE ROUNDTABLE PANEL LAYOUT
+// ────────────────────────────────────────────────────────────────────────────
+
+// Top input bar (landscape only)
+.top-input-bar {
+    background: rgba(0, 0, 0, 0.7);
+    border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+    padding: 0.5rem 1rem;
+    flex-shrink: 0;
+
+    .input-wrapper {
+        max-width: 100%;
+    }
+}
+
+// Round navigation bar
+.round-nav-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 4px 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+    flex-shrink: 0;
+    min-height: 36px;
+    flex-wrap: wrap;
+
+    .nav-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .nav-arrow {
+        background: transparent;
+        border: 1px solid rgba(0, 243, 255, 0.4);
+        color: var(--neon-blue);
+        border-radius: 3px;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        padding: 0;
+
+        mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
+
+        &:hover:not([disabled]) {
+            background: rgba(0, 243, 255, 0.15);
+            border-color: var(--neon-blue);
+        }
+
+        &[disabled] {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+    }
+
+    .round-indicator {
+        font-size: 0.7rem;
+        color: var(--neon-green);
+        font-family: 'Share Tech Mono', monospace;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+    }
+
+    .round-prompt-preview {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-width: 0;
+        overflow: hidden;
+
+        .prompt-label {
+            font-size: 0.6rem;
+            color: #6b7280;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 0.05em;
+            flex-shrink: 0;
+
+            &.empty-prompt {
+                color: rgba(255, 255, 255, 0.3);
+                font-style: italic;
+            }
+        }
+
+        .prompt-text {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.7);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .round-processing {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+
+        .typing-dot {
+            width: 5px;
+            height: 5px;
+        }
+
+        .processing-label {
+            font-size: 0.6rem;
+            color: var(--neon-green);
+            letter-spacing: 0.08em;
+            font-family: 'Share Tech Mono', monospace;
+        }
+    }
+}
+
+// Landscape column grid
+.landscape-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+
+    // Moderator column always slightly wider and on the right (visual weight)
+    .moderator-col {
+        border-left: 2px solid rgba(255, 255, 255, 0.12) !important;
+    }
+}
+
+.agent-column {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+
+    &:last-child {
+        border-right: none;
+    }
+
+    .column-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        flex-shrink: 0;
+        min-height: 32px;
+
+        .col-agent-icon {
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .col-agent-name {
+            font-size: 0.75rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+        }
+
+        .col-role-badge {
+            font-size: 0.55rem;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.08em;
+            font-family: 'Share Tech Mono', monospace;
+            margin-left: auto;
+        }
+
+        .col-thinking-badge {
+            font-size: 0.55rem;
+            color: var(--neon-green);
+            letter-spacing: 0.08em;
+            font-family: 'Share Tech Mono', monospace;
+            animation: meterPulse 1s ease-in-out infinite;
+            margin-left: 4px;
+        }
+    }
+
+    .column-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+
+        .column-msg-content {
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        .col-processing {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            padding: 1rem;
+
+            .typing-dot {
+                width: 6px;
+                height: 6px;
+            }
+        }
+    }
+}
+
+.silence-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 0.7rem;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.05em;
+
+    .silence-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        opacity: 0.4;
+    }
+
+    .silence-sub {
+        font-size: 0.6rem;
+        opacity: 0.6;
+    }
+}
+
+.col-empty {
+    text-align: center;
+    padding: 1rem;
+    color: rgba(255, 255, 255, 0.15);
+}
+
+.landscape-file-bar {
+    flex-shrink: 0;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // CHAT-004: Sticky transcript navigation utilities
 .transcript-nav {
     position: fixed;

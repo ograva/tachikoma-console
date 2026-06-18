@@ -23,8 +23,8 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
 
     await page.evaluate(() => {
       const agents = [
-        { id: 'logikoma', name: 'LOGIKOMA', color: 'logikoma', hex: '#00f3ff', temp: 0.2, role: 'chatter', system: 'Analyze.', model: 'models/gemini-2.0-flash-exp', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
-        { id: 'moderator', name: 'MODERATOR', color: 'moderator', hex: '#00ff41', temp: 0.5, role: 'moderator', system: 'Synthesize.', model: 'models/gemini-1.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
+        { id: 'logikoma', name: 'LOGIKOMA', color: 'logikoma', hex: '#00f3ff', temp: 0.2, role: 'chatter', system: 'Analyze.', model: 'models/gemini-3.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
+        { id: 'moderator', name: 'MODERATOR', color: 'moderator', hex: '#00ff41', temp: 0.5, role: 'moderator', system: 'Synthesize.', model: 'models/gemini-3.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
       ];
       localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([{
         id: 'oper-chat', title: 'OPER Test', messages: [],
@@ -186,8 +186,8 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
         localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([{
           id: 'oper-chat', title: 'OPER Test', messages,
           participatingAgents: [
-            { id: 'logikoma', name: 'LOGIKOMA', color: 'logikoma', hex: '#00f3ff', temp: 0.2, role: 'chatter', system: 'Analyze.', model: 'models/gemini-2.0-flash-exp', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
-            { id: 'moderator', name: 'MODERATOR', color: 'moderator', hex: '#00ff41', temp: 0.5, role: 'moderator', system: 'Synthesize.', model: 'models/gemini-1.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
+            { id: 'logikoma', name: 'LOGIKOMA', color: 'logikoma', hex: '#00f3ff', temp: 0.2, role: 'chatter', system: 'Analyze.', model: 'models/gemini-3.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
+            { id: 'moderator', name: 'MODERATOR', color: 'moderator', hex: '#00ff41', temp: 0.5, role: 'moderator', system: 'Synthesize.', model: 'models/gemini-3.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
           ],
           conversationSummary: '', createdAt: now, updatedAt: now,
         }]));
@@ -215,8 +215,8 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       await page.locator('[data-test-id="chat-send-btn"]').click();
       await expect(page.locator('[data-test-id="chat-agent-message"]').first()).toBeVisible({ timeout: 15_000 });
 
-      // The prompt should contain "EARLIER CONTEXT (Moderator Summaries)" for the old rounds
-      expect(historyInPrompt).toContain('RECENT CONVERSATION');
+      // The prompt should contain "CONVERSATION HISTORY" for the old rounds
+      expect(historyInPrompt).toContain('CONVERSATION HISTORY');
     });
 
     test('T515 older rounds are compressed to moderator-only in context', async ({ page }) => {
@@ -251,8 +251,8 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       await page.locator('[data-test-id="chat-send-btn"]').click();
       await expect(page.locator('[data-test-id="chat-agent-message"]').first()).toBeVisible({ timeout: 15_000 });
 
-      // Older rounds should be compressed — prompt should mention "Moderator Summaries" not individual chatter messages for old rounds
-      expect(promptText).toContain('RECENT CONVERSATION');
+      // Older rounds should be compressed — prompt should mention "CONVERSATION HISTORY" not individual chatter messages for old rounds
+      expect(promptText).toContain('CONVERSATION HISTORY');
     });
 
     test('T516 long conversation stays responsive (no O(n²) growth)', async ({ page }) => {

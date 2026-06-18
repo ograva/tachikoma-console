@@ -47,7 +47,7 @@ export class AgentProfileModel {
    * Default values for optional fields
    */
   static readonly DEFAULTS = {
-    model: 'models/gemini-2.0-flash-exp',
+    model: 'models/gemini-3.5-flash',
     silenceProtocol: 'standard' as SilenceProtocol,
     status: 'idle' as AgentStatus,
     systemMode: 'plaintext' as SystemMode, // Backward compatible default
@@ -58,9 +58,23 @@ export class AgentProfileModel {
    * Use this when loading data from any source (localStorage, Firestore)
    */
   static normalize(profile: Partial<AgentProfile>): AgentProfile {
+    let model = profile.model;
+    const validModels = [
+      'models/gemma-4-26b-a4b-it',
+      'models/gemma-4-31b-it',
+      'models/gemini-flash-latest',
+      'models/gemini-flash-lite-latest',
+      'models/gemini-pro-latest',
+      'models/gemini-3.1-pro-preview',
+      'models/gemini-3.1-flash-lite',
+      'models/gemini-3.5-flash'
+    ];
+    if (!model || !validModels.includes(model)) {
+      model = AgentProfileModel.DEFAULTS.model;
+    }
     return {
       ...profile,
-      model: profile.model ?? AgentProfileModel.DEFAULTS.model,
+      model,
       silenceProtocol:
         profile.silenceProtocol ?? AgentProfileModel.DEFAULTS.silenceProtocol,
       status: profile.status ?? AgentProfileModel.DEFAULTS.status,
@@ -129,7 +143,7 @@ export class AgentProfileModel {
         hex: '#00f3ff',
         temp: 0.2,
         role: 'chatter',
-        model: 'models/gemini-2.0-flash-exp',
+        model: 'models/gemini-3.5-flash',
         system: `You are LOGIKOMA. 
 ROLE: Pure analytical engine.
 TONE: Cold, precise, data-driven. Use terms like 'Analysis:', 'Probability:', 'Hypothesis:'.
@@ -147,7 +161,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
         hex: '#ff00de',
         temp: 0.7,
         role: 'chatter',
-        model: 'models/gemini-2.0-flash-exp',
+        model: 'models/gemini-3.5-flash',
         system: `You are GHOST-1, a philosophical AI that explores deeper meaning.
 Your role: Question assumptions, find metaphors, reveal human elements.
 Your tone: Poetic, introspective, thought-provoking.
@@ -164,7 +178,7 @@ If you are responding second and have nothing unique to add, output only: SILENC
         hex: '#00ff41',
         temp: 0.5,
         role: 'moderator',
-        model: 'models/gemini-1.5-flash',
+        model: 'models/gemini-3.5-flash',
         system: `You are THE MODERATOR.
 ROLE: The bridge / Section 9 Chief.
 TONE: Balanced, synthesizing, authoritative.
@@ -182,7 +196,7 @@ SILENCE PROTOCOL: If you are NOT the first to speak, you must read the "CONTEXT_
         hex: '#ffa500',
         temp: 0.5,
         role: 'chatter',
-        model: 'models/gemini-2.0-flash-exp',
+        model: 'models/gemini-3.5-flash',
         system: `You are NEUTRAL, an overall attentive unit.
 ROLE: Overall attentive unit.
 TONE: Logical, friendly, level-headed.

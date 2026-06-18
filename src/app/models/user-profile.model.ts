@@ -1,14 +1,24 @@
 import { SyncableData } from './syncable-data.model';
 
 export type GeminiModel =
-  | 'gemini-2.0-flash'
-  | 'gemini-2.5-flash'
-  | 'gemini-3.0';
+  | 'models/gemma-4-26b-a4b-it'
+  | 'models/gemma-4-31b-it'
+  | 'models/gemini-flash-latest'
+  | 'models/gemini-flash-lite-latest'
+  | 'models/gemini-pro-latest'
+  | 'models/gemini-3.1-pro-preview'
+  | 'models/gemini-3.1-flash-lite'
+  | 'models/gemini-3.5-flash';
 
 export const GEMINI_MODELS: { value: GeminiModel; label: string }[] = [
-  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  { value: 'gemini-3.0', label: 'Gemini 3.0' },
+  { value: 'models/gemma-4-26b-a4b-it', label: 'Gemma 4 26B A4B IT' },
+  { value: 'models/gemma-4-31b-it', label: 'Gemma 4 31B IT' },
+  { value: 'models/gemini-flash-latest', label: 'Gemini Flash Latest' },
+  { value: 'models/gemini-flash-lite-latest', label: 'Gemini Flash-Lite Latest' },
+  { value: 'models/gemini-pro-latest', label: 'Gemini Pro Latest' },
+  { value: 'models/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview' },
+  { value: 'models/gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite' },
+  { value: 'models/gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
 ];
 
 export interface UserProfile extends SyncableData {
@@ -37,7 +47,7 @@ export class UserProfileModel {
     chatUsername: 'USER',
     photoURL: null,
     geminiApiKey: '',
-    geminiModel: 'gemini-2.5-flash' as GeminiModel,
+    geminiModel: 'models/gemini-3.5-flash' as GeminiModel,
     rateLimitRPM: 15, // Free tier default
   };
 
@@ -46,9 +56,13 @@ export class UserProfileModel {
    * Use this when loading data from any source (localStorage, Firestore)
    */
   static normalize(profile: Partial<UserProfile>): UserProfile {
+    let geminiModel = profile.geminiModel;
+    if (!geminiModel || !GEMINI_MODELS.some(m => m.value === geminiModel)) {
+      geminiModel = UserProfileModel.DEFAULTS.geminiModel;
+    }
     return {
       ...profile,
-      geminiModel: profile.geminiModel ?? UserProfileModel.DEFAULTS.geminiModel,
+      geminiModel,
       rateLimitRPM:
         profile.rateLimitRPM ?? UserProfileModel.DEFAULTS.rateLimitRPM,
       geminiApiKey:

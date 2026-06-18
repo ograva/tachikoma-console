@@ -27,9 +27,9 @@ test.describe('ORCH — Multi-Agent Conversation Protocol', () => {
     // Seed a chat with two chatters and one moderator
     await page.evaluate(() => {
       const agents = [
-        { id: 'logikoma', name: 'LOGIKOMA', color: 'logikoma', hex: '#00f3ff', temp: 0.2, role: 'chatter', system: 'Analyze logically.', model: 'models/gemini-2.0-flash-exp', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
-        { id: 'ghost', name: 'GHOST-1', color: 'ghost', hex: '#ff00de', temp: 0.7, role: 'chatter', system: 'Philosophize.', model: 'models/gemini-2.0-flash-exp', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
-        { id: 'moderator', name: 'MODERATOR', color: 'moderator', hex: '#00ff41', temp: 0.5, role: 'moderator', system: 'Synthesize.', model: 'models/gemini-1.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
+        { id: 'logikoma', name: 'LOGIKOMA', color: 'logikoma', hex: '#00f3ff', temp: 0.2, role: 'chatter', system: 'Analyze logically.', model: 'models/gemini-3.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
+        { id: 'ghost', name: 'GHOST-1', color: 'ghost', hex: '#ff00de', temp: 0.7, role: 'chatter', system: 'Philosophize.', model: 'models/gemini-3.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
+        { id: 'moderator', name: 'MODERATOR', color: 'moderator', hex: '#00ff41', temp: 0.5, role: 'moderator', system: 'Synthesize.', model: 'models/gemini-3.5-flash', silenceProtocol: 'standard', status: 'idle', createdAt: 1, updatedAt: 1 },
       ];
       localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([{
         id: 'orch-chat', title: 'Protocol Test', messages: [],

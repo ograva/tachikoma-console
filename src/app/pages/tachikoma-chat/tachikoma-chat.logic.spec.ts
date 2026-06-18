@@ -55,7 +55,7 @@ describe('TachikomaChatComponent — pure logic (ORCH/OPER/CHAT-003)', () => {
     });
     mockUserProfile.getChatUsername.and.returnValue('USER');
     mockUserProfile.getGeminiApiKey.and.returnValue('');
-    mockUserProfile.getGeminiModel.and.returnValue('gemini-2.5-flash');
+    mockUserProfile.getGeminiModel.and.returnValue('gemini-3.5-flash');
 
     const mockAuth = jasmine.createSpyObj('AuthService', ['isAuthenticated', 'isRealUser'], {
       user: signal(null),
@@ -224,33 +224,36 @@ describe('TachikomaChatComponent — pure logic (ORCH/OPER/CHAT-003)', () => {
   // ── OPER-003: round-based context windowing ───────────────────────────────
 
   describe('context windowing (OPER-003)', () => {
-    it('should include all rounds when total <= FULL_ROUNDS_CONTEXT', () => {
+    it('should include active round in full detail and older rounds compacted', () => {
       component.agents = fakeProfiles.map(p => ({ ...p, status: 'idle' as const }));
+      component.currentRoundId = 1;
       component.messages = [
         { id: '1', sender: 'USER', text: 'Q1', html: '', isUser: true, timestamp: 1, roundId: 0 },
-        { id: '2', sender: 'USER', text: 'Q2', html: '', isUser: true, timestamp: 2, roundId: 1 },
+        { id: '2', sender: 'MODERATOR', text: 'Summary1', html: '', isUser: false, agentId: 'moderator', timestamp: 2, roundId: 0 },
+        { id: '3', sender: 'USER', text: 'Q2', html: '', isUser: true, timestamp: 3, roundId: 1 },
+        { id: '4', sender: 'LOGIKOMA', text: 'Brainstorming2', html: '', isUser: false, agentId: 'logikoma', timestamp: 4, roundId: 1 },
       ];
       const history = component.buildConversationHistory();
-      expect(history).toContain('Q1');
-      expect(history).toContain('Q2');
+      // Compacted round 0 should have USER and MODERATOR
+      expect(history).toContain('USER: Q1');
+      expect(history).toContain('MODERATOR (Moderator): Summary1');
+      // Active round 1 should have USER and chatter brainstorming
+      expect(history).toContain('Round 1 (Active)');
+      expect(history).toContain('USER: Q2');
+      expect(history).toContain('LOGIKOMA: Brainstorming2');
     });
 
-    it('should compress older rounds to moderator-only when exceeding FULL_ROUNDS_CONTEXT', () => {
-      const moderator = fakeProfiles.find(p => p.role === 'moderator')!;
+    it('should fall back to including chatter responses if no moderator is found for older rounds', () => {
       component.agents = fakeProfiles.map(p => ({ ...p, status: 'idle' as const }));
-
-      // Create more rounds than FULL_ROUNDS_CONTEXT (6)
-      component.messages = [];
-      for (let r = 0; r < 8; r++) {
-        component.messages.push({ id: `u${r}`, sender: 'USER', text: `Q${r}`, html: '', isUser: true, timestamp: r, roundId: r });
-        component.messages.push({ id: `m${r}`, sender: moderator.name, text: `Summary${r}`, html: '', isUser: false, agentId: moderator.id, timestamp: r + 0.5, roundId: r });
-      }
-
+      component.currentRoundId = 1;
+      component.messages = [
+        { id: '1', sender: 'USER', text: 'Q1', html: '', isUser: true, timestamp: 1, roundId: 0 },
+        { id: '2', sender: 'LOGIKOMA', text: 'Brainstorming1', html: '', isUser: false, agentId: 'logikoma', timestamp: 2, roundId: 0 },
+        { id: '3', sender: 'USER', text: 'Q2', html: '', isUser: true, timestamp: 3, roundId: 1 },
+      ];
       const history = component.buildConversationHistory();
-      // Older rounds should show as moderator summaries only
-      expect(history).toContain('Moderator Summaries');
-      // Recent rounds should be in full detail
-      expect(history).toContain('RECENT CONVERSATION');
+      expect(history).toContain('USER: Q1');
+      expect(history).toContain('LOGIKOMA: Brainstorming1');
     });
   });
 
