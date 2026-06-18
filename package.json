@@ -1,12 +1,14 @@
 {
   "name": "tachikoma-console",
-  "version": "1.1.0",
+  "version": "1.1.5",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "start:local": "ng serve --configuration local",
     "build": "ng build",
     "build:local": "ng build --configuration local",
+    "build:prod": "ng build --configuration production",
+    "deploy:prod": "npm run build:prod && firebase deploy --only hosting",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "firebase:emulators": "firebase emulators:start --import=./emulator-data --export-on-exit",

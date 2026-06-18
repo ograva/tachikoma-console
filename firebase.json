@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "novus-sac",
     "public": "dist/tachikoma-console/browser",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
