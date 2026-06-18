@@ -1,0 +1,37 @@
+# Tachikoma Console - Cursor Rules
+
+## Project Identity
+
+- **Name:** Tachikoma Console (SAC)
+- **Theme:** Ghost in the Shell (Stand Alone Complex) inspired futuristic UX.
+- **Identity:** Tachikoma-themed, neon/night aesthetic.
+
+## Platform Baseline
+
+- **Framework:** Angular 20, standalone components.
+- **Language:** TypeScript.
+- **Styling:** SCSS (Angular Material + Tabler Icons).
+- **Cloud:** Firebase Auth + Firestore (Local-first with forwarded cloud mirror).
+- **AI SDK:** `@google/genai` (Gemini 3.5 Flash primary, Gemini 3.1 fallback).
+
+## Critical Architecture Rules (v1.3)
+
+1. **Firestore Isolation:** All SAC data MUST go to the dedicated SAC database.
+   - Paths: `users/{userId}/chat_sessions/{chatId}`, `users/{userId}/agent_profiles/{agentId}`, `users/{userId}/user_profile/{userId}`.
+2. **Local-First:** App is frontend-heavy. Keep writes local-first; cloud sync is async/non-blocking.
+3. **Data Contract:**
+   - Use `src/app/models` for canonical shapes.
+   - Remove `undefined` before Firestore writes.
+   - Preserve `createdAt` and `updatedAt`.
+4. **ChatMessage Failure States:** Transcript entries must handle `status?: 'ok' | 'failed'`, `failureCode`, and `failureMessage`.
+5. **Security:** Plaintext keys in `localStorage`, encrypted in Firestore.
+
+## Development Workflow
+
+- **E2E Testing:** Playwright against local emulators (`npm run test:e2e:clinic:local`).
+- **Data Attributes:** Use `data-test-id` for interactive elements.
+- **Component System:** Use Angular Material. Avoid Bootstrap/Tailwind unless explicitly requested.
+
+## Agent Personas
+
+The project uses specialized agents (Athena, Poe, Watson, etc.) for different phases. Refer to `.cursor/rules/agent-[name].md` for persona-specific instructions.
