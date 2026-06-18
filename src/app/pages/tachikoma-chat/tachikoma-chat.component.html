@@ -1,4 +1,4 @@
-<div class="tachikoma-container" (click)="closeExportMenu()">
+<div class="tachikoma-container" [class.landscape-grid-mode]="isLandscape()" (click)="closeExportMenu()">
     <div class="scanlines"></div>
 
     <!-- Edit Chat Dialog -->
@@ -10,8 +10,6 @@
                     <mat-icon>close</mat-icon>
                 </button>
             </div>
-
-            <!-- Chat Title Input -->
             <div class="description-section">
                 <label class="description-label">
                     <mat-icon class="label-icon">title</mat-icon>
@@ -22,8 +20,6 @@
                     autocomplete="off" />
                 <div class="char-counter">{{ editChatTitle.length }}/100</div>
             </div>
-
-            <!-- Chat Description Input -->
             <div class="description-section">
                 <label class="description-label">
                     <mat-icon class="label-icon">description</mat-icon>
@@ -35,14 +31,9 @@
                 </textarea>
                 <div class="char-counter">{{ editChatDescription.length }}/500</div>
             </div>
-
             <div class="dialog-footer">
-                <button mat-stroked-button (click)="cancelEditChat()" class="action-btn">
-                    CANCEL
-                </button>
-                <button mat-raised-button color="primary" (click)="saveEditedChat()" class="create-btn">
-                    SAVE CHANGES
-                </button>
+                <button mat-stroked-button (click)="cancelEditChat()" class="action-btn">CANCEL</button>
+                <button mat-raised-button color="primary" (click)="saveEditedChat()" class="create-btn">SAVE CHANGES</button>
             </div>
         </div>
     </div>
@@ -56,43 +47,33 @@
                     <mat-icon>close</mat-icon>
                 </button>
             </div>
-
             <div class="dialog-actions">
-                <button mat-stroked-button (click)="selectAllAgents()" class="action-btn">
-                    Select All
-                </button>
-                <button mat-stroked-button (click)="deselectAllAgents()" class="action-btn">
-                    Clear All
-                </button>
+                <button mat-stroked-button (click)="selectAllAgents()" class="action-btn">Select All</button>
+                <button mat-stroked-button (click)="deselectAllAgents()" class="action-btn">Clear All</button>
             </div>
-
-            <!-- Chat Title Input -->
             <div class="description-section">
                 <label class="description-label">
                     <mat-icon class="label-icon">title</mat-icon>
                     CHAT TITLE (Optional)
                 </label>
                 <input type="text" [(ngModel)]="chatTitle"
-                    placeholder="Give this chat a memorable title (e.g., 'AI Ethics Discussion' or 'React Debugging Session')"
+                    placeholder="Give this chat a memorable title"
                     class="title-input" maxlength="100" (click)="$event.stopPropagation()" name="new-chat-title-field"
                     autocomplete="off" />
                 <div class="char-counter">{{ chatTitle.length }}/100</div>
             </div>
-
-            <!-- Chat Description Input -->
             <div class="description-section">
                 <label class="description-label">
                     <mat-icon class="label-icon">description</mat-icon>
                     CHAT CONTEXT / DESCRIPTION (Optional)
                 </label>
                 <textarea [(ngModel)]="chatDescription"
-                    placeholder="Provide context for the agents (e.g., 'We're discussing AI ethics' or 'Help me debug a React component'). This will be shared with all participating agents."
+                    placeholder="Provide context for the agents."
                     class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()"
                     name="new-chat-description-field" autocomplete="off">
                 </textarea>
                 <div class="char-counter">{{ chatDescription.length }}/500</div>
             </div>
-
             <div class="agent-list">
                 <div *ngFor="let agent of availableAgents" class="agent-item"
                     [class.selected]="selectedAgentIds().has(agent.id)" (click)="toggleAgentSelection(agent.id)">
@@ -106,12 +87,10 @@
                     </div>
                     <div class="agent-color-badge" [style.background-color]="agent.hex"></div>
                 </div>
-
                 <div *ngIf="availableAgents.length === 0" class="empty-agents">
                     No agents configured. Please create agents in the Tachikomas page.
                 </div>
             </div>
-
             <div class="dialog-footer">
                 <button mat-raised-button color="primary" (click)="createNewChat()" class="create-btn">
                     START CHAT ({{ selectedAgentIds().size }} selected)
@@ -120,7 +99,7 @@
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- ── SLIM HEADER (no metrics, no API key) ── -->
     <header class="chat-header">
         <div class="header-left">
             <div class="version-badge">V4.4</div>
@@ -130,90 +109,16 @@
                     <span class="status-dot"></span>
                     SYNC MODE: SECURE-LINK
                 </div>
-
-                <!-- Metrics Dashboard -->
-                <div class="metrics-dashboard">
-                    <!-- Per-Model Metrics -->
-                    <div *ngFor="let model of getModelsInUse()" class="model-group">
-                        <div class="model-header">
-                            <span class="model-name">{{ model.replace('models/', '') }}</span>
-                            <span class="agent-count">({{ getAgentsForModel(model).length }} agents)</span>
-                        </div>
-
-                        <!-- TPM for this model -->
-                        <div class="meter-item" *ngIf="getModelMetrics(model) as metrics">
-                            <div class="meter-label">TPM</div>
-                            <div class="meter-bar-container">
-                                <div class="meter-bar"
-                                    [style.width.%]="(metrics.tokensThisMinute / metrics.tokensPerMinute) * 100"
-                                    [class.meter-warning]="metrics.tokensThisMinute > metrics.tokensPerMinute * TOKEN_WARNING_THRESHOLD"
-                                    [class.meter-danger]="metrics.tokensThisMinute > metrics.tokensPerMinute * 0.95">
-                                </div>
-                            </div>
-                            <div class="meter-info">
-                                {{ formatTokenCount(metrics.tokensThisMinute) }} / {{
-                                formatTokenCount(metrics.tokensPerMinute) }}
-                            </div>
-                        </div>
-
-                        <!-- Context for this model -->
-                        <div class="meter-item" *ngIf="getModelMetrics(model) as metrics">
-                            <div class="meter-label">CONTEXT</div>
-                            <div class="meter-bar-container">
-                                <div class="meter-bar"
-                                    [style.width.%]="(metrics.conversationContextTokens / metrics.inputTokenLimit) * 100"
-                                    [class.meter-warning]="metrics.conversationContextTokens > metrics.inputTokenLimit * TOKEN_WARNING_THRESHOLD"
-                                    [class.meter-danger]="metrics.conversationContextTokens > metrics.inputTokenLimit * 0.95">
-                                </div>
-                            </div>
-                            <div class="meter-info">
-                                {{ formatTokenCount(metrics.conversationContextTokens) }} / {{
-                                formatTokenCount(metrics.inputTokenLimit) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Account-Wide Limits Section -->
-                    <div class="account-limits"
-                        *ngIf="requestMetrics.requestTimestamps.length > 0 || requestMetrics.dailyRequestCount > 0">
-                        <div class="section-header">Account-Wide Limits</div>
-
-                        <!-- Requests Per Minute (RPM) -->
-                        <div class="meter-item" *ngIf="requestMetrics.requestTimestamps.length > 0">
-                            <div class="meter-label">RPM</div>
-                            <div class="meter-bar-container">
-                                <div class="meter-bar"
-                                    [style.width.%]="(requestMetrics.requestTimestamps.length / maxRequestsPerMinute) * 100"
-                                    [class.meter-warning]="requestMetrics.requestTimestamps.length > maxRequestsPerMinute * TOKEN_WARNING_THRESHOLD"
-                                    [class.meter-danger]="requestMetrics.requestTimestamps.length > maxRequestsPerMinute * 0.95">
-                                </div>
-                            </div>
-                            <div class="meter-info">
-                                {{ requestMetrics.requestTimestamps.length }} / {{ maxRequestsPerMinute }}
-                            </div>
-                        </div>
-
-                        <!-- Requests Per Day (RPD) -->
-                        <div class="meter-item" *ngIf="requestMetrics.dailyRequestCount > 0">
-                            <div class="meter-label">RPD</div>
-                            <div class="meter-bar-container">
-                                <div class="meter-bar"
-                                    [style.width.%]="(requestMetrics.dailyRequestCount / DAILY_QUOTA_FREE_TIER) * 100"
-                                    [class.meter-warning]="requestMetrics.dailyRequestCount > DAILY_QUOTA_FREE_TIER * TOKEN_WARNING_THRESHOLD"
-                                    [class.meter-danger]="requestMetrics.dailyRequestCount > DAILY_QUOTA_FREE_TIER * 0.95">
-                                </div>
-                            </div>
-                            <div class="meter-info">
-                                {{ requestMetrics.dailyRequestCount }} / {{ DAILY_QUOTA_FREE_TIER }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
-            <!-- Action buttons next to title - visible on all screens -->
             <div class="header-actions">
-                <button (click)="showNewChatDialog()" class="new-chat-btn" matTooltip="New Chat">
+                <button (click)="showNewChatDialog()" class="new-chat-btn" matTooltip="New Chat"
+                    aria-label="New chat">
                     <mat-icon>add</mat-icon>
+                </button>
+                <button mat-icon-button class="history-toggle-btn-header" (click)="toggleHistoryDrawer()"
+                    matTooltip="Chat History" aria-label="Toggle chat history"
+                    data-test-id="chat-history-toggle-btn">
+                    <mat-icon>history</mat-icon>
                 </button>
                 <div class="export-dropdown" *ngIf="messages.length > 0" (click)="$event.stopPropagation()">
                     <button (click)="toggleExportMenu()" class="export-btn" matTooltip="Export Chat"
@@ -240,189 +145,345 @@
                 </div>
             </div>
         </div>
-
-        <!-- Desktop: Initialization form on the right -->
-        <div class="header-right desktop-only">
+        <!-- API key init (header, tablet+ only, compact) -->
+        <div *ngIf="!isInitialized" class="header-api-init">
             <input type="password" [(ngModel)]="apiKey" placeholder="Enter Gemini API Key" class="api-input"
                 aria-label="Gemini API key" data-test-id="chat-api-key-input" />
             <button (click)="saveKey()" class="init-btn" aria-label="Initialize API key"
-                data-test-id="chat-init-btn">INITIALIZE</button>
+                data-test-id="chat-init-btn">INIT</button>
         </div>
     </header>
 
-    <!-- Mobile: Conditional display -->
-    <div class="mobile-control-panel mobile-only">
-        <!-- Show initialization form if not initialized -->
-        <div *ngIf="!isInitialized" class="mobile-init-section">
-            <input type="password" [(ngModel)]="apiKey" placeholder="Enter Gemini API Key" class="api-input-mobile" />
-            <button (click)="saveKey()" class="init-btn-mobile">INITIALIZE</button>
-        </div>
-
-        <!-- Show status panel during processing -->
-        <div *ngIf="isInitialized && showNeuralActivity()" class="mobile-status-section">
-            <div class="mobile-header-row">
-                <h3 class="panel-title-mobile">NEURAL ACTIVITY</h3>
-            </div>
-            <div class="agent-status-mobile" *ngFor="let agent of agents">
-                <div class="status-row-mobile">
-                    <span class="agent-label" [style.color]="agent.hex">{{agent.name}}</span>
-                    <span class="status-text">{{agent.status === 'thinking' ? 'PROCESSING...' :
-                        'IDLE'}}</span>
-                </div>
-                <div class="progress-track-mobile">
-                    <div class="progress-bar" [style.background-color]="agent.hex"
-                        [style.width]="agent.status === 'thinking' ? '100%' : '0%'"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Drawer Container for Chat History -->
+    <!-- ── SHARED DRAWER CONTAINER wrapping both layout modes ── -->
     <mat-drawer-container class="chat-drawer-container" autosize>
         <mat-drawer-content>
-            <!-- Main Chat Area -->
-            <main class="chat-main">
-                <!-- Chat history toggle button -->
-                <button mat-icon-button class="history-toggle-btn" (click)="toggleHistoryDrawer()"
-                    matTooltip="Chat History" aria-label="Toggle chat history drawer"
-                    data-test-id="chat-history-toggle-btn">
-                    <mat-icon>history</mat-icon>
-                </button>
-                <!-- CHAT-004: Sticky transcript navigation -->
-                <div class="scroll-nav" [class.scroll-nav-visible]="showScrollNav()" role="navigation"
-                    aria-label="Transcript navigation">
-                    <button mat-mini-fab class="scroll-nav-btn" (click)="jumpToTop()"
-                        aria-label="Jump to top of transcript" matTooltip="Jump to top"
-                        data-test-id="chat-jump-top-btn">
-                        <mat-icon>vertical_align_top</mat-icon>
-                    </button>
-                    <button mat-mini-fab class="scroll-nav-btn scroll-nav-unread" *ngIf="unreadCount() > 0"
-                        (click)="jumpToPreviousUnread()"
-                        [attr.aria-label]="'Jump to ' + unreadCount() + ' unread messages'"
-                        [matTooltip]="unreadCount() + ' unread'" data-test-id="chat-jump-unread-btn">
-                        <mat-icon>chat_bubble_outline</mat-icon>
-                        <span class="unread-badge">{{ unreadCount() }}</span>
-                    </button>
-                    <button mat-mini-fab class="scroll-nav-btn" (click)="jumpToLatest()"
-                        aria-label="Jump to latest message" matTooltip="Jump to latest"
-                        data-test-id="chat-jump-latest-btn">
-                        <mat-icon>vertical_align_bottom</mat-icon>
-                    </button>
+
+            <!-- ══════════ PORTRAIT MODE: Standard vertical chat feed ══════════ -->
+            @if (!isLandscape()) {
+
+                <!-- OPER-002: Soft limit warning banner -->
+                <div *ngIf="contextSoftWarning" class="soft-limit-banner" role="alert" aria-live="polite"
+                    data-test-id="chat-soft-limit-banner">
+                    <mat-icon class="banner-icon">warning</mat-icon>
+                    <span>Context approaching limit for
+                        <strong>{{ contextSoftWarning.model.replace('models/', '') }}</strong>
+                        ({{ (contextSoftWarning.pct * 100) | number:'1.0-0' }}% full). Consider starting a new chat soon.
+                    </span>
                 </div>
 
-                <!-- Chat Feed -->
-                <div class="chat-feed" #chatFeed (scroll)="onChatFeedScroll()">
-                    <!-- Intro Message -->
-                    <div class="intro-message">
-                        <p>NEURAL LINK ESTABLISHED.</p>
-                        <p>AGENTS: LOGIKOMA, GHOST-1, MODERATOR</p>
-                        <p class="sub-intro">INITIATIVE IS RANDOMIZED PER QUERY.</p>
+                <main class="chat-main">
+                    <!-- CHAT-004: Sticky transcript navigation -->
+                    <div class="scroll-nav" [class.scroll-nav-visible]="showScrollNav()" role="navigation"
+                        aria-label="Transcript navigation">
+                        <button mat-mini-fab class="scroll-nav-btn" (click)="jumpToTop()"
+                            aria-label="Jump to top of transcript" matTooltip="Jump to top"
+                            data-test-id="chat-jump-top-btn">
+                            <mat-icon>vertical_align_top</mat-icon>
+                        </button>
+                        <button mat-mini-fab class="scroll-nav-btn scroll-nav-unread" *ngIf="unreadCount() > 0"
+                            (click)="jumpToPreviousUnread()"
+                            [attr.aria-label]="'Jump to ' + unreadCount() + ' unread messages'"
+                            [matTooltip]="unreadCount() + ' unread'" data-test-id="chat-jump-unread-btn">
+                            <mat-icon>chat_bubble_outline</mat-icon>
+                            <span class="unread-badge">{{ unreadCount() }}</span>
+                        </button>
+                        <button mat-mini-fab class="scroll-nav-btn" (click)="jumpToLatest()"
+                            aria-label="Jump to latest message" matTooltip="Jump to latest"
+                            data-test-id="chat-jump-latest-btn">
+                            <mat-icon>vertical_align_bottom</mat-icon>
+                        </button>
                     </div>
 
-                    <!-- Messages -->
-                    <div *ngFor="let msg of messages" class="message-wrapper"
-                        [ngClass]="{'user-msg': msg.isUser, 'agent-msg': !msg.isUser, 'failed-step-msg': msg.messageType === 'failed-step' || msg.messageType === 'rate-limit'}">
-
-                        <!-- User Message -->
-                        <div *ngIf="msg.isUser" class="user-bubble" data-test-id="chat-user-message">
-                            <div class="msg-header">USER // AUTHENTICATED</div>
-                            <div class="msg-content" [innerHTML]="msg.html"></div>
+                    <!-- Chat Feed -->
+                    <div class="chat-feed" #chatFeed (scroll)="onChatFeedScroll()">
+                        <div class="intro-message">
+                            <p>NEURAL LINK ESTABLISHED.</p>
+                            <p>AGENTS: LOGIKOMA, GHOST-1, MODERATOR</p>
+                            <p class="sub-intro">INITIATIVE IS RANDOMIZED PER QUERY.</p>
                         </div>
 
-                        <!-- ORCH-004: Failed Step Transcript Card -->
-                        <div *ngIf="!msg.isUser && (msg.messageType === 'failed-step' || msg.messageType === 'rate-limit')"
-                            class="failed-step-card" [class.rate-limit-card]="msg.messageType === 'rate-limit'"
-                            role="alert" aria-label="Agent step failed" data-test-id="chat-failed-step-card">
-                            <div class="failed-step-header">
-                                <mat-icon class="failed-icon">warning</mat-icon>
-                                <span class="failed-agent-name">{{ msg.sender }}</span>
-                                <span class="failed-label">— STEP FAILED</span>
+                        <div *ngFor="let msg of messages" class="message-wrapper"
+                            [ngClass]="{'user-msg': msg.isUser, 'agent-msg': !msg.isUser,
+                                         'failed-step-msg': msg.messageType === 'failed-step' || msg.messageType === 'rate-limit'}">
+
+                            <div *ngIf="msg.isUser" class="user-bubble" data-test-id="chat-user-message">
+                                <div class="msg-header">USER // AUTHENTICATED</div>
+                                <div class="msg-content" [innerHTML]="msg.html"></div>
                             </div>
-                            <div class="failed-step-body">
-                                <p *ngIf="msg.messageType === 'rate-limit'">
-                                    Daily API quota exhausted. Resume tomorrow or upgrade your API plan.
-                                </p>
-                                <p *ngIf="msg.messageType === 'failed-step'">
-                                    A processing error occurred. The conversation continues with the remaining agents.
-                                </p>
-                                <small *ngIf="msg.retryCount">Attempts: {{ msg.retryCount }}</small>
+
+                            <div *ngIf="!msg.isUser && (msg.messageType === 'failed-step' || msg.messageType === 'rate-limit')"
+                                class="failed-step-card" [class.rate-limit-card]="msg.messageType === 'rate-limit'"
+                                role="alert" aria-label="Agent step failed" data-test-id="chat-failed-step-card">
+                                <div class="failed-step-header">
+                                    <mat-icon class="failed-icon">warning</mat-icon>
+                                    <span class="failed-agent-name">{{ msg.sender }}</span>
+                                    <span class="failed-label">— STEP FAILED</span>
+                                </div>
+                                <div class="failed-step-body">
+                                    <p *ngIf="msg.messageType === 'rate-limit'">Daily API quota exhausted. Resume tomorrow or upgrade your API plan.</p>
+                                    <p *ngIf="msg.messageType === 'failed-step'">A processing error occurred. The conversation continues with the remaining agents.</p>
+                                    <small *ngIf="msg.retryCount">Attempts: {{ msg.retryCount }}</small>
+                                </div>
+                            </div>
+
+                            <div *ngIf="!msg.isUser && msg.messageType !== 'failed-step' && msg.messageType !== 'rate-limit'"
+                                class="agent-card" [ngClass]="msg.agentId || ''"
+                                [style.border-color]="getAgentColor(msg.agentId)"
+                                [style.background]="getAgentColor(msg.agentId) + '0D'" data-test-id="chat-agent-message">
+                                <div class="agent-header">
+                                    <span class="agent-icon">
+                                        <ng-container [ngSwitch]="msg.agentId">
+                                            <span *ngSwitchCase="'logikoma'">◈</span>
+                                            <span *ngSwitchCase="'ghost'">❖</span>
+                                            <span *ngSwitchCase="'moderator'">⬢</span>
+                                            <span *ngSwitchDefault>●</span>
+                                        </ng-container>
+                                    </span>
+                                    <span class="agent-name" [style.color]="getAgentColor(msg.agentId)">{{msg.sender}}</span>
+                                </div>
+                                <div class="msg-content" [innerHTML]="msg.html"></div>
                             </div>
                         </div>
 
-                        <!-- Agent Message (normal) -->
-                        <div *ngIf="!msg.isUser && msg.messageType !== 'failed-step' && msg.messageType !== 'rate-limit'"
-                            class="agent-card" [ngClass]="msg.agentId || ''"
-                            [style.border-color]="getAgentColor(msg.agentId)"
-                            [style.background]="getAgentColor(msg.agentId) + '0D'" data-test-id="chat-agent-message">
-                            <div class="agent-header">
-                                <span class="agent-icon">
-                                    <ng-container [ngSwitch]="msg.agentId">
-                                        <span *ngSwitchCase="'logikoma'">◈</span>
-                                        <span *ngSwitchCase="'ghost'">❖</span>
-                                        <span *ngSwitchCase="'moderator'">⬢</span>
-                                        <span *ngSwitchDefault>●</span>
-                                    </ng-container>
-                                </span>
-                                <span class="agent-name"
-                                    [style.color]="getAgentColor(msg.agentId)">{{msg.sender}}</span>
+                        <!-- OPER-001: Round cost estimate badges -->
+                        <ng-container *ngFor="let roundId of getRoundIdsWithEstimates()">
+                            <div *ngIf="getRoundEstimate(roundId) as est" class="round-cost-badge"
+                                [attr.data-round]="roundId" aria-label="Round token and cost estimate"
+                                data-test-id="chat-round-cost-badge">
+                                <mat-icon class="cost-icon">token</mat-icon>
+                                <span>Round {{ roundId }}</span>
+                                <span class="cost-sep">·</span>
+                                <span>{{ formatTokenCount(est.inputTokens + est.outputTokens) }} tokens</span>
+                                <span class="cost-sep">·</span>
+                                <span class="cost-value">{{ formatCostEstimate(est.estimatedCostUSD) }}</span>
+                                <span class="cost-label">(est.)</span>
                             </div>
-                            <div class="msg-content" [innerHTML]="msg.html"></div>
+                        </ng-container>
+
+                        <div *ngIf="isProcessing" class="processing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
                         </div>
                     </div>
 
-                    <!-- OPER-001: Round cost estimate badge (shown after last message of each round) -->
-                    <ng-container *ngFor="let roundId of getRoundIdsWithEstimates()">
-                        <div *ngIf="getRoundEstimate(roundId) as est" class="round-cost-badge"
-                            [attr.data-round]="roundId" aria-label="Round token and cost estimate"
-                            data-test-id="chat-round-cost-badge">
-                            <mat-icon class="cost-icon">token</mat-icon>
-                            <span>Round {{ roundId }}</span>
-                            <span class="cost-sep">·</span>
-                            <span>{{ formatTokenCount(est.inputTokens + est.outputTokens) }} tokens</span>
-                            <span class="cost-sep">·</span>
-                            <span class="cost-value">{{ formatCostEstimate(est.estimatedCostUSD) }}</span>
-                            <span class="cost-label">(est.)</span>
+                    <!-- Right status panel (desktop, during processing) -->
+                    <div class="status-panel" *ngIf="showNeuralActivity()">
+                        <h3 class="panel-title">NEURAL ACTIVITY</h3>
+                        <div class="agent-status" *ngFor="let agent of agents">
+                            <div class="status-row">
+                                <span class="agent-label" [style.color]="agent.hex">{{agent.name}}</span>
+                                <span class="status-text">{{agent.status === 'thinking' ? 'PROCESSING...' : 'IDLE'}}</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-bar" [style.background-color]="agent.hex"
+                                    [style.width]="agent.status === 'thinking' ? '100%' : '0%'"></div>
+                            </div>
                         </div>
-                    </ng-container>
+                        <div class="debug-stack">
+                            <p>DEBUG STACK:</p>
+                            <div class="memory-log">
+                                // System Ready<br>
+                                <ng-container *ngFor="let msg of messages">
+                                    > PACKET RECEIVED: {{msg.timestamp}}<br>
+                                </ng-container>
+                            </div>
+                        </div>
+                    </div>
+                </main>
 
-                    <!-- Loading Indicator (Generic for now, could be per agent) -->
-                    <div *ngIf="isProcessing" class="processing-indicator">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
+                <!-- File Upload Context Bar -->
+                <div class="file-context-bar" *ngIf="hasUploadedFiles">
+                    <div class="file-context-header">
+                        <span class="file-context-label">
+                            <mat-icon>attach_file</mat-icon>
+                            SHARED CONTEXT ({{ uploadedFiles().length }} file(s))
+                        </span>
+                        <button mat-icon-button (click)="clearAllFiles()" matTooltip="Clear all files"
+                            class="clear-all-btn" aria-label="Clear all uploaded files"
+                            data-test-id="chat-clear-files-btn">
+                            <mat-icon>clear_all</mat-icon>
+                        </button>
+                    </div>
+                    <div class="file-chips">
+                        <div *ngFor="let file of uploadedFiles(); let i = index" class="file-chip">
+                            <mat-icon class="file-icon">description</mat-icon>
+                            <span class="file-name">{{ file.name }}</span>
+                            <button mat-icon-button (click)="removeFile(i)" class="remove-file-btn"
+                                [attr.aria-label]="'Remove file ' + file.name"
+                                data-test-id="chat-remove-file-btn">
+                                <mat-icon>close</mat-icon>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Right Panel: Active Status (only shown during processing) -->
-                <div class="status-panel" *ngIf="showNeuralActivity()">
-                    <h3 class="panel-title">NEURAL ACTIVITY</h3>
-
-                    <div class="agent-status" *ngFor="let agent of agents">
-                        <div class="status-row">
-                            <span class="agent-label" [style.color]="agent.hex">{{agent.name}}</span>
-                            <span class="status-text">{{agent.status === 'thinking' ? 'PROCESSING...' :
-                                'IDLE'}}</span>
-                        </div>
-                        <div class="progress-track">
-                            <div class="progress-bar" [style.background-color]="agent.hex"
-                                [style.width]="agent.status === 'thinking' ? '100%' : '0%'"></div>
-                        </div>
+                <!-- Portrait Input at Bottom -->
+                <footer class="chat-footer">
+                    <div class="input-wrapper">
+                        <input #fileInput type="file" multiple hidden (change)="onFileSelected($event)"
+                            accept=".txt,.md,.json,.csv,.xml,.log,text/*">
+                        <button mat-icon-button (click)="fileInput.click()" class="attach-btn"
+                            matTooltip="Upload file(s) for shared context" [disabled]="isUploadingFile()"
+                            aria-label="Attach file for shared context" data-test-id="chat-attach-file-btn">
+                            <mat-icon *ngIf="!isUploadingFile()">attach_file</mat-icon>
+                            <mat-icon *ngIf="isUploadingFile()" class="spinning">sync</mat-icon>
+                        </button>
+                        <input type="text" [(ngModel)]="userInput" (keydown.enter)="triggerProtocol()"
+                            class="chat-input" placeholder="Send packet to the net..."
+                            aria-label="Chat message input" data-test-id="chat-message-input">
+                        <button (click)="triggerProtocol()" class="send-btn" aria-label="Send message"
+                            data-test-id="chat-send-btn">SEND</button>
                     </div>
+                </footer>
+            }
 
-                    <div class="debug-stack">
-                        <p>DEBUG STACK:</p>
-                        <div class="memory-log">
-                            // System Ready<br>
-                            <ng-container *ngFor="let msg of messages">
-                                > PACKET RECEIVED: {{msg.timestamp}}<br>
+            <!-- ══════════ LANDSCAPE MODE: Roundtable Panel Discussion ══════════ -->
+            @else {
+
+                <!-- Input at the TOP -->
+                <div class="top-input-bar">
+                    <div class="input-wrapper">
+                        <input #fileInputLandscape type="file" multiple hidden (change)="onFileSelected($event)"
+                            accept=".txt,.md,.json,.csv,.xml,.log,text/*">
+                        <button mat-icon-button (click)="fileInputLandscape.click()" class="attach-btn"
+                            matTooltip="Upload file(s) for shared context" [disabled]="isUploadingFile()"
+                            aria-label="Attach file for shared context" data-test-id="chat-attach-file-btn-landscape">
+                            <mat-icon *ngIf="!isUploadingFile()">attach_file</mat-icon>
+                            <mat-icon *ngIf="isUploadingFile()" class="spinning">sync</mat-icon>
+                        </button>
+                        <input type="text" [(ngModel)]="userInput" (keydown.enter)="triggerProtocol()"
+                            class="chat-input" placeholder="Send initiating prompt to the roundtable..."
+                            aria-label="Chat message input" data-test-id="chat-message-input">
+                        <button (click)="triggerProtocol()" class="send-btn" aria-label="Send message"
+                            data-test-id="chat-send-btn">SEND</button>
+                    </div>
+                </div>
+
+                <!-- Round Navigation Bar -->
+                <div class="round-nav-bar" aria-label="Round navigation">
+                    <div class="nav-controls">
+                        <button class="nav-arrow" [disabled]="selectedViewRoundId() === 0"
+                            (click)="prevRound()" aria-label="Previous round"
+                            matTooltip="Previous round" data-test-id="chat-round-prev-btn">
+                            <mat-icon>chevron_left</mat-icon>
+                        </button>
+                        <span class="round-indicator" data-test-id="chat-round-indicator">
+                            ROUND {{ selectedViewRoundId() + 1 }} OF {{ currentRoundId + 1 }}
+                        </span>
+                        <button class="nav-arrow"
+                            [disabled]="selectedViewRoundId() === currentRoundId"
+                            (click)="nextRound()" aria-label="Next round"
+                            matTooltip="Next round" data-test-id="chat-round-next-btn">
+                            <mat-icon>chevron_right</mat-icon>
+                        </button>
+                    </div>
+                    <div class="round-prompt-preview"
+                        *ngIf="getUserPromptForRound(selectedViewRoundId()) as prompt">
+                        <span class="prompt-label">PROMPT:</span>
+                        <span class="prompt-text">"{{ prompt.text }}"</span>
+                    </div>
+                    <div class="round-prompt-preview" *ngIf="!getUserPromptForRound(selectedViewRoundId())">
+                        <span class="prompt-label empty-prompt">No prompt yet — type above to begin.</span>
+                    </div>
+                    <div class="round-processing" *ngIf="isProcessing && selectedViewRoundId() === currentRoundId">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <span class="processing-label">PROCESSING</span>
+                    </div>
+                </div>
+
+                <!-- Roundtable Agent Columns -->
+                <main class="chat-main landscape-columns">
+                    <div *ngFor="let agent of agents" class="agent-column"
+                        [class.moderator-col]="agent.role === 'moderator'"
+                        [style.border-color]="agent.hex + '66'">
+                        <div class="column-header" [style.background-color]="agent.hex + '1A'">
+                            <span class="col-agent-icon">
+                                <ng-container [ngSwitch]="agent.id">
+                                    <span *ngSwitchCase="'logikoma'">◈</span>
+                                    <span *ngSwitchCase="'ghost'">❖</span>
+                                    <span *ngSwitchCase="'moderator'">⬢</span>
+                                    <span *ngSwitchDefault>●</span>
+                                </ng-container>
+                            </span>
+                            <span class="col-agent-name" [style.color]="agent.hex">{{ agent.name }}</span>
+                            <span class="col-role-badge">
+                                {{ agent.role === 'moderator' ? 'MODERATOR' : 'CHATTER' }}
+                            </span>
+                            <span *ngIf="agent.status === 'thinking' && selectedViewRoundId() === currentRoundId"
+                                class="col-thinking-badge">PROCESSING</span>
+                        </div>
+
+                        <div class="column-content">
+                            <ng-container *ngIf="getAgentMessageForRound(agent.id, selectedViewRoundId()) as msg">
+                                <div class="msg-content column-msg-content" [innerHTML]="msg.html"
+                                    data-test-id="chat-agent-message"></div>
+                            </ng-container>
+                            <ng-container *ngIf="!getAgentMessageForRound(agent.id, selectedViewRoundId())">
+                                <ng-container *ngIf="agent.status === 'thinking' && selectedViewRoundId() === currentRoundId; else silenceBlock">
+                                    <div class="col-processing">
+                                        <div class="typing-dot"></div>
+                                        <div class="typing-dot"></div>
+                                        <div class="typing-dot"></div>
+                                    </div>
+                                </ng-container>
+                                <ng-template #silenceBlock>
+                                    <div class="silence-placeholder" *ngIf="getUserPromptForRound(selectedViewRoundId())">
+                                        <mat-icon class="silence-icon">remove_circle_outline</mat-icon>
+                                        <span>SILENCE</span>
+                                        <span class="silence-sub">No unique perspective to append</span>
+                                    </div>
+                                    <div class="col-empty" *ngIf="!getUserPromptForRound(selectedViewRoundId())">
+                                        <span>—</span>
+                                    </div>
+                                </ng-template>
                             </ng-container>
                         </div>
                     </div>
+                </main>
+
+                <!-- File context bar for landscape -->
+                <div class="file-context-bar landscape-file-bar" *ngIf="hasUploadedFiles">
+                    <div class="file-context-header">
+                        <span class="file-context-label">
+                            <mat-icon>attach_file</mat-icon>
+                            SHARED CONTEXT ({{ uploadedFiles().length }} file(s))
+                        </span>
+                        <button mat-icon-button (click)="clearAllFiles()" matTooltip="Clear all files"
+                            class="clear-all-btn" aria-label="Clear all uploaded files"
+                            data-test-id="chat-clear-files-btn">
+                            <mat-icon>clear_all</mat-icon>
+                        </button>
+                    </div>
+                    <div class="file-chips">
+                        <div *ngFor="let file of uploadedFiles(); let i = index" class="file-chip">
+                            <mat-icon class="file-icon">description</mat-icon>
+                            <span class="file-name">{{ file.name }}</span>
+                            <button mat-icon-button (click)="removeFile(i)" class="remove-file-btn"
+                                [attr.aria-label]="'Remove file ' + file.name"
+                                data-test-id="chat-remove-file-btn">
+                                <mat-icon>close</mat-icon>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </main>
+
+                <!-- OPER-002: Soft limit banner (landscape) -->
+                <div *ngIf="contextSoftWarning" class="soft-limit-banner" role="alert" aria-live="polite"
+                    data-test-id="chat-soft-limit-banner">
+                    <mat-icon class="banner-icon">warning</mat-icon>
+                    <span>Context approaching limit for
+                        <strong>{{ contextSoftWarning.model.replace('models/', '') }}</strong>
+                        ({{ (contextSoftWarning.pct * 100) | number:'1.0-0' }}% full). Consider starting a new chat soon.
+                    </span>
+                </div>
+            }
+
         </mat-drawer-content>
 
-        <!-- Right Drawer for Chat History -->
+        <!-- Shared History Drawer (used by both portrait and landscape) -->
         <mat-drawer #historyDrawer mode="over" position="end" [opened]="historyDrawerOpened()">
             <div class="chat-history-drawer">
                 <div class="drawer-header">
@@ -450,7 +511,8 @@
                                     <mat-icon>edit</mat-icon>
                                 </button>
                                 <button class="delete-chat-btn"
-                                    (click)="deleteChat(session.id); $event.stopPropagation()" matTooltip="Delete">
+                                    (click)="deleteChat(session.id); $event.stopPropagation()"
+                                    matTooltip="Delete">
                                     <mat-icon>delete</mat-icon>
                                 </button>
                             </div>
@@ -460,8 +522,8 @@
                             <span class="chat-count">{{ session.messages.length }} msgs</span>
                         </div>
                     </div>
-
-                    <div *ngIf="getChatSessions().length === 0" class="empty-state" data-test-id="chat-history-empty">
+                    <div *ngIf="getChatSessions().length === 0" class="empty-state"
+                        data-test-id="chat-history-empty">
                         No saved chats yet
                     </div>
                 </div>
@@ -469,56 +531,59 @@
         </mat-drawer>
     </mat-drawer-container>
 
-    <!-- File Upload Area -->
-    <div class="file-context-bar" *ngIf="hasUploadedFiles">
-        <div class="file-context-header">
-            <span class="file-context-label">
-                <mat-icon>attach_file</mat-icon>
-                SHARED CONTEXT ({{ uploadedFiles().length }} file(s))
+    <!-- ── VS CODE-STYLE COMPACT STATUS BAR (omnipresent at bottom) ── -->
+    <div class="vscode-status-bar" data-test-id="chat-status-bar">
+        <div class="status-left">
+            <span class="status-item sync-item"
+                [class.status-warn]="!!contextSoftWarning">
+                <span class="status-dot-sm" [class.dot-warn]="!!contextSoftWarning"></span>
+                SECURE-LINK
             </span>
-            <button mat-icon-button (click)="clearAllFiles()" matTooltip="Clear all files" class="clear-all-btn"
-                aria-label="Clear all uploaded files" data-test-id="chat-clear-files-btn">
-                <mat-icon>clear_all</mat-icon>
-            </button>
+            <span class="status-sep">|</span>
+            <span class="status-item">
+                <mat-icon class="status-icon">smart_toy</mat-icon>
+                {{ primaryModel }}
+            </span>
+            <ng-container *ngIf="isProcessing">
+                <span class="status-sep">|</span>
+                <span class="status-item status-processing">
+                    <mat-icon class="status-icon spin-icon">sync</mat-icon>
+                    PROCESSING
+                </span>
+            </ng-container>
         </div>
-        <div class="file-chips">
-            <div *ngFor="let file of uploadedFiles(); let i = index" class="file-chip">
-                <mat-icon class="file-icon">description</mat-icon>
-                <span class="file-name">{{ file.name }}</span>
-                <button mat-icon-button (click)="removeFile(i)" class="remove-file-btn"
-                    [attr.aria-label]="'Remove file ' + file.name" data-test-id="chat-remove-file-btn">
-                    <mat-icon>close</mat-icon>
-                </button>
-            </div>
+        <div class="status-right">
+            <ng-container *ngIf="primaryModelMetrics as m">
+                <span class="status-item"
+                    [class.status-warn]="m.tokensThisMinute > m.tokensPerMinute * TOKEN_WARNING_THRESHOLD"
+                    [class.status-danger]="m.tokensThisMinute > m.tokensPerMinute * 0.95"
+                    matTooltip="Tokens per minute">
+                    <mat-icon class="status-icon">token</mat-icon>
+                    TPM: {{ formatTokenCount(m.tokensThisMinute) }}/{{ formatTokenCount(m.tokensPerMinute) }}
+                </span>
+                <span class="status-sep">|</span>
+                <span class="status-item"
+                    [class.status-warn]="m.conversationContextTokens > m.inputTokenLimit * TOKEN_WARNING_THRESHOLD"
+                    [class.status-danger]="m.conversationContextTokens > m.inputTokenLimit * 0.95"
+                    matTooltip="Context window usage">
+                    <mat-icon class="status-icon">psychology</mat-icon>
+                    CTX: {{ (m.conversationContextTokens / m.inputTokenLimit * 100) | number:'1.0-0' }}%
+                </span>
+                <span class="status-sep">|</span>
+            </ng-container>
+            <span class="status-item"
+                [class.status-warn]="requestMetrics.requestTimestamps.length > maxRequestsPerMinute * TOKEN_WARNING_THRESHOLD"
+                [class.status-danger]="requestMetrics.requestTimestamps.length > maxRequestsPerMinute * 0.95"
+                matTooltip="Requests per minute">
+                <mat-icon class="status-icon">speed</mat-icon>
+                RPM: {{ requestMetrics.requestTimestamps.length }}/{{ maxRequestsPerMinute }}
+            </span>
+            <span class="status-sep">|</span>
+            <span class="status-item" matTooltip="Active conversation round">
+                <mat-icon class="status-icon">history</mat-icon>
+                ROUND {{ currentRoundId }}
+            </span>
         </div>
     </div>
 
-    <!-- OPER-002: Soft limit warning banner -->
-    <div *ngIf="contextSoftWarning" class="soft-limit-banner" role="alert" aria-live="polite"
-        data-test-id="chat-soft-limit-banner">
-        <mat-icon class="banner-icon">warning</mat-icon>
-        <span>Context approaching limit for <strong>{{ contextSoftWarning.model.replace('models/', '') }}</strong>
-            ({{ (contextSoftWarning.pct * 100) | number:'1.0-0' }}% full).
-            Consider starting a new chat soon.
-        </span>
-    </div>
-
-    <!-- Input Area -->
-    <footer class="chat-footer">
-        <div class="input-wrapper">
-            <input #fileInput type="file" multiple hidden (change)="onFileSelected($event)"
-                accept=".txt,.md,.json,.csv,.xml,.log,text/*">
-            <button mat-icon-button (click)="fileInput.click()" class="attach-btn"
-                matTooltip="Upload file(s) for shared context" [disabled]="isUploadingFile()"
-                aria-label="Attach file for shared context" data-test-id="chat-attach-file-btn">
-                <mat-icon *ngIf="!isUploadingFile()">attach_file</mat-icon>
-                <mat-icon *ngIf="isUploadingFile()" class="spinning">sync</mat-icon>
-            </button>
-            <input type="text" [(ngModel)]="userInput" (keydown.enter)="triggerProtocol()" class="chat-input"
-                placeholder="Send packet to the net..." aria-label="Chat message input"
-                data-test-id="chat-message-input">
-            <button (click)="triggerProtocol()" class="send-btn" aria-label="Send message"
-                data-test-id="chat-send-btn">SEND</button>
-        </div>
-    </footer>
 </div>

@@ -291,6 +291,56 @@ export class TachikomaChatComponent {
   private readonly PDF_PAGE_BOTTOM_MARGIN = 30;
   private readonly PDF_CONTENT_BOTTOM_MARGIN = 20;
 
+  // Responsive layout mode
+  isLandscape = signal<boolean>(
+    typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth > window.innerHeight
+  );
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.isLandscape.set(window.innerWidth >= 768 && window.innerWidth > window.innerHeight);
+    // When switching to landscape, jump to the latest round
+    if (this.isLandscape()) {
+      this.selectedViewRoundId.set(this.currentRoundId);
+    }
+  }
+
+  // Landscape Roundtable: tracks which round is displayed in the column grid
+  selectedViewRoundId = signal<number>(0);
+
+  prevRound(): void {
+    if (this.selectedViewRoundId() > 0) {
+      this.selectedViewRoundId.update(id => id - 1);
+    }
+  }
+
+  nextRound(): void {
+    if (this.selectedViewRoundId() < this.currentRoundId) {
+      this.selectedViewRoundId.update(id => id + 1);
+    }
+  }
+
+  getAgentMessageForRound(agentId: string, roundId: number): ChatMessage | undefined {
+    return this.messages.find(m => m.roundId === roundId && m.agentId === agentId && !m.isUser);
+  }
+
+  getUserPromptForRound(roundId: number): ChatMessage | undefined {
+    return this.messages.find(m => m.roundId === roundId && m.isUser);
+  }
+
+  /** First model name for status bar display */
+  get primaryModel(): string {
+    const models = this.getModelsInUse();
+    return (models.length > 0 ? models[0] : this.selectedModel).replace('models/', '').toUpperCase();
+  }
+
+  /** First model's metrics for status bar display */
+  get primaryModelMetrics() {
+    const models = this.getModelsInUse();
+    if (models.length === 0) return null;
+    return this.modelMetrics().get(models[0]) ?? null;
+  }
+
   get isInitialized(): boolean {
     return this.apiKey.length > 0;
   }
@@ -994,6 +1044,9 @@ export class TachikomaChatComponent {
       // Add User Message with custom username from profile
       this.addMessage(this.chatUsername, text, true);
 
+      // Landscape: advance view to the active round as user sends
+      this.selectedViewRoundId.set(this.currentRoundId);
+
       // Force scroll to bottom when user sends a message
       this.scrollToBottom();
 
@@ -1003,7 +1056,7 @@ export class TachikomaChatComponent {
       // Include chat description if available (provides context to agents)
       const chatDescription = this.currentChatDescription;
       if (chatDescription) {
-        conversationHistory = `[CHAT CONTEXT: ${chatDescription}]\n\n${conversationHistory}`;
+        conversationHistory = `<chat_context>\n${chatDescription}\n</chat_context>\n\n${conversationHistory}`;
       }
 
       // Shuffle chatter agents (role === 'chatter')
@@ -1011,7 +1064,9 @@ export class TachikomaChatComponent {
         this.agents.filter((a) => a.role === 'chatter')
       );
       console.log('Agent order:', activeAgents.map((a) => a.name).join(' → '));
-      let conversationContext = `${conversationHistory}\n\nCURRENT USER INPUT: "${text}"\n`;
+
+      // Wrap current round in clean XML tagging
+      let conversationContext = `${conversationHistory}\n<current_round>\n  <user_query>${text}</user_query>\n`;
 
       // Process Chatter Agents
       for (let i = 0; i < activeAgents.length; i++) {
@@ -1022,8 +1077,21 @@ export class TachikomaChatComponent {
           `🤖 ${agent.name} using model: ${agent.model || this.selectedModel}`
         );
 
-        // Build prompt with current context (includes file content and agent responses so far)
+        // Build prompt with explicit tag matching the agent's SILENCE instruction
         let prompt = conversationContext;
+        if (i > 0) {
+          prompt += '  <context_so_far>\n';
+          // Find all agent responses in the current round added so far
+          const roundId = this.currentRoundId;
+          const peerResponses = this.messages.filter(
+            (m) => m.roundId === roundId && !m.isUser && m.agentId !== agent.id
+          );
+          for (const pr of peerResponses) {
+            prompt += `    <agent_response sender="${pr.sender}">${pr.text}</agent_response>\n`;
+          }
+          prompt += '  </context_so_far>\n';
+        }
+        prompt += '</current_round>';
 
         try {
           const response = await this.callGeminiWithRetry(
@@ -1053,8 +1121,9 @@ export class TachikomaChatComponent {
             continue;
           }
 
-          // Only check for SILENCE if this is NOT the first agent, and response is exactly "SILENCE"
-          const isSilent = i > 0 && response.trim().toUpperCase() === 'SILENCE';
+          // Resilient check for SILENCE (strip punctuation, check if exactly 'SILENCE')
+          const cleanResponse = response.trim().replace(/[.[\]"']/g, '').toUpperCase();
+          const isSilent = i > 0 && cleanResponse === 'SILENCE';
 
           if (isSilent) {
             console.log(`${agent.name}: SILENCED (agent #${i + 1})`);
@@ -1065,7 +1134,8 @@ export class TachikomaChatComponent {
               })`
             );
             this.addMessage(agent.name, response, false, agent.id);
-            conversationContext += `\n${agent.name} SAID: "${response}"\n`;
+            // Append as a structural tag inside the active round context
+            conversationContext += `  <agent_response sender="${agent.name}">${response}</agent_response>\n`;
           }
         } catch (error: any) {
           agent.status = 'idle';
@@ -1080,12 +1150,15 @@ export class TachikomaChatComponent {
         }
       }
 
+      // Close the tags for the moderator's benefit
+      conversationContext += '</current_round>';
+
       // Process Moderators (agents with role === 'moderator')
       const moderators = this.agents.filter((a) => a.role === 'moderator');
 
       for (const moderator of moderators) {
         moderator.status = 'thinking';
-        const modPrompt = `${conversationContext}\n\nCONTEXT_SO_FAR: You have the full conversation history above. The user just asked a new question, and the agents responded (or stayed silent). Synthesize the final answer taking into account the conversation history.`;
+        const modPrompt = `${conversationContext}\n\n<moderator_directive>\nYou have the full conversation history and the current round above. Synthesize the final answer, resolving any debates or summarizing the conclusions of the agents who spoke.\n</moderator_directive>`;
 
         try {
           const modResponse = await this.callGemini(
@@ -1095,7 +1168,8 @@ export class TachikomaChatComponent {
             moderator.model // Use moderator's specific model
           );
           moderator.status = 'idle';
-          if (!modResponse.includes('SILENCE')) {
+          const cleanModResponse = modResponse.trim().replace(/[.[\]"']/g, '').toUpperCase();
+          if (cleanModResponse !== 'SILENCE') {
             this.addMessage(moderator.name, modResponse, false, moderator.id);
           }
         } catch (error: any) {
@@ -1126,6 +1200,8 @@ export class TachikomaChatComponent {
 
       // Increment round counter for next user input
       this.currentRoundId++;
+      // Keep landscape view tracking the latest round
+      this.selectedViewRoundId.set(this.currentRoundId - 1);
       console.log(`✅ Round ${this.currentRoundId} completed`);
     } finally {
       // Always reset processing state, even if errors occur
@@ -1168,13 +1244,11 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
 
     // Include uploaded files context if any
     if (this.uploadedFiles().length > 0) {
-      history += 'UPLOADED FILES (shared context for all agents):\n';
+      history += '<shared_context>\n';
       for (const file of this.uploadedFiles()) {
-        history += `\n=== FILE: ${file.name} ===\n`;
-        history += `${file.content}\n`;
-        history += `=== END OF FILE ===\n\n`;
+        history += `  <file name="${file.name}">\n${file.content}\n  </file>\n`;
       }
-      history += '\n';
+      history += '</shared_context>\n\n';
     }
 
     if (this.messages.length === 0) {
