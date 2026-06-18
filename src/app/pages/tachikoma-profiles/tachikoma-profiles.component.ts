@@ -36,7 +36,7 @@ export class TachikomaProfilesComponent {
     hex: '#00f3ff',
     temp: 0.5,
     role: 'chatter',
-    model: 'models/gemini-2.0-flash-exp',
+    model: 'models/gemini-3.5-flash',
     system: '',
     systemMode: 'plaintext',
     silenceProtocol: 'standard',
@@ -458,7 +458,7 @@ RULES:
 Return ONLY the JSON object.`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -488,7 +488,7 @@ Return ONLY the JSON object.`;
         silenceProtocol: (['standard','always_speak','conservative','agreeable'] as const).includes(draft.silenceProtocol as any)
           ? draft.silenceProtocol : 'standard',
         system: draft.system || '',
-        model: 'models/gemini-2.0-flash-exp',
+        model: 'models/gemini-3.5-flash',
         systemMode: 'plaintext',
       };
 
@@ -520,7 +520,7 @@ Return ONLY the JSON object.`;
       hex: draft.hex || '#00f3ff',
       temp: draft.temp ?? 0.5,
       role: draft.role || 'chatter',
-      model: draft.model || 'models/gemini-2.0-flash-exp',
+      model: draft.model || 'models/gemini-3.5-flash',
       system: draft.system!,
       systemMode: 'plaintext',
       silenceProtocol: draft.silenceProtocol,
@@ -593,7 +593,7 @@ EXTRACTION RULES:
 - Return ONLY the JSON object - no markdown code blocks, no explanations, no extra text`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

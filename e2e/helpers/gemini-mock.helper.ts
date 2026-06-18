@@ -40,6 +40,8 @@ function buildCountTokensResponse(tokenCount = 100): object {
 function buildModelsListResponse(): object {
   return {
     models: [
+      { name: 'models/gemini-3.5-flash', displayName: 'Gemini 3.5 Flash', inputTokenLimit: 1048576, outputTokenLimit: 8192 },
+      { name: 'models/gemini-3.1', displayName: 'Gemini 3.1', inputTokenLimit: 1048576, outputTokenLimit: 8192 },
       { name: 'models/gemini-2.0-flash-exp', displayName: 'Gemini 2.0 Flash Exp', inputTokenLimit: 1048576, outputTokenLimit: 8192 },
       { name: 'models/gemini-1.5-flash', displayName: 'Gemini 1.5 Flash', inputTokenLimit: 1048576, outputTokenLimit: 8192 },
     ],
@@ -48,7 +50,7 @@ function buildModelsListResponse(): object {
 
 /** Build a Gemini model detail response. */
 function buildModelDetailResponse(): object {
-  return { name: 'models/gemini-2.0-flash-exp', inputTokenLimit: 1048576, outputTokenLimit: 8192 };
+  return { name: 'models/gemini-3.5-flash', inputTokenLimit: 1048576, outputTokenLimit: 8192 };
 }
 
 /**

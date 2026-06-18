@@ -3,12 +3,16 @@ import { SyncableData } from './syncable-data.model';
 export type GeminiModel =
   | 'gemini-2.0-flash'
   | 'gemini-2.5-flash'
-  | 'gemini-3.0';
+  | 'gemini-3.0'
+  | 'gemini-3.1'
+  | 'gemini-3.5-flash';
 
 export const GEMINI_MODELS: { value: GeminiModel; label: string }[] = [
   { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   { value: 'gemini-3.0', label: 'Gemini 3.0' },
+  { value: 'gemini-3.1', label: 'Gemini 3.1' },
+  { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
 ];
 
 export interface UserProfile extends SyncableData {
@@ -37,7 +41,7 @@ export class UserProfileModel {
     chatUsername: 'USER',
     photoURL: null,
     geminiApiKey: '',
-    geminiModel: 'gemini-2.5-flash' as GeminiModel,
+    geminiModel: 'gemini-3.5-flash' as GeminiModel,
     rateLimitRPM: 15, // Free tier default
   };
 

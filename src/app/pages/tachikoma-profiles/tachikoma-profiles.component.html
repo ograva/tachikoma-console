@@ -134,6 +134,8 @@
                 <mat-form-field appearance="outline">
                     <mat-label>Model</mat-label>
                     <mat-select [(ngModel)]="newProfile.model">
+                        <mat-option value="models/gemini-3.5-flash">Gemini 3.5 Flash</mat-option>
+                        <mat-option value="models/gemini-3.1">Gemini 3.1</mat-option>
                         <mat-option value="models/gemini-2.0-flash-exp">Gemini 2.0 Flash (Exp)</mat-option>
                         <mat-option value="models/gemini-1.5-flash">Gemini 1.5 Flash</mat-option>
                         <mat-option value="models/gemini-1.5-pro">Gemini 1.5 Pro</mat-option>
@@ -389,6 +391,8 @@
                         <mat-form-field appearance="outline">
                             <mat-label>Model</mat-label>
                             <mat-select [(ngModel)]="editingProfile()!.model">
+                                <mat-option value="models/gemini-3.5-flash">Gemini 3.5 Flash</mat-option>
+                                <mat-option value="models/gemini-3.1">Gemini 3.1</mat-option>
                                 <mat-option value="models/gemini-2.0-flash-exp">Gemini 2.0 Flash (Exp)</mat-option>
                                 <mat-option value="models/gemini-1.5-flash">Gemini 1.5 Flash</mat-option>
                                 <mat-option value="models/gemini-1.5-pro">Gemini 1.5 Pro</mat-option>

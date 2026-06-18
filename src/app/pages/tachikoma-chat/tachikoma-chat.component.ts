@@ -77,7 +77,7 @@ export class TachikomaChatComponent {
   private authService = inject(AuthService);
 
   apiKey = '';
-  selectedModel: GeminiModel = 'gemini-2.5-flash';
+  selectedModel: GeminiModel = 'gemini-3.5-flash';
   userInput = '';
   chatTitle = ''; // Title for new chat
   chatDescription = ''; // Description for new chat context
@@ -1192,18 +1192,16 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
     }
 
     const sortedRoundIds = Array.from(rounds.keys()).sort((a, b) => a - b);
-    const totalRounds = sortedRoundIds.length;
 
-    // Determine cutoff: last N rounds in full, older rounds moderator-only
-    const fullRoundsStart = Math.max(0, totalRounds - this.FULL_ROUNDS_CONTEXT);
-    const fullRoundIds = sortedRoundIds.slice(fullRoundsStart);
-    const olderRoundIds = sortedRoundIds.slice(0, fullRoundsStart);
+    // Build history using the "Brainstorming Isolation" strategy
+    history += 'CONVERSATION HISTORY:\n';
 
-    // Include moderator-only messages from older rounds
-    if (this.MODERATOR_ONLY_HISTORY && olderRoundIds.length > 0) {
-      history += 'EARLIER CONTEXT (Moderator Summaries):\n';
-      for (const roundId of olderRoundIds) {
-        const roundMessages = rounds.get(roundId)!;
+    for (const roundId of sortedRoundIds) {
+      const roundMessages = rounds.get(roundId)!;
+
+      if (roundId < this.currentRoundId) {
+        // COMPACTED PREVIOUS ROUNDS: Only include USER prompt and MODERATOR response
+        const userMsg = roundMessages.find((m) => m.isUser);
         const moderatorMsg = roundMessages.find(
           (m) =>
             !m.isUser &&
@@ -1211,26 +1209,37 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
               (a) => a.id === m.agentId && a.role === 'moderator'
             )
         );
-        if (moderatorMsg) {
-          history += `[Round ${roundId}] ${moderatorMsg.sender}: ${moderatorMsg.text}\n\n`;
-        }
-      }
-      history += '\n';
-    }
 
-    // Include last N rounds in full detail
-    history += `RECENT CONVERSATION (Last ${fullRoundIds.length} rounds):\n`;
-    for (const roundId of fullRoundIds) {
-      const roundMessages = rounds.get(roundId)!;
-      history += `--- Round ${roundId} ---\n`;
-      for (const msg of roundMessages) {
-        if (msg.isUser) {
-          history += `USER: ${msg.text}\n`;
-        } else {
-          history += `${msg.sender}: ${msg.text}\n`;
+        if (userMsg && moderatorMsg) {
+          history += `--- Round ${roundId} ---\n`;
+          history += `USER: ${userMsg.text}\n`;
+          history += `${moderatorMsg.sender} (Moderator): ${moderatorMsg.text}\n\n`;
+        } else if (userMsg) {
+          // FALLBACK if no moderator response: Include user prompt and chatter responses
+          history += `--- Round ${roundId} ---\n`;
+          history += `USER: ${userMsg.text}\n`;
+          const chatterMsgs = roundMessages.filter((m) => !m.isUser);
+          if (chatterMsgs.length > 0) {
+            for (const msg of chatterMsgs) {
+              history += `${msg.sender}: ${msg.text}\n`;
+            }
+          } else {
+            history += `[No responses in this round]\n`;
+          }
+          history += '\n';
         }
+      } else {
+        // ACTIVE ROUND: Include everything in full detail (brainstorming context)
+        history += `--- Round ${roundId} (Active) ---\n`;
+        for (const msg of roundMessages) {
+          if (msg.isUser) {
+            history += `USER: ${msg.text}\n`;
+          } else {
+            history += `${msg.sender}: ${msg.text}\n`;
+          }
+        }
+        history += '\n';
       }
-      history += '\n';
     }
 
     return history;
@@ -1646,13 +1655,10 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
 
     this.requestMetrics.requestsPerMessage = totalExpectedRequests;
 
-    // Calculate context window efficiency
+    // Calculate context window efficiency (Brainstorming Isolation Strategy)
     const totalRounds = this.currentRoundId + 1;
-    const fullRoundsInContext = Math.min(totalRounds, this.FULL_ROUNDS_CONTEXT);
-    const moderatorOnlyRounds = Math.max(
-      0,
-      totalRounds - this.FULL_ROUNDS_CONTEXT
-    );
+    const activeRoundsCount = 1; // Only the current active round has brainstorming detail
+    const compactedRoundsCount = Math.max(0, totalRounds - 1); // All previous rounds are compacted to USER + MODERATOR
 
     console.log('🔬 O(n) COMPLEXITY ANALYSIS');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -1663,21 +1669,21 @@ Respond with ONLY the title, no quotes, no explanation. Make it brief and specif
     console.log(`  ├─ Agent responses: ${baseRequests}`);
     console.log(`  └─ Title generation: ${this.messages.length === 0 ? 1 : 0}`);
     console.log(`⚡ Complexity: O(agents) per round - constant prompt size!`);
-    console.log(`📚 Context Window Strategy:`);
+    console.log(`📚 Context Window Strategy (Brainstorming Isolation):`);
     console.log(`  ├─ Total rounds: ${totalRounds}`);
     console.log(
-      `  ├─ Full context: ${fullRoundsInContext} rounds (~${
-        fullRoundsInContext * 1500
+      `  ├─ Active round (full detail): ${activeRoundsCount} round (~${
+        activeRoundsCount * 1500
       } tokens)`
     );
     console.log(
-      `  ├─ Moderator-only: ${moderatorOnlyRounds} rounds (~${
-        moderatorOnlyRounds * 500
+      `  ├─ Compacted rounds (USER + MODERATOR): ${compactedRoundsCount} rounds (~${
+        compactedRoundsCount * 500
       } tokens)`
     );
     console.log(
       `  └─ Estimated prompt size: ~${
-        fullRoundsInContext * 1500 + moderatorOnlyRounds * 500
+        activeRoundsCount * 1500 + compactedRoundsCount * 500
       } tokens`
     );
     console.log(`📊 Current Session Stats:`);
