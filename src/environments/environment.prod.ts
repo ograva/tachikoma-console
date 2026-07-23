@@ -15,7 +15,7 @@ export const environment = {
     projectId: 'novusinc-8df79',
     storageBucket: 'tachikoma-chat',
     messagingSenderId: "136052275501",
-    appId: "1:136052275501:web:d315a05aae5b6a4fbdfba4"
+    appId: "1:136052275501:web:94c7a2f6a7b23592bdfba4",
     firestoreDatabaseId: 'tachikoma-chat',
   },
 };
