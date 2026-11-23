@@ -2,7 +2,7 @@
 
 | Version | Status | Date | Owner |
 | :---- | :---- | :---- | :---- |
-| 1.3 | Draft | 2026-05-29 | Jason (PM) |
+| 1.4 | Draft | 2026-11-23 | Jason (PM) |
 
 ## 1. Executive Summary
 
@@ -64,6 +64,7 @@ Stories:
 - CHAT-001 Start A New Chat With Context
 - CHAT-002 Resume And Manage Saved Chats
 - CHAT-003 Export Conversation Records
+- CHAT-005 Review A Round As A Roundtable Panel (added v1.4, documented as built)
 
 ### ORCH - Multi-Agent Conversation Protocol
 
@@ -104,6 +105,7 @@ Stories:
 - OPER-001 Track Token Usage During Sessions
 - OPER-002 Handle Quota And Throttle Failures Clearly
 - OPER-003 Capture Quality And Performance Signals
+- OPER-007 See Operational Limits In A Compact Status Bar (added v1.4, documented as built)
 
 ## 4. User Journey Map
 
@@ -112,8 +114,8 @@ Stories:
 3. Persona setup: the user drafts a persona from intent and optionally edits it in advanced mode.
 4. New chat setup: the user creates a chat, selects agents, and optionally adds a title and description.
 5. Context enrichment: the user can upload text files or add descriptive context.
-6. Protocol execution: the user submits a prompt and watches the cycle, including explicit failed-persona-step states when retries are exhausted.
-7. Session management: the user continues the discussion, monitors usage constraints, edits metadata, or switches chats.
+6. Protocol execution: the user submits a prompt and watches the cycle, including explicit failed-persona-step states when retries are exhausted. On landscape screens the user reviews each round as side-by-side agent columns and steps between rounds (CHAT-005).
+7. Session management: the user continues the discussion, monitors usage constraints in the compact status bar (OPER-007), edits metadata, or switches chats.
 8. Persistence and recovery: the user refreshes, returns later, or changes devices.
 9. Output reuse: the user exports a conversation artifact.
 
@@ -141,7 +143,7 @@ Scalability: The product must support at least 1,000 stored chat sessions per us
 ## 7. Open Questions & Dependencies
 
 1. Should conversation summarization return as an explicit feature, given the current app mostly relies on sliding context? Owner: Product.
-2. How much token/quota visibility should be surfaced in the UI versus retained as internal diagnostics? Owner: Product + Design.
+2. How much token/quota visibility should be surfaced in the UI versus retained as internal diagnostics? Owner: Product + Design. _v1.4: partially resolved. Model, TPM, context % and RPM are surfaced in the compact status bar (OPER-007); deeper diagnostics are still open._
 3. What is the approved analytics boundary for collecting session quality signals while honoring BYOK privacy expectations? Owner: Product + QA.
 4. Should the default Gemini model be locked to the current constraint baseline unless Architecture and Constraints are updated together? Owner: Product + Architecture.
 5. Should AI-assisted persona drafting use only the default model policy or allow per-user draft-model override in v1.3? Owner: Product + Architecture.
