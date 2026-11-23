@@ -4,6 +4,7 @@
 
 | Version | Date | Author | Summary of Changes |
 | :---- | :---- | :---- | :---- |
+| v1.5 | 2026-11-23 | Eunice (UI UX Designer) | As-built wireframe and flow reference for shipped screens. |
 | v1.4 | 2026-06-18 | Eunice (UI UX Designer) | Added Landscape Roundtable Panel Layout and VS Code-Style Compact Status Bar specifications. |
 | v1.3 | 2026-05-29 | Eunice (UI UX Designer) | Added reusable template pack for tasking, sharding, component contracts, QA validation, and theme rollout gating. |
 | v1.2 | 2026-05-29 | Eunice (UI UX Designer) | Added implementation-ready task board reference mapped by file and component for Poe sharding. |
@@ -446,6 +447,43 @@ Resolution used for this theme:
 3. Update chat and profiles next, preserving current role-color semantics.
 4. Add focus-visible and aria-label hardening in the same pass as token migration.
 5. Ship with a quick visual QA checklist for desktop and mobile before feature work resumes.
+
+## Wireframe & Flow Index
+
+As-built references (v1.5, 2026-11-23). These files document what the shipped code **does**, so that Quinn ("every flow path has an E2E test") and Athena ("use the wireframe `data-test-id` verbatim") have a source. Every `data-test-id` map was re-read from the final template state. Interactive elements without an id are listed in each file's **Design Gaps** section with a proposed `[page]-[element]-[purpose]` id. Behaviour that looks unintended is recorded as **As-Built Observations** for the owner and Jason, not fixed.
+
+Styling: Angular Material 20 for component behaviour, with app-owned SCSS tokens in `src/assets/scss/_sac-tokens.scss` for the SAC identity. No Tailwind (`CONSTRAINTS.md` §7). Several shipped components still hard-code hex values (sync dialog, status bar); see the per-file observations.
+
+### Wireframes
+
+| File | Route | Layout | PRD module(s) | Stories / shards |
+| :--- | :--- | :--- | :--- | :--- |
+| [Wireframe_Login.md](designs/Wireframe_Login.md) | `/authentication/login` | `BlankComponent` | AUTH | AUTH-001, AUTH-003 |
+| [Wireframe_Register.md](designs/Wireframe_Register.md) | `/authentication/register` | `BlankComponent` | AUTH | AUTH-001 |
+| [Wireframe_Dashboard.md](designs/Wireframe_Dashboard.md) | `/dashboard` (`''` redirects) + app shell | `FullComponent` | Entry point (CHAT CTA); shell for AUTH nav | OPER-004 (shell) |
+| [Wireframe_Chat.md](designs/Wireframe_Chat.md) | `/tachikoma` (portrait; shared header, drawer, overlays, export) | `FullComponent` | CHAT, ORCH, OPER, AUTH | CHAT-001..004, ORCH-001..004, OPER-001/002, AUTH-002 |
+| [Wireframe_ChatRoundtable.md](designs/Wireframe_ChatRoundtable.md) | `/tachikoma` (landscape) + status bar (both orientations) | `FullComponent` | CHAT, ORCH, OPER | No dedicated story (supports ORCH-001/002, OPER-001/002) |
+| [Wireframe_AgentProfiles.md](designs/Wireframe_AgentProfiles.md) | `/tachikoma-profiles` | `FullComponent` | AGNT | AGNT-001..005 |
+| [Wireframe_UserProfile.md](designs/Wireframe_UserProfile.md) | `/profile` | `FullComponent` | AUTH, SYNC, OPER | AUTH-002, SYNC-001/002, OPER-002 |
+| [Wireframe_Dialogs.md](designs/Wireframe_Dialogs.md) | Overlays on `/dashboard`, `/tachikoma`, `/tachikoma-profiles` | `MatDialog` | AUTH, AGNT, CHAT | AUTH-002, AUTH-003, AGNT-005, CHAT-001 |
+
+### Flows
+
+| File | Routes covered | PRD module(s) | Stories / shards |
+| :--- | :--- | :--- | :--- |
+| [Flow_SignIn.md](designs/Flow_SignIn.md) | `/authentication/login`, `/authentication/register`, `/dashboard`, `/profile` (logout) | AUTH, SYNC | AUTH-001, AUTH-003, SYNC-002 |
+| [Flow_ChatRound.md](designs/Flow_ChatRound.md) | `/tachikoma` (both orientations) | ORCH, CHAT, OPER | ORCH-001..004, OPER-001..003 |
+| [Flow_RestoreAcrossDevices.md](designs/Flow_RestoreAcrossDevices.md) | `/authentication/login`, sync dialog, `/tachikoma`, `/tachikoma-profiles`, `/profile` | SYNC, AUTH | SYNC-001, SYNC-002, SYNC-004, AUTH-003 |
+
+### Forward specs (design intent, retained)
+
+| File | Status |
+| :--- | :--- |
+| [Landscape_Roundtable_Panel_Layout.md](designs/Landscape_Roundtable_Panel_Layout.md) | v1.0 spec. Superseded as the as-built reference by Wireframe_ChatRoundtable.md; see its **As-Built Deltas** section (D1–D19). |
+
+### Not part of the product (not wireframed)
+
+Template leftovers that no product route renders: `src/app/components/{apps-blog,daily-activities,product-performance,sales-overview}`, `src/app/pages/ui-components/**`, `src/app/pages/extra/**` and `src/app/layouts/full/top-strip/`. See [Wireframe_Dashboard.md](designs/Wireframe_Dashboard.md#not-part-of-the-product-not-wireframed).
 
 ## Implementation Task Board Reference
 

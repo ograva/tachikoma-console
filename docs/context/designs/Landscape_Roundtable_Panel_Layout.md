@@ -6,6 +6,13 @@
 **Date:** 2026-06-18  
 **Theme:** Stand Alone Complex (SAC) Cyberpunk / Tactical Workstation  
 
+## Revision History
+
+| Date | Author | Note |
+| :--- | :--- | :--- |
+| 2026-06-18 | Eunice & Watson | v1.0 forward specification (content below, unchanged). |
+| 2026-11-23 | Eunice | Shipped. **The as-built reference is now [Wireframe_ChatRoundtable.md](Wireframe_ChatRoundtable.md)** (landscape body + status bar), with [Wireframe_Chat.md](Wireframe_Chat.md) for the shared header, drawer and portrait body. The spec content is retained as design intent. Differences are listed under [As-Built Deltas](#as-built-deltas) at the end of this file, as findings for the owner and Jason to decide (not resolved here). |
+
 ---
 
 ## 1. Executive Summary & Design Rationale
@@ -520,3 +527,31 @@ export class TachikomaChatComponent {
 This design contract is approved for implementation. 
 * **Accessibility Check:** The compact status bar elements meet WCAG 2.1 AA contrast requirements and do not rely on color alone (icons and text status indicators are paired).
 * **Responsive Check:** Verified that portrait mode remains a highly functional mobile messaging view, while landscape mode utilizes 100% of the widescreen layout to show multi-agent discussions in parallel.
+
+---
+
+## As-Built Deltas
+
+*Added 2026-11-23 by Eunice. Each row compares the v1.0 spec above with the shipped code (`src/app/pages/tachikoma-chat/tachikoma-chat.component.{html,ts,scss}`). Every row is a **finding for the owner and Jason to decide**: either update the spec or story, or raise a fix shard via Poe. None is resolved here. The as-built reference is [Wireframe_ChatRoundtable.md](Wireframe_ChatRoundtable.md).*
+
+| # | Area | Spec (v1.0) | Shipped code | Finding |
+| :- | :--- | :--- | :--- | :--- |
+| D1 | Column grid | `grid-template-columns: repeat(3, 1fr) 1.2fr` (§3.2, §5.3): exactly 4 columns, the moderator wider | `.landscape-columns { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) }`: equal widths, any agent count, wraps to a new row when narrow | Verified. The moderator gets no extra weight, and on about 768–1000px viewports a 4th agent wraps. |
+| D2 | Moderator position | Far-right column, "Speaks Last" (§3.1, §3.2) | Columns follow `agents` order. With the defaults this is LOGIKOMA, GHOST-1, **MODERATOR**, NEUTRAL, so the moderator is third. `.moderator-col` adds only a left border accent. | Verified. |
+| D3 | Status bar sync segment | Three states: `SECURE-LINK` (green), `SYNCING...` (amber), `OFFLINE` (red, blinking) (§2.2) | Text is **always** `SECURE-LINK`. It turns amber (`.status-warn` + `.dot-warn`) when `contextSoftWarning` is non-null (any model ≥ 80% context). It does not reflect sync or online state. The spec's own §5.2 blueprint also hard-codes `SECURE-LINK`, so the spec is internally inconsistent. | Verified. The amber state means "context near limit", not "syncing". |
+| D4 | Round label | ASCII shows "Viewing Round 3 of 5" and "ROUND: 3" (the same number); §5.2 binds the nav to `selectedViewRoundId() + 1 OF currentRoundId + 1` and the status bar to `ACTIVE ROUND: {{ currentRoundId }}` | Nav (`chat-round-indicator`): `ROUND {{ selectedViewRoundId() + 1 }} OF {{ currentRoundId + 1 }}`. Status bar: `ROUND {{ currentRoundId }}`. | **Off by one, verified.** During the first round the nav says `ROUND 1 OF 1` and the status bar says `ROUND 0`. After round 1 completes, the nav says `ROUND 1 OF 2` and the status bar says `ROUND 1`. The nav total also counts the upcoming empty round. |
+| D5 | data-test-id map | None in the spec | Shipped ids: `chat-attach-file-btn-landscape`, `chat-message-input`, `chat-send-btn`, `chat-round-prev-btn`, `chat-round-indicator`, `chat-round-next-btn`, `chat-agent-message`, `chat-clear-files-btn`, `chat-remove-file-btn`, `chat-soft-limit-banner`, `chat-status-bar` | The spec had no testability contract. See the Wireframe_ChatRoundtable.md map and its Design Gaps (columns, SILENCE placeholder, status segments). |
+| D6 | Status bar colour | Black `#000` / graphite `#050505`, `#222` top border (§2.1) | VS Code blue `#007acc` background, white text | Visual identity deviation, hard-coded rather than a `_sac-tokens.scss` token. |
+| D7 | Models segment | `ACTIVE MODELS: [list]` | `primaryModel`: the **first** model in use only. The TPM and CTX metrics are also for the first model only. | Multi-model chats under-report. |
+| D8 | Tooltips | Every segment has a tooltip (§2.1) | Only TPM, CTX, RPM and ROUND have `matTooltip`. Sync and model have none. | Partial. |
+| D9 | Extra status segment | Not specified | A `PROCESSING` segment (spinning `sync` icon) appears while `isProcessing` | Additive; record in the spec if kept. |
+| D10 | Landscape detection | `innerWidth >= innerHeight && innerWidth >= 768` | `innerWidth >= 768 && innerWidth > innerHeight` (strict) | A square viewport stays portrait. Minor. |
+| D11 | Round counter timing | State diagram: on entering Processing, "All columns clear. Round counter increments." | `currentRoundId++` happens **after** all agents, title generation and the cost estimate. During processing, the view is set to the current (not yet incremented) round. | Behaviourally equivalent for the view; the spec note is inaccurate. |
+| D12 | Speaking order | Fixed sequence LOGIKOMA, GHOST-1, NEUTRAL, then MODERATOR (§4) | Chatters are **shuffled** each round; moderators go last | The spec diagram implies a fixed order. |
+| D13 | Next-round navigation | `>` returns to the active round | After a completed round, Next can move onto the **empty upcoming round** ("No prompt yet — type above to begin.") because `currentRoundId` is already incremented | UX question for Jason. |
+| D14 | SILENCE placeholder | Shown when the agent chose silence | Also shown for agents that **have not spoken yet** in the active round (queued behind the current speaker), because only `thinking` agents get typing dots | Misleading during processing. |
+| D15 | Header | One line: `[V4.4] TACHIKOMA PROTOCOL // SECURE-LINK` with (New Chat) (History) (PDF) | Title plus a second line "SYNC MODE: SECURE-LINK"; New Chat, History, and an **export dropdown** (TXT / PDF / DOCX, only when messages exist); the API key input and INIT appear in the header when no key is set | Additive and differs from the spec. |
+| D16 | Section heading | "THE ROUNDTABLE DISCUSSION" heading above the columns | No heading | Minor. |
+| D17 | File bar and soft-limit banner placement | Not specified for landscape | Both render **below** the columns; portrait puts the banner above the feed | Unspecified; confirm the intent. |
+| D18 | Hard-limit notice | Not specified | Hard-limit messages have no `agentId`, so they are **never shown in landscape** | Gap affecting OPER-002 in landscape. |
+| D19 | Traceability | Spec only | No story or shard in `docs/stories` or `docs/shards` covers the roundtable or status bar | Jason / Poe: add a story or shard if this is to be gated. |
