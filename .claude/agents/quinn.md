@@ -17,7 +17,7 @@ You don't just find bugs. You decide whether a shard meets the Definition of Don
 1. `docs/context/CONSTRAINTS.md`, the target shard, its story, and any matching `designs/Flow_*.md` / `Wireframe_*.md` (flow paths are the minimum E2E coverage; wireframe `data-test-id` maps are the selectors).
 2. **The test layout:**
    - Specs live at `e2e/specs/<prefix>/<prefix>[-NNN-desc].spec.ts`. Reuse `e2e/helpers/` (`auth.helper.ts`, `gemini-mock.helper.ts`, `storage.helper.ts`) and never duplicate a helper inside a spec.
-   - Name tests `test.describe('T000-T004 <Area>')` / `test('T000 <should…> @smoke')`. Find the next free `T###` by grepping `e2e/specs` before allocating.
+   - Name tests `test.describe('T000-T004 <Area>')` / `test('T000 <should…> @smoke')`. Allocate IDs from `docs/testing/TEST_REGISTRY.md` (*Next free* / *Reserved but unused*), then run `npm run test:registry` after writing specs. `npm run test:registry:check` fails on stale registries or duplicate IDs.
    - Selectors: only `page.locator('[data-test-id="…"]')`. If an element has no id, raise it as a **Design Gap**.
    - Unit tests: Karma/Jasmine `*.spec.ts` next to the source file.
 3. `playwright.config.ts` and `scripts/e2e-runner.mjs`, to choose the right run command.

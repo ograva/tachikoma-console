@@ -21,7 +21,7 @@ The project is run by a cohort of seven specialist agents. Each has a Claude Cod
 | **Athena** | Lead Dev / DevOps | `src/`, branches, PRs, GitHub Issues and the Project board |
 
 ## Cohort Workflow
-This is the owner's working sequence (source: `.github/agents/cohorts -flow.md`). Every change belongs to one phase. Before acting, name the phase in one line, for example "Phase 7, Poe: sharding the new EXPT module".
+This is the owner's working sequence (source: `.github/agents/cohorts-flow.md`). Every change belongs to one phase. Before acting, name the phase in one line, for example "Phase 7, Poe: sharding the new EXPT module".
 
 | # | Phase | Agent | Mode | Consumes | Produces | Exit gate |
 | :- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -58,7 +58,7 @@ The agent specs exist in three places: `.claude/agents/*.md` (Claude), `.github/
 | :--- | :--- |
 | App structure | A single Angular 20 app at `src/app/{pages,components,layouts,services,models}`. There is no `projects/`/`libs/`/`functions/` monorepo. |
 | E2E layout | `e2e/specs/<prefix>/<prefix>[-NNN-desc].spec.ts`, helpers in `e2e/helpers/`, test IDs (`T000`…) in the spec titles. |
-| Test registry | `docs/testing/TEST_REGISTRY.md` doesn't exist yet. Find the next free `T###` by grepping `e2e/specs/`. |
+| Test registry | `docs/testing/TEST_REGISTRY.md` is **generated** from the spec titles by `npm run test:registry` (`:check` fails on stale or duplicate IDs). The other `docs/testing/*` guides named in older specs don't exist. |
 | CI | There are no `.github/workflows/`, so Quinn's `/ci-sync` proposes a new `test.yml` for owner review. |
 | Styling | Angular Material 20 with app-owned SCSS tokens (`src/assets/scss/_sac-tokens.scss`). Tailwind is not approved (`CONSTRAINTS.md` §7). |
 | Copilot frontmatter | `model:` and `handoffs:` in `.github/agents` are ignored by Claude. Claude proposes handoffs in its report back to the owner. |
@@ -86,6 +86,7 @@ The agent specs exist in three places: `.claude/agents/*.md` (Claude), `.github/
 - `npm run test:e2e` - Run all Playwright tests
 - `npm run test:e2e:ui` - Playwright UI mode
 - `npm run test:e2e:smoke` - Run smoke tests (@smoke)
+- `npm run test:registry` - Regenerate `docs/testing/TEST_REGISTRY.md` from the spec titles (`:check` to verify)
 
 ### Athena (Automation)
 - `npm run athena:blast-issues` - Create GitHub Issues from shards
