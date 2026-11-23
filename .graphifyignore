@@ -1,0 +1,4 @@
+# Binary image assets (icons, logos, template stock photos): no codebase knowledge,
+# and each would cost a vision-extraction pass.
+public/icons/
+src/assets/images/
