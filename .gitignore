@@ -48,3 +48,6 @@ graphify-out/
 
 # Claude Code agent worktrees (temporary isolated checkouts)
 .claude/worktrees/
+
+# Firebase emulator logs
+*-debug.log
