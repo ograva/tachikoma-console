@@ -19,11 +19,11 @@
 | AGNT | T100–T199 | `e2e/specs/agnt/` | 31 | 0 | T131 | — |
 | CHAT | T200–T299 | `e2e/specs/chat/` | 22 | 1 | T224 | T211–T212 |
 | ORCH | T300–T399 | `e2e/specs/orch/` | 25 | 0 | T328 | T312–T314 |
-| SYNC | T400–T499 | `e2e/specs/sync/` | 14 | 0 | T427 | T405–T406, T419–T420, T425–T426 |
+| SYNC | T400–T499 | `e2e/specs/sync/` | 23 | 0 | T427 | T419–T420, T425–T426 |
 | OPER | T500–T599 | `e2e/specs/oper/` | 37 | 11 | T543 | T512–T513, T517–T520 |
 | EDGE | T900–T999 | any module folder | 0 | 0 | T900 | — |
 
-**Total:** 146 tests, 13 tagged `@smoke`.
+**Total:** 155 tests, 13 tagged `@smoke`.
 
 ## AUTH
 
@@ -219,30 +219,46 @@
 
 | ID | Test | Smoke | Location |
 | :--- | :--- | :---: | :--- |
-| T400 | chat saves to localStorage immediately on creation |  | `e2e/specs/sync/sync.spec.ts:33` |
-| T401 | agent profile saves to localStorage immediately on creation |  | `e2e/specs/sync/sync.spec.ts:50` |
-| T402 | local data survives a hard refresh (F5) |  | `e2e/specs/sync/sync.spec.ts:64` |
-| T403 | UI reflects saved local state without cloud |  | `e2e/specs/sync/sync.spec.ts:77` |
-| T404 | multiple chats save without overwriting each other |  | `e2e/specs/sync/sync.spec.ts:94` |
+| T400 | chat saves to localStorage immediately on creation |  | `e2e/specs/sync/sync.spec.ts:67` |
+| T401 | agent profile saves to localStorage immediately on creation |  | `e2e/specs/sync/sync.spec.ts:84` |
+| T402 | local data survives a hard refresh (F5) |  | `e2e/specs/sync/sync.spec.ts:98` |
+| T403 | UI reflects saved local state without cloud |  | `e2e/specs/sync/sync.spec.ts:111` |
+| T404 | multiple chats save without overwriting each other |  | `e2e/specs/sync/sync.spec.ts:128` |
+| T405 | cloud chats are restored into chat history on a new device after sign-in |  | `e2e/specs/sync/sync.spec.ts:165` |
+| T406 | restored chats keep message content and the timestamps used for conflict resolution |  | `e2e/specs/sync/sync.spec.ts:189` |
+
+### T405–T413 Restore Across Devices
+
+| ID | Test | Smoke | Location |
+| :--- | :--- | :---: | :--- |
+| T405 | cloud chats are restored into chat history on a new device after sign-in |  | `e2e/specs/sync/sync.spec.ts:165` |
+| T406 | restored chats keep message content and the timestamps used for conflict resolution |  | `e2e/specs/sync/sync.spec.ts:189` |
+| T407 | restored chat history keeps the most-recent-first order of the originating device |  | `e2e/specs/sync/sync.spec.ts:227` |
+| T408 | agent profiles and user settings synced from a first device are restored on a second device |  | `e2e/specs/sync/sync.spec.ts:258` |
+| T409 | merge strategy keeps local-only and cloud-only chats and the newest version of shared chats |  | `e2e/specs/sync/sync.spec.ts:299` |
+| T410 | use-cloud strategy replaces the local device chats with the cloud copy |  | `e2e/specs/sync/sync.spec.ts:331` |
+| T411 | use-local strategy replaces the cloud copy with the local device data |  | `e2e/specs/sync/sync.spec.ts:361` |
+| T412 | anonymous guest on a new device does not restore any cloud data |  | `e2e/specs/sync/sync.spec.ts:384` |
+| T413 | sign-in with an empty cloud copy completes without errors and keeps default agents |  | `e2e/specs/sync/sync.spec.ts:409` |
 
 ### T414–T420 Offline-First
 
 | ID | Test | Smoke | Location |
 | :--- | :--- | :---: | :--- |
-| T414 | existing local chats remain accessible when offline |  | `e2e/specs/sync/sync.spec.ts:123` |
-| T415 | agent profiles remain accessible when offline |  | `e2e/specs/sync/sync.spec.ts:146` |
-| T416 | new changes made while offline persist to localStorage |  | `e2e/specs/sync/sync.spec.ts:160` |
-| T417 | app does not crash when network requests fail |  | `e2e/specs/sync/sync.spec.ts:180` |
-| T418 | localStorage writes succeed while offline |  | `e2e/specs/sync/sync.spec.ts:192` |
+| T414 | existing local chats remain accessible when offline |  | `e2e/specs/sync/sync.spec.ts:431` |
+| T415 | agent profiles remain accessible when offline |  | `e2e/specs/sync/sync.spec.ts:454` |
+| T416 | new changes made while offline persist to localStorage |  | `e2e/specs/sync/sync.spec.ts:468` |
+| T417 | app does not crash when network requests fail |  | `e2e/specs/sync/sync.spec.ts:488` |
+| T418 | localStorage writes succeed while offline |  | `e2e/specs/sync/sync.spec.ts:500` |
 
 ### T421–T426 Firestore Namespace
 
 | ID | Test | Smoke | Location |
 | :--- | :--- | :---: | :--- |
-| T421 | localStorage uses user-scoped keys for authenticated data |  | `e2e/specs/sync/sync.spec.ts:212` |
-| T422 | anonymous user data is stored under anonymous key prefix |  | `e2e/specs/sync/sync.spec.ts:228` |
-| T423 | anonymous and authenticated data are in separate localStorage namespaces |  | `e2e/specs/sync/sync.spec.ts:241` |
-| T424 | user-specific data is not accessible in anonymous namespace |  | `e2e/specs/sync/sync.spec.ts:263` |
+| T421 | localStorage uses user-scoped keys for authenticated data |  | `e2e/specs/sync/sync.spec.ts:520` |
+| T422 | anonymous user data is stored under anonymous key prefix |  | `e2e/specs/sync/sync.spec.ts:536` |
+| T423 | anonymous and authenticated data are in separate localStorage namespaces |  | `e2e/specs/sync/sync.spec.ts:549` |
+| T424 | user-specific data is not accessible in anonymous namespace |  | `e2e/specs/sync/sync.spec.ts:571` |
 
 ## OPER
 

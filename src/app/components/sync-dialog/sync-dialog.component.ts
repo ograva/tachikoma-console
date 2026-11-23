@@ -22,7 +22,7 @@ export type SyncStrategy =
     MatProgressSpinnerModule,
   ],
   template: `
-    <div class="sync-dialog">
+    <div class="sync-dialog" data-test-id="sync-dialog">
       <h2 mat-dialog-title class="dialog-title">
         <mat-icon class="title-icon">cloud_sync</mat-icon>
         Sync Your Data
@@ -37,7 +37,7 @@ export type SyncStrategy =
         </div>
 
         <div class="options-grid">
-          <div class="option-card" (click)="selectOption('merge')">
+          <div class="option-card" (click)="selectOption('merge')" data-test-id="sync-option-merge">
             <div class="option-icon merge-icon">
               <mat-icon>merge</mat-icon>
             </div>
@@ -49,7 +49,7 @@ export type SyncStrategy =
             <span class="recommended-badge">Recommended</span>
           </div>
 
-          <div class="option-card" (click)="selectOption('cloud-to-local')">
+          <div class="option-card" (click)="selectOption('cloud-to-local')" data-test-id="sync-option-cloud-to-local">
             <div class="option-icon cloud-icon">
               <mat-icon>cloud_download</mat-icon>
             </div>
@@ -60,7 +60,7 @@ export type SyncStrategy =
             </p>
           </div>
 
-          <div class="option-card" (click)="selectOption('local-to-cloud')">
+          <div class="option-card" (click)="selectOption('local-to-cloud')" data-test-id="sync-option-local-to-cloud">
             <div class="option-icon local-icon">
               <mat-icon>cloud_upload</mat-icon>
             </div>
@@ -76,7 +76,7 @@ export type SyncStrategy =
       </mat-dialog-content>
 
       <mat-dialog-actions class="dialog-actions">
-        <button mat-stroked-button (click)="cancel()" class="cancel-btn">
+        <button mat-stroked-button (click)="cancel()" class="cancel-btn" data-test-id="sync-skip-btn">
           Skip for Now
         </button>
       </mat-dialog-actions>

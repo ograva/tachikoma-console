@@ -43,7 +43,7 @@
         <div class="agent-selector-dialog" (click)="$event.stopPropagation()">
             <div class="dialog-header">
                 <h2>SELECT PARTICIPATING AGENTS</h2>
-                <button mat-icon-button (click)="cancelNewChat()" class="close-btn">
+                <button mat-icon-button (click)="cancelNewChat()" class="close-btn" data-test-id="chat-new-chat-close-btn">
                     <mat-icon>close</mat-icon>
                 </button>
             </div>
@@ -503,7 +503,7 @@
                         [class.active]="session.id === getCurrentChatId()" (click)="switchChat(session.id)"
                         data-test-id="chat-history-item">
                         <div class="chat-item-header">
-                            <span class="chat-title">{{ session.title }}</span>
+                            <span class="chat-title" data-test-id="chat-history-item-title">{{ session.title }}</span>
                             <div class="chat-actions">
                                 <button class="edit-chat-btn"
                                     (click)="showEditChatDialog(session.id); $event.stopPropagation()"

@@ -97,7 +97,7 @@
             </div>
             } @else {
             <div class="info-value-with-edit">
-              <span class="username-preview">{{ profile()?.chatUsername || 'USER' }}</span>
+              <span class="username-preview" data-test-id="profile-chat-username-preview">{{ profile()?.chatUsername || 'USER' }}</span>
               <button mat-icon-button (click)="startEditChatUsername()"
                 aria-label="Edit chat username" data-test-id="profile-edit-username-btn">
                 <i-tabler name="edit" class="icon-16"></i-tabler>

@@ -9,6 +9,10 @@ import {
   EMULATOR_FIRESTORE_BASE,
   PROJECT_ID,
   FIRESTORE_DB_ID,
+  createUniqueEmulatorUser,
+  seedEmulatorFirestoreDoc,
+  getEmulatorFirestoreDocs,
+  resolveSyncDialog,
 } from '../../helpers';
 
 const CHAT_SESSIONS_KEY = 'tachikoma_chat_sessions';
@@ -17,6 +21,36 @@ const AGENT_PROFILES_KEY = 'tachikoma_agent_profiles';
 function makeSeedChat(id: string, title: string) {
   const now = Date.now();
   return { id, title, messages: [], participatingAgents: [], conversationSummary: '', createdAt: now, updatedAt: now };
+}
+
+/** Chat ids in the app's own format (`chat_<epochMs>_<rand>`), so Firestore doc-id order mirrors creation time. */
+function chatId(epochMs: number, suffix: string) {
+  return `chat_${epochMs}_${suffix}`;
+}
+
+/** A message shaped like the ones TachikomaChatComponent writes (round-based transcript). */
+function makeSeedMessage(id: string, text: string, isUser: boolean, timestamp: number, roundId = 0) {
+  return {
+    id, sender: isUser ? 'USER' : 'LOGIKOMA', text, html: `<p>${text}</p>`, isUser, timestamp, roundId,
+    ...(isUser ? {} : { agentId: 'logikoma' }),
+  };
+}
+
+/** Read `tachikoma_chat_sessions` from the page. */
+async function readLocalChats(page: import('@playwright/test').Page): Promise<any[]> {
+  return page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]'), CHAT_SESSIONS_KEY);
+}
+
+/**
+ * Open the chat page with the explainer suppressed and the history drawer open.
+ * Restored chats never set a current chat id, so the page always opens the new-chat agent
+ * selector first; close it before opening the drawer.
+ */
+async function openChatHistory(page: import('@playwright/test').Page): Promise<void> {
+  await suppressExplainerDialog(page);
+  await page.goto('/tachikoma');
+  await page.locator('[data-test-id="chat-new-chat-close-btn"]').click();
+  await page.locator('[data-test-id="chat-history-toggle-btn"]').click();
 }
 
 /**
@@ -114,6 +148,280 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
       const sessions = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]'), CHAT_SESSIONS_KEY);
       expect(sessions.some((s: any) => s.title === 'Chat One')).toBeTruthy();
       expect(sessions.some((s: any) => s.title === 'Chat Two')).toBeTruthy();
+    });
+  });
+
+  // ══ SYNC-002: Restore Across Devices (T405-T413) ══════════════════════════
+  //
+  // "Another device" = Playwright's fresh per-test browser context (empty localStorage and
+  // IndexedDB) signing in as an emulator user whose cloud copy was written either directly to the
+  // Firestore emulator (seedEmulatorFirestoreDoc) or by a first browser context (T408).
+  // On sign-in the app always restores via AppComponent.checkAndSyncFromFirestore(); because
+  // AgentProfileService writes default agents to localStorage on boot, the AUTH-003 sync dialog
+  // also appears on every fresh device, so each test resolves it explicitly.
+
+  test.describe('T405-T413 Restore Across Devices', () => {
+    // Source: Quinn
+    test('T405 cloud chats are restored into chat history on a new device after sign-in', async ({ page }) => {
+      const user = await createUniqueEmulatorUser('t405');
+      const t = Date.now() - 60_000;
+      await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', chatId(t, 'aaaa1'), {
+        ...makeSeedChat(chatId(t, 'aaaa1'), 'Restored From Cloud A'), createdAt: t, updatedAt: t,
+      });
+      await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', chatId(t + 1000, 'bbbb2'), {
+        ...makeSeedChat(chatId(t + 1000, 'bbbb2'), 'Restored From Cloud B'), createdAt: t + 1000, updatedAt: t + 1000,
+      });
+
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'skip');
+
+      await expect.poll(async () => (await readLocalChats(page)).map((c) => c.title).sort(), { timeout: 10_000 })
+        .toEqual(['Restored From Cloud A', 'Restored From Cloud B']);
+
+      await openChatHistory(page);
+      const titles = page.locator('[data-test-id="chat-history-item-title"]');
+      await expect(titles).toHaveCount(2);
+      await expect(titles.filter({ hasText: 'Restored From Cloud A' })).toHaveCount(1);
+      await expect(titles.filter({ hasText: 'Restored From Cloud B' })).toHaveCount(1);
+    });
+
+    // Source: Quinn
+    test('T406 restored chats keep message content and the timestamps used for conflict resolution', async ({ page }) => {
+      // BUG (SYNC-002): ChatMessageModel.normalize() (src/app/models/chat-message.model.ts) rebuilds each message
+      // from a fixed field list and drops `roundId` (also `messageType`, `retryCount`). Restored transcripts lose
+      // their round grouping, so TachikomaChatComponent renders "No prompt yet" for a restored chat.
+      // Remove test.fail() once normalize() preserves these fields.
+      test.fail(true, 'ChatMessageModel.normalize drops roundId/messageType/retryCount on restore');
+      const user = await createUniqueEmulatorUser('t406');
+      const createdAt = 1_760_000_000_000;
+      const updatedAt = 1_760_000_123_456;
+      const id = chatId(createdAt, 'msgs1');
+      const messages = [
+        makeSeedMessage('msg_1', 'Restore probe question from device A', true, createdAt + 10),
+        makeSeedMessage('msg_2', 'Restore probe answer from LOGIKOMA', false, createdAt + 20),
+      ];
+      await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', id, {
+        ...makeSeedChat(id, 'Timestamp Fidelity'), messages, conversationSummary: 'Summary from device A', createdAt, updatedAt,
+      });
+
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'skip');
+
+      await expect.poll(async () => (await readLocalChats(page)).length, { timeout: 10_000 }).toBe(1);
+      const [restored] = await readLocalChats(page);
+      expect(restored.id).toBe(id);
+      expect(restored.createdAt).toBe(createdAt);
+      expect(restored.updatedAt).toBe(updatedAt);
+      expect(restored.conversationSummary).toBe('Summary from device A');
+      expect(restored.messages.map((m: any) => [m.id, m.text, m.isUser, m.timestamp, m.roundId])).toEqual(
+        messages.map((m) => [m.id, m.text, m.isUser, m.timestamp, m.roundId])
+      );
+
+      await openChatHistory(page);
+      await page.locator('[data-test-id="chat-history-item"]', { hasText: 'Timestamp Fidelity' }).click();
+      await expect(page.locator('[data-test-id="chat-user-message"]').filter({ hasText: 'Restore probe question from device A' })).toBeVisible();
+      await expect(page.locator('[data-test-id="chat-agent-message"]').filter({ hasText: 'Restore probe answer from LOGIKOMA' })).toBeVisible();
+    });
+
+    // Source: Quinn
+    test('T407 restored chat history keeps the most-recent-first order of the originating device', async ({ page }) => {
+      // BUG (SYNC-002): ChatStorageService.loadFromCloud() prepends cloud chats in Firestore document-id order
+      // (ascending chat_<createdAt>_…), so a new device lists chats oldest-first, the reverse of the originating
+      // device. Remove test.fail() once restored chats are ordered by recency.
+      test.fail(true, 'loadFromCloud restores chats oldest-first (Firestore doc-id order)');
+      const user = await createUniqueEmulatorUser('t407');
+      const base = Date.now() - 3 * 60_000;
+      // Ids in the app's own chat_<createdAt>_<rand> format, created oldest → newest.
+      const seeded = [
+        { id: chatId(base, 'zzzz1'), title: 'Order Oldest', at: base },
+        { id: chatId(base + 60_000, 'mmmm2'), title: 'Order Middle', at: base + 60_000 },
+        { id: chatId(base + 120_000, 'aaaa3'), title: 'Order Newest', at: base + 120_000 },
+      ];
+      for (const c of seeded) {
+        await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', c.id, {
+          ...makeSeedChat(c.id, c.title), createdAt: c.at, updatedAt: c.at,
+        });
+      }
+
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'skip');
+      await expect.poll(async () => (await readLocalChats(page)).length, { timeout: 10_000 }).toBe(3);
+
+      // Device A shows newest first (ChatStorageService.createChat prepends), so the restored device must too.
+      await openChatHistory(page);
+      await expect(page.locator('[data-test-id="chat-history-item-title"]')).toHaveText([
+        'Order Newest', 'Order Middle', 'Order Oldest',
+      ]);
+    });
+
+    // Source: Quinn
+    test('T408 agent profiles and user settings synced from a first device are restored on a second device', async ({ browser, page }) => {
+      const user = await createUniqueEmulatorUser('t408');
+      await seedEmulatorFirestoreDoc(user.uid, 'user_profile', user.uid, {
+        id: user.uid, email: user.email, chatUsername: 'MAJOR-T408', displayName: 'Restore Tester',
+        geminiModel: 'models/gemini-3.5-flash', createdAt: Date.now() - 5_000, updatedAt: Date.now() - 5_000,
+      });
+
+      // ── Device A: sign in, add a custom agent locally, push agents to the cloud via the profile page.
+      const deviceA = await browser.newContext();
+      try {
+        const pageA = await deviceA.newPage();
+        await signInWithEmail(pageA, user.email, user.password);
+        await resolveSyncDialog(pageA, 'skip');
+        await pageA.evaluate((key) => {
+          const profiles = JSON.parse(localStorage.getItem(key) || '[]');
+          const now = Date.now();
+          profiles.push({ ...profiles[0], id: 'agent_t408_custom', name: 'SECTION-9-T408', system: 'Restored agent.', createdAt: now, updatedAt: now });
+          localStorage.setItem(key, JSON.stringify(profiles));
+        }, AGENT_PROFILES_KEY);
+        await pageA.goto('/profile');
+        await pageA.locator('[data-test-id="profile-sync-agents-btn"]').click();
+        await expect.poll(async () => (await getEmulatorFirestoreDocs<any>(user.uid, 'agent_profiles')).map((p) => p.id), { timeout: 15_000 })
+          .toContain('agent_t408_custom');
+      } finally {
+        await deviceA.close();
+      }
+
+      // ── Device B: fresh context, same user.
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'skip');
+      await expect.poll(async () => page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]').map((p: any) => p.name), AGENT_PROFILES_KEY), { timeout: 10_000 })
+        .toContain('SECTION-9-T408');
+
+      await page.goto('/tachikoma-profiles');
+      await expect(page.locator('[data-test-id="profiles-card-name"]').filter({ hasText: 'SECTION-9-T408' })).toBeVisible();
+
+      await page.goto('/profile');
+      await expect(page.locator('[data-test-id="profile-chat-username-preview"]')).toHaveText('MAJOR-T408');
+    });
+
+    // Source: Quinn
+    test('T409 merge strategy keeps local-only and cloud-only chats and the newest version of shared chats', async ({ page }) => {
+      const user = await createUniqueEmulatorUser('t409');
+      const old = Date.now() - 10 * 60_000;
+      const sharedId = chatId(old, 'shard');
+      const localOnlyId = chatId(old + 1000, 'local');
+      const cloudOnlyId = chatId(old + 2000, 'cloud');
+      await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', sharedId, { ...makeSeedChat(sharedId, 'Shared NEWER CLOUD'), createdAt: old, updatedAt: old + 300_000 });
+      await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', cloudOnlyId, { ...makeSeedChat(cloudOnlyId, 'Cloud Only'), createdAt: old + 2000, updatedAt: old + 2000 });
+
+      await page.goto('/authentication/login');
+      await page.evaluate(([key, chats]) => localStorage.setItem(key as string, JSON.stringify(chats)), [CHAT_SESSIONS_KEY, [
+        { ...makeSeedChat(localOnlyId, 'Local Only'), createdAt: old + 1000, updatedAt: old + 1000 },
+        { ...makeSeedChat(sharedId, 'Shared OLDER LOCAL'), createdAt: old, updatedAt: old + 100_000 },
+      ]] as const);
+
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'merge');
+
+      // Cloud converges on the merged set, newest version of the shared chat wins.
+      await expect.poll(async () => (await getEmulatorFirestoreDocs<any>(user.uid, 'chat_sessions')).map((c) => c.title).sort(), { timeout: 10_000 })
+        .toEqual(['Cloud Only', 'Local Only', 'Shared NEWER CLOUD']);
+
+      // This device shows the same merged set.
+      await openChatHistory(page);
+      const titles = page.locator('[data-test-id="chat-history-item-title"]');
+      await expect(titles).toHaveCount(3);
+      await expect(titles.filter({ hasText: 'Shared NEWER CLOUD' })).toHaveCount(1);
+      await expect(titles.filter({ hasText: 'Local Only' })).toHaveCount(1);
+      await expect(titles.filter({ hasText: 'Cloud Only' })).toHaveCount(1);
+    });
+
+    // Source: Quinn
+    test('T410 use-cloud strategy replaces the local device chats with the cloud copy', async ({ page }) => {
+      // BUG (SYNC-002 / AUTH-003): "Use Cloud Data" keeps the device's local-only chat. FirestoreService.syncCollection()
+      // writes the result to `firestore_{uid}_chat_sessions` (a key no UI service reads) and removes
+      // `tachikoma_chat_sessions`, while ChatStorageService keeps and re-persists its in-memory sessions.
+      // Remove test.fail() once cloud-to-local updates the keys/signals the app actually reads.
+      test.fail(true, 'cloud-to-local strategy does not discard local chats');
+      const user = await createUniqueEmulatorUser('t410');
+      const t = Date.now() - 60_000;
+      const cloudId = chatId(t, 'cloud');
+      const localId = chatId(t + 1000, 'local');
+      await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', cloudId, { ...makeSeedChat(cloudId, 'Cloud Copy Wins'), createdAt: t, updatedAt: t });
+
+      await page.goto('/authentication/login');
+      await page.evaluate(([key, chats]) => localStorage.setItem(key as string, JSON.stringify(chats)), [CHAT_SESSIONS_KEY, [
+        { ...makeSeedChat(localId, 'Local To Discard'), createdAt: t + 1000, updatedAt: t + 1000 },
+      ]] as const);
+
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'cloud-to-local');
+
+      // Cloud is untouched by a cloud-to-local restore.
+      await expect.poll(async () => (await getEmulatorFirestoreDocs<any>(user.uid, 'chat_sessions')).map((c) => c.title), { timeout: 10_000 })
+        .toEqual(['Cloud Copy Wins']);
+
+      await openChatHistory(page);
+      const titles = page.locator('[data-test-id="chat-history-item-title"]');
+      await expect(titles).toHaveText(['Cloud Copy Wins']);
+    });
+
+    // Source: Quinn
+    test('T411 use-local strategy replaces the cloud copy with the local device data', async ({ page }) => {
+      const user = await createUniqueEmulatorUser('t411');
+      const t = Date.now() - 60_000;
+      const cloudId = chatId(t, 'cloud');
+      const localId = chatId(t + 1000, 'local');
+      await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', cloudId, { ...makeSeedChat(cloudId, 'Cloud To Replace'), createdAt: t, updatedAt: t });
+
+      await page.goto('/authentication/login');
+      await page.evaluate(([key, chats]) => localStorage.setItem(key as string, JSON.stringify(chats)), [CHAT_SESSIONS_KEY, [
+        { ...makeSeedChat(localId, 'Local Copy Wins'), createdAt: t + 1000, updatedAt: t + 1000 },
+      ]] as const);
+
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'local-to-cloud');
+
+      await expect.poll(async () => (await getEmulatorFirestoreDocs<any>(user.uid, 'chat_sessions')).map((c) => c.title), { timeout: 10_000 })
+        .toEqual(['Local Copy Wins']);
+
+      await openChatHistory(page);
+      await expect(page.locator('[data-test-id="chat-history-item-title"]')).toHaveText(['Local Copy Wins']);
+    });
+
+    // Source: Quinn
+    test('T412 anonymous guest on a new device does not restore any cloud data', async ({ page }) => {
+      const user = await createUniqueEmulatorUser('t412');
+      const t = Date.now();
+      await seedEmulatorFirestoreDoc(user.uid, 'chat_sessions', chatId(t, 'secret'), { ...makeSeedChat(chatId(t, 'secret'), 'Private Cloud Chat'), createdAt: t, updatedAt: t });
+      await seedEmulatorFirestoreDoc(user.uid, 'agent_profiles', 'agent_t412_private', {
+        id: 'agent_t412_private', name: 'PRIVATE-T412', color: 'cyan', hex: '#00ffff', temp: 0.5, system: 'Private.', role: 'chatter', createdAt: t, updatedAt: t,
+      });
+
+      await continueAsGuest(page);
+      await expect(page.locator('[data-test-id="sync-dialog"]')).toHaveCount(0);
+
+      await openChatHistory(page);
+      await expect(page.locator('[data-test-id="chat-history-empty"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="chat-history-item-title"]').filter({ hasText: 'Private Cloud Chat' })).toHaveCount(0);
+
+      await page.goto('/tachikoma-profiles');
+      await expect(page.locator('[data-test-id="profiles-card-name"]').first()).toBeVisible();
+      await expect(page.locator('[data-test-id="profiles-card-name"]').filter({ hasText: 'PRIVATE-T412' })).toHaveCount(0);
+
+      const storageDump = await page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
+      expect(storageDump).not.toContain('Private Cloud Chat');
+      expect(storageDump).not.toContain('PRIVATE-T412');
+    });
+
+    // Source: Quinn
+    test('T413 sign-in with an empty cloud copy completes without errors and keeps default agents', async ({ page }) => {
+      const user = await createUniqueEmulatorUser('t413');
+      const pageErrors: string[] = [];
+      page.on('pageerror', (err) => pageErrors.push(err.message));
+
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'skip');
+
+      await openChatHistory(page);
+      await expect(page.locator('[data-test-id="chat-history-empty"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="chat-history-item"]')).toHaveCount(0);
+
+      await page.goto('/tachikoma-profiles');
+      await expect(page.locator('[data-test-id="profiles-card-name"]').filter({ hasText: 'LOGIKOMA' })).toBeVisible();
+      expect(await readLocalChats(page)).toEqual([]);
+      expect(pageErrors).toEqual([]);
     });
   });
 

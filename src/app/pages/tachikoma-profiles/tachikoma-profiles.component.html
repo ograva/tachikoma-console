@@ -329,7 +329,7 @@
             <div *ngIf="editingProfile()?.id !== profile.id" class="view-mode">
                 <mat-card-header>
                     <div class="profile-header">
-                        <div class="name-badge" [style.background-color]="profile.hex">
+                        <div class="name-badge" [style.background-color]="profile.hex" data-test-id="profiles-card-name">
                             {{ profile.name }}
                         </div>
                         <span class="role-badge">{{ getRoleLabel(profile.role) }}</span>

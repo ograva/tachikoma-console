@@ -78,3 +78,97 @@ export async function clearEmulatorFirestoreUser(uid: string): Promise<void> {
     await fetch(`${base}/users/${uid}/${col}`, { method: 'DELETE' }).catch(() => {});
   }
 }
+
+// ── Firestore emulator REST seeding (SYNC-002 cross-device restore) ─────────
+
+type FirestoreRestValue = Record<string, unknown>;
+
+function toFirestoreValue(value: unknown): FirestoreRestValue {
+  if (value === null || value === undefined) return { nullValue: null };
+  if (typeof value === 'boolean') return { booleanValue: value };
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+  }
+  if (typeof value === 'string') return { stringValue: value };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(toFirestoreValue) } };
+  const fields: Record<string, FirestoreRestValue> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) fields[k] = toFirestoreValue(v);
+  return { mapValue: { fields } };
+}
+
+function fromFirestoreValue(value: any): unknown {
+  if ('nullValue' in value) return null;
+  if ('booleanValue' in value) return value.booleanValue;
+  if ('integerValue' in value) return Number(value.integerValue);
+  if ('doubleValue' in value) return value.doubleValue;
+  if ('stringValue' in value) return value.stringValue;
+  if ('timestampValue' in value) return value.timestampValue;
+  if ('arrayValue' in value) return (value.arrayValue.values ?? []).map(fromFirestoreValue);
+  if ('mapValue' in value) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value.mapValue.fields ?? {})) out[k] = fromFirestoreValue(v);
+    return out;
+  }
+  return undefined;
+}
+
+function userCollectionUrl(uid: string, collectionName: string): string {
+  return `${EMULATOR_FIRESTORE_BASE}/v1/projects/${PROJECT_ID}/databases/${FIRESTORE_DB_ID}/documents/users/${uid}/${collectionName}`;
+}
+
+/**
+ * Write a document to `/users/{uid}/{collection}/{docId}` in the Firestore emulator,
+ * bypassing security rules (emulator "owner" token). Simulates data written by another device.
+ */
+export async function seedEmulatorFirestoreDoc(
+  uid: string,
+  collectionName: string,
+  docId: string,
+  data: Record<string, unknown>
+): Promise<void> {
+  const fields: Record<string, FirestoreRestValue> = {};
+  for (const [k, v] of Object.entries({ ...data, userId: uid })) fields[k] = toFirestoreValue(v);
+  const res = await fetch(`${userCollectionUrl(uid, collectionName)}/${encodeURIComponent(docId)}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', Authorization: 'Bearer owner' },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) throw new Error(`Failed to seed ${collectionName}/${docId}: ${res.status} ${await res.text()}`);
+}
+
+/** Read every document in `/users/{uid}/{collection}` from the Firestore emulator as plain objects. */
+export async function getEmulatorFirestoreDocs<T = Record<string, unknown>>(
+  uid: string,
+  collectionName: string
+): Promise<T[]> {
+  const res = await fetch(`${userCollectionUrl(uid, collectionName)}?pageSize=300`, {
+    headers: { Authorization: 'Bearer owner' },
+  });
+  if (!res.ok) throw new Error(`Failed to read ${collectionName}: ${res.status} ${await res.text()}`);
+  const body = await res.json();
+  return (body.documents ?? []).map((d: any) => fromFirestoreValue({ mapValue: { fields: d.fields ?? {} } }) as T);
+}
+
+/** Create a uniquely named emulator user so cross-device tests never share cloud state. */
+export async function createUniqueEmulatorUser(
+  tag: string,
+  password = SEED_USER.password
+): Promise<{ uid: string; email: string; password: string }> {
+  const email = `${tag.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@tachikoma.local`;
+  const { uid } = await createEmulatorUser(email, password);
+  return { uid, email, password };
+}
+
+export type SyncDialogChoice = 'merge' | 'cloud-to-local' | 'local-to-cloud' | 'skip';
+
+/**
+ * Resolve the first-login sync dialog (AUTH-003) with the given choice.
+ * Waits for the dialog to appear, clicks the option, and waits for it to close.
+ */
+export async function resolveSyncDialog(page: Page, choice: SyncDialogChoice): Promise<void> {
+  const dialog = page.locator('[data-test-id="sync-dialog"]');
+  await dialog.waitFor({ state: 'visible', timeout: 10_000 });
+  const target = choice === 'skip' ? 'sync-skip-btn' : `sync-option-${choice}`;
+  await page.locator(`[data-test-id="${target}"]`).click();
+  await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+}
