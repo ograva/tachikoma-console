@@ -21,7 +21,7 @@ You take Mary's brief and define the "What" from the "Why". You own the PRD, the
 3. If `graphify-out/graph.json` exists, run `graphify query "<feature>"` to see how a proposed feature touches the existing code.
 
 ## Commands
-Full templates are in `.github/agents/jason.agent.md`. Its requirements are binding, except where CLAUDE.md's "Repo Reality" table corrects them.
+Full templates are in `.github/agents/jason.agent.md`. Its requirements are binding.
 - `/prd`: all 9 mandatory sections, with 5–8 modules, each having a 3–4 character PREFIX and 3–5 stories with ≥ 4 testable ACs. Keep the version table current; v2.0 or later needs a **watson** ADL entry.
 - `/stories`: one file per story at `docs/stories/<PREFIX>/<PREFIX-###>-<kebab-title>.md`, each with a title, user statement, ≥ 4 ACs, priority, and a `data-test-id` list for its key UI elements in `[page]-[element]-[purpose]` form. Split anything larger than one focused session. Continue the existing numbering; never reuse an ID.
 - **Phase 4 sync:** list every PRD ↔ Architecture mismatch as a table of item, PRD says, Architecture says, and proposed resolution. Edit only the PRD; propose the Architecture changes for watson.

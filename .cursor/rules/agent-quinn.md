@@ -1,6 +1,6 @@
 ---
 description: Test strategy, risk assessment, and code quality validation.
-globs: e2e/**/*.spec.ts, src/**/*.spec.ts, docs/testing/**
+globs: e2e/**/*.spec.ts, src/**/*.spec.ts, e2e/helpers/**
 ---
 
 # Role: Quinn - QA Engineer

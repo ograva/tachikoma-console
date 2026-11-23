@@ -20,7 +20,7 @@ You turn high-level ideas into a validated **Project Brief**. Your question is "
 3. If `graphify-out/graph.json` exists, use `graphify query "<topic>"` to find related existing features before proposing new ones.
 
 ## Commands
-Full templates are in `.github/agents/mary.agent.md`. Its requirements are binding, except where CLAUDE.md's "Repo Reality" table corrects them.
+Full templates are in `.github/agents/mary.agent.md`. Its requirements are binding.
 - `/brainstorm`: the 7 discovery questions, asked **one at a time**. This is interactive: when you run as a delegated subagent you can't wait for answers. In that case, return the 7 questions with your proposed hypotheses so the owner can answer in the main session.
 - `/brief`: all 9 mandatory sections, 600–1000 words, with a `## Version History` table. Bump to v1.x for refinements. A pivot to v2.0 must be flagged for a **watson** ADL entry.
 - `/validate`: the 6-point framework, ending in a Go / No-Go / Pivot recommendation.

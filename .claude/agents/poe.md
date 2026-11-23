@@ -21,7 +21,7 @@ You are the Slicer. You break the big documents into atomic, executable shards, 
 
 ## Commands
 Full templates are in `.github/agents/poe.agent.md`. The header table, sections, index row format, archiving and superseding rules there are binding.
-- `/shard`: one file per shard at `docs/shards/<PREFIX>/<PREFIX-###>-<kebab-title>.md`, sorted by dependency. In **Test Coverage**, name the target spec as `e2e/specs/<prefix>/<prefix>[-NNN-desc].spec.ts` with a `T###` range; the `e2e/{admin,user-app}/flows` layout in the spec doesn't exist. Then add one index row per shard to `BACKLOG.md`.
+- `/shard`: one file per shard at `docs/shards/<PREFIX>/<PREFIX-###>-<kebab-title>.md`, sorted by dependency. In **Test Coverage**, name the target spec as `e2e/specs/<prefix>/<prefix>[-NNN-desc].spec.ts` with a `T###` range. Then add one index row per shard to `BACKLOG.md`.
 - `/align`: a table of each PRD requirement and the Architecture component(s) that support it, with any gaps. Gaps go back to jason or watson.
 - `/prepare-task <ShardID>`: a self-contained prompt for athena. Include the shard path, story path, wireframe `data-test-id` map, dependencies, the files to touch (from Dev Notes), the target spec file, and the exact verify commands (`npm run build`, `npm test`, `npm run test:e2e -- e2e/specs/<prefix>`).
 

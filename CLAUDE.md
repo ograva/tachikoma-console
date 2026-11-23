@@ -51,20 +51,17 @@ This is the owner's working sequence (source: `.github/agents/cohorts -flow.md`)
 - **PREFIX codes are canonical.** Module prefixes from the PRD (`AUTH`, `AGNT`, `CHAT`, `ORCH`, `SYNC`, `OPER`) key every story, shard, wireframe, test and GitHub label.
 - **Shard status lifecycle:** `Not Started` → `In Progress` → `Ready for Review` → `Completed` → `Superseded`. `BACKLOG.md` currently writes `Done`, which the Athena scripts accept as an alias of `Completed`.
 
-## Repo Reality (corrections to the agent specs)
-The `.github/agents/*.agent.md` specs were written against a generic monorepo template. Where they disagree with this repo, the right-hand column wins.
+## Repo Reality
+The agent specs exist in three places: `.claude/agents/*.md` (Claude), `.github/agents/*.agent.md` (Copilot) and `.cursor/rules/agent-*.md` (Cursor). All three are aligned with this repo. When you change one, update the others. These gaps remain:
 
-| The agent spec says | In this repo |
+| Topic | Current state |
 | :--- | :--- |
-| `projects/`, `libs/`, `functions/` monorepo; `docs/MONOREPO USE GUIDE.md` | One Angular app: `src/app/{pages,components,layouts,services,models}`. Use `README.md` and `Architecture.md` instead. |
-| `docs/testing/{TEST_REGISTRY,TESTING_STRATEGY,WRITING_TESTS,DATA_TEST_IDS}.md` | Not created yet. Test IDs live in spec titles (`T000`…). Selector conventions are in `OPER-005` and `CONSTRAINTS.md`. |
-| `e2e/{admin,user-app}/flows/<area>/T###-*.spec.ts`, `e2e/global-setup.ts` | `e2e/specs/<prefix>/<prefix>[-NNN-desc].spec.ts`; shared helpers in `e2e/helpers/` |
-| `npm run test:e2e:[app]` | `npm run test:e2e`, `test:e2e:smoke`, `test:e2e:local-fast`, `test:e2e:local-hosting-{smoke,regression}` |
-| `.github/workflows/test.yml`, `deploy.yml`; `/ci-sync` | No CI workflows exist yet. `/ci-sync` would create them, not patch them. |
-| `.github/prompts/sync-copilot-instructions.prompt.md` | Missing. Watson regenerates `.github/copilot-instructions.md` directly. |
-| `docs/base_template/` | Absent, so that rule is moot. |
-| Gemini/Copilot `model:` and `handoffs:` frontmatter | Ignored by Claude. Handoffs are proposed in the report back to the owner. |
-| "Material 21 + Tailwind 4 hybrid" (Eunice, Quinn, older CLAUDE.md) | `CONSTRAINTS.md` §7 says Angular Material plus app-owned SCSS themes. Tailwind is "Not Recommended Unless Explicitly Approved" and isn't installed. `package.json` pins `@angular/material@^20`. Write design tokens as SCSS variables or CSS custom properties, not Tailwind config. |
+| App structure | A single Angular 20 app at `src/app/{pages,components,layouts,services,models}`. There is no `projects/`/`libs/`/`functions/` monorepo. |
+| E2E layout | `e2e/specs/<prefix>/<prefix>[-NNN-desc].spec.ts`, helpers in `e2e/helpers/`, test IDs (`T000`…) in the spec titles. |
+| Test registry | `docs/testing/TEST_REGISTRY.md` doesn't exist yet. Find the next free `T###` by grepping `e2e/specs/`. |
+| CI | There are no `.github/workflows/`, so Quinn's `/ci-sync` proposes a new `test.yml` for owner review. |
+| Styling | Angular Material 20 with app-owned SCSS tokens (`src/assets/scss/_sac-tokens.scss`). Tailwind is not approved (`CONSTRAINTS.md` §7). |
+| Copilot frontmatter | `model:` and `handoffs:` in `.github/agents` are ignored by Claude. Claude proposes handoffs in its report back to the owner. |
 
 ## Monorepo Reality
 - **App:** Angular standalone components.
