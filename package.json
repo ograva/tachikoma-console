@@ -28,6 +28,7 @@
     "test:e2e:debug": "playwright test --debug",
     "test:registry": "node scripts/test-registry.mjs",
     "test:registry:check": "node scripts/test-registry.mjs --check",
+    "agents:check": "node scripts/check-agent-sync.mjs",
     "dev:local": "concurrently -n app,firebase -c cyan,yellow \"npm run start:local\" \"npm run firebase:emulators\"",
     "dev:e2e": "concurrently -n app,firebase -c cyan,yellow \"npm run start:local\" \"npm run firebase:emulators\"",
     "athena:setup-labels": "node scripts/athena-setup-labels.mjs",

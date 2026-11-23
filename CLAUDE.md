@@ -44,7 +44,7 @@ This is the owner's working sequence (source: `.github/agents/cohorts-flow.md`).
 - **Scope change mid-sprint:** Poe marks the affected shards `Superseded` and creates replacement shards. Files are never deleted.
 
 **Operating rules:**
-- **Converse vs Delegate.** Subagents can't ask questions mid-task. Run interactive phases (Mary's `/brainstorm`, the Jason ⇄ Watson iteration, Eunice's moodboard review) in the main session: read `.claude/agents/<name>.md` and adopt that persona. Run self-contained deliverables (tech spec, stories, shards, test plans, shard implementation) by spawning the subagent of that name.
+- **Converse vs Delegate.** Subagents can't ask questions mid-task. Run interactive phases in the main session with the slash commands `/mary` (Phase 1), `/jason` (Phase 2), `/align` (Phase 4, Jason ⇄ Watson) and `/eunice` (Phase 6). Each loads that persona from `.claude/agents/<name>.md`. `/cohort` reports each module's phase and the next handoff. Run self-contained deliverables (tech spec, stories, shards, test plans, shard implementation) by spawning the subagent of that name.
 - **The owner approves every phase transition.** Finish a phase, report its artifact and the exit-gate status, and propose the next handoff. Don't chain into the next phase unprompted.
 - **Missing upstream artifacts block work.** If a phase's inputs don't exist (for example, sharding UI work with no wireframe), say which artifact is missing and ask whether to produce it or proceed without it.
 - **Precedence when documents conflict:** `CONSTRAINTS.md` > `DECISION_LOG.md` > `Architecture.md` > `PRD.md` > shard > story. Record conflicts; never silently resolve them.
@@ -52,7 +52,12 @@ This is the owner's working sequence (source: `.github/agents/cohorts-flow.md`).
 - **Shard status lifecycle:** `Not Started` → `In Progress` → `Ready for Review` → `Completed` → `Superseded`. `BACKLOG.md` currently writes `Done`, which the Athena scripts accept as an alias of `Completed`.
 
 ## Repo Reality
-The agent specs exist in three places: `.claude/agents/*.md` (Claude), `.github/agents/*.agent.md` (Copilot) and `.cursor/rules/agent-*.md` (Cursor). All three are aligned with this repo. When you change one, update the others. These gaps remain:
+The agent specs exist in three places, with one source of truth:
+- `.github/agents/<name>.agent.md`: the **full spec** and the single source of truth (also used by GitHub Copilot).
+- `.claude/agents/<name>.md`: the Claude Code subagent. It holds the Claude-specific operating contract (tools, converse/delegate behaviour, report format) and points to the full spec.
+- `.cursor/rules/agent-<name>.md`: a thin Cursor rule that includes the full spec via `@.github/agents/<name>.agent.md` and adds a few non-negotiables.
+
+Change behaviour in the full spec first. After editing any agent file, run `npm run agents:check`: it fails if an agent is missing from any location, if a pointer is broken, or if a retired convention reappears. Current gaps:
 
 | Topic | Current state |
 | :--- | :--- |
@@ -87,6 +92,7 @@ The agent specs exist in three places: `.claude/agents/*.md` (Claude), `.github/
 - `npm run test:e2e:ui` - Playwright UI mode
 - `npm run test:e2e:smoke` - Run smoke tests (@smoke)
 - `npm run test:registry` - Regenerate `docs/testing/TEST_REGISTRY.md` from the spec titles (`:check` to verify)
+- `npm run agents:check` - Verify the Claude, Copilot and Cursor agent specs are in sync
 
 ### Athena (Automation)
 - `npm run athena:blast-issues` - Create GitHub Issues from shards
