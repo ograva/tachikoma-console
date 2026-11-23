@@ -54,6 +54,17 @@ async function openChatHistory(page: import('@playwright/test').Page): Promise<v
 }
 
 /**
+ * With no current chat id (fresh device), /tachikoma auto-opens the new-chat agent selector,
+ * whose overlay intercepts clicks on the header "add" button. Close it so the test can open it explicitly.
+ */
+async function closeAutoOpenedNewChatSelector(page: import('@playwright/test').Page): Promise<void> {
+  const closeBtn = page.locator('[data-test-id="chat-new-chat-close-btn"]');
+  await expect(closeBtn).toBeVisible({ timeout: 5_000 });
+  await closeBtn.click();
+  await expect(closeBtn).toBeHidden({ timeout: 5_000 });
+}
+
+/**
  * SYNC-001: Save Locally Before Cloud Sync (T400-T406)
  * SYNC-002: Restore Data Across Devices (T407-T413)
  * SYNC-003: Support Offline-First Operation (T414-T420)
@@ -65,16 +76,22 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
   test.describe('T400-T406 Local-First Persistence', () => {
     test('T400 chat saves to localStorage immediately on creation', async ({ page }) => {
+      // BUG (CHAT / SYNC-001 UI): at the 1280x720 Desktop Chrome viewport the new-chat agent selector
+      // (.agent-selector-dialog: max-height 80vh, overflow visible, inside a fixed overlay) renders START CHAT at
+      // y~774-814px, below the viewport and unscrollable, so a chat cannot be started from the dialog.
+      // Remove test.fail() once the dialog body scrolls or the footer stays within the viewport.
+      test.fail(true, 'new-chat dialog START CHAT button is outside the viewport at 1280x720');
       await continueAsGuest(page);
-      await page.goto('/tachikoma');
       await suppressExplainerDialog(page);
+      await page.goto('/tachikoma');
+      await closeAutoOpenedNewChatSelector(page);
 
       // Trigger new chat creation
       await page.locator('button mat-icon:text("add")').first().click();
       const dialog = page.locator('.agent-selector-dialog');
       await expect(dialog).toBeVisible({ timeout: 5_000 });
       await dialog.locator('input[name="new-chat-title-field"]').fill('Local-First Test');
-      await dialog.locator('button', { hasText: /start chat/i }).click();
+      await dialog.locator('button', { hasText: /start chat/i }).click({ timeout: 5_000 });
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
       const sessions = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]'), CHAT_SESSIONS_KEY);
@@ -97,11 +114,16 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
     test('T402 local data survives a hard refresh (F5)', async ({ page }) => {
       await continueAsGuest(page);
-      await page.evaluate((key) => {
-        localStorage.setItem(key, JSON.stringify([makeSeedChat('survive-1', 'Survive Refresh')]));
-      }, CHAT_SESSIONS_KEY);
+      await page.goto('/tachikoma-profiles');
+      // Seed data is built in Node: helpers defined in this file do not exist inside the browser context.
+      await page.evaluate(([key, chats]) => {
+        localStorage.setItem(key as string, JSON.stringify(chats));
+      }, [CHAT_SESSIONS_KEY, [makeSeedChat('survive-1', 'Survive Refresh')]] as const);
 
-      await page.reload({ waitUntil: 'networkidle' });
+      // 'networkidle' never settles (the app keeps emulator/dev-server connections open); wait for the
+      // re-bootstrapped app to render instead, so its startup persistence has run before the read.
+      await page.reload({ waitUntil: 'load' });
+      await expect(page.locator('[data-test-id="profiles-new-agent-btn"]')).toBeVisible({ timeout: 10_000 });
       await suppressExplainerDialog(page);
 
       const sessions = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]'), CHAT_SESSIONS_KEY);
@@ -110,10 +132,10 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
     test('T403 UI reflects saved local state without cloud', async ({ page }) => {
       await continueAsGuest(page);
-      await page.evaluate((key) => {
-        localStorage.setItem(key, JSON.stringify([makeSeedChat('local-visible-1', 'Should Be Visible')]));
+      await page.evaluate(([key, chats]) => {
+        localStorage.setItem(key as string, JSON.stringify(chats));
         localStorage.setItem('tachikoma_current_chat_id', 'local-visible-1');
-      }, CHAT_SESSIONS_KEY);
+      }, [CHAT_SESSIONS_KEY, [makeSeedChat('local-visible-1', 'Should Be Visible')]] as const);
 
       await page.goto('/tachikoma');
       await suppressExplainerDialog(page);
@@ -126,23 +148,29 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
     });
 
     test('T404 multiple chats save without overwriting each other', async ({ page }) => {
+      // BUG (CHAT / SYNC-001 UI): at the 1280x720 Desktop Chrome viewport the new-chat agent selector
+      // (.agent-selector-dialog: max-height 80vh, overflow visible, inside a fixed overlay) renders START CHAT at
+      // y~774-814px, below the viewport and unscrollable, so a chat cannot be started from the dialog.
+      // Remove test.fail() once the dialog body scrolls or the footer stays within the viewport.
+      test.fail(true, 'new-chat dialog START CHAT button is outside the viewport at 1280x720');
       await continueAsGuest(page);
-      await page.goto('/tachikoma');
       await suppressExplainerDialog(page);
+      await page.goto('/tachikoma');
+      await closeAutoOpenedNewChatSelector(page);
 
       // Create first chat
       await page.locator('button mat-icon:text("add")').first().click();
       const dialog = page.locator('.agent-selector-dialog');
       await expect(dialog).toBeVisible({ timeout: 5_000 });
       await dialog.locator('input[name="new-chat-title-field"]').fill('Chat One');
-      await dialog.locator('button', { hasText: /start chat/i }).click();
+      await dialog.locator('button', { hasText: /start chat/i }).click({ timeout: 5_000 });
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
       // Create second chat
       await page.locator('button mat-icon:text("add")').first().click();
       await expect(dialog).toBeVisible({ timeout: 5_000 });
       await dialog.locator('input[name="new-chat-title-field"]').fill('Chat Two');
-      await dialog.locator('button', { hasText: /start chat/i }).click();
+      await dialog.locator('button', { hasText: /start chat/i }).click({ timeout: 5_000 });
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
       const sessions = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]'), CHAT_SESSIONS_KEY);
@@ -430,23 +458,27 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
   test.describe('T414-T420 Offline-First', () => {
     test('T414 existing local chats remain accessible when offline', async ({ page }) => {
       await continueAsGuest(page);
-      await page.evaluate((key) => {
-        localStorage.setItem(key, JSON.stringify([
-          makeSeedChat('offline-chat-1', 'Offline Available Chat'),
-        ]));
+      await page.evaluate(([key, chats]) => {
+        localStorage.setItem(key as string, JSON.stringify(chats));
         localStorage.setItem('tachikoma_current_chat_id', 'offline-chat-1');
-      }, CHAT_SESSIONS_KEY);
+      }, [CHAT_SESSIONS_KEY, [
+        makeSeedChat('offline-chat-1', 'Offline Available Chat'),
+      ]] as const);
 
-      await page.goto('/tachikoma');
       await suppressExplainerDialog(page);
+      await page.goto('/tachikoma');
+      // The chat route is lazy-loaded: let it render before the network drops.
+      await expect(page.locator('[data-test-id="chat-history-toggle-btn"]')).toBeVisible({ timeout: 10_000 });
 
-      // Go offline
+      // Go offline. No reload: an offline cold reload needs the service worker, which `ng serve` (the E2E
+      // target) does not register, so it lands on Chrome's error page where localStorage is inaccessible.
       await page.context().setOffline(true);
-      await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
 
-      // Local data should still be accessible
+      // Local data should still be accessible, both in storage and in the running app's chat history.
       const sessions = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]'), CHAT_SESSIONS_KEY);
       expect(sessions.some((s: any) => s.title === 'Offline Available Chat')).toBeTruthy();
+      await page.locator('[data-test-id="chat-history-toggle-btn"]').click();
+      await expect(page.locator('[data-test-id="chat-history-item-title"]').filter({ hasText: 'Offline Available Chat' })).toBeVisible();
 
       await page.context().setOffline(false);
     });
@@ -577,6 +609,49 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
       const anonView = await page.evaluate(() => localStorage.getItem('firestore_anonymous_chats'));
       expect(anonView).toBeNull();
+    });
+  });
+
+  // ══ SYNC-002: Use-Local Strategy vs. Cloud Profile (T427) ═════════════════
+
+  test.describe('T427-T427 Use-Local Strategy Preserves Cloud Profile', () => {
+    // Source: Quinn
+    test('T427 use-local strategy keeps the cloud user profile, its settings and encrypted API key', async ({ page }) => {
+      // Critical defect: local-to-cloud deletes cloud user_profile (FirestoreService.syncCollection). Remove test.fail() once SYNC-002 fix lands.
+      test.fail(true, 'local-to-cloud deletes the cloud user_profile document');
+      const user = await createUniqueEmulatorUser('t427');
+      const t = Date.now() - 60_000;
+      const cloudProfile = {
+        id: user.uid, email: user.email, displayName: 'Profile Keeper', chatUsername: 'BATOU-T427', photoURL: '',
+        geminiModel: 'models/gemini-pro-latest', rateLimitRPM: 1000,
+        geminiApiKeyEncrypted: 't427-opaque-ciphertext-from-device-a',
+        createdAt: t, updatedAt: t,
+      };
+      await seedEmulatorFirestoreDoc(user.uid, 'user_profile', user.uid, cloudProfile);
+
+      // This device has local data, so sign-in offers the sync dialog.
+      const localId = chatId(t + 1000, 'local');
+      await page.goto('/authentication/login');
+      await page.evaluate(([key, chats]) => localStorage.setItem(key as string, JSON.stringify(chats)), [CHAT_SESSIONS_KEY, [
+        { ...makeSeedChat(localId, 'Local Device Chat'), createdAt: t + 1000, updatedAt: t + 1000 },
+      ]] as const);
+
+      // syncOnLogin logs 'Sync completed' after every collection (user_profile included) has been processed.
+      const syncCompleted = page.waitForEvent('console', { predicate: (msg) => msg.text() === 'Sync completed', timeout: 20_000 });
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'local-to-cloud');
+      await syncCompleted;
+
+      // Use-local replaced the cloud chats with this device's copy...
+      await expect.poll(async () => (await getEmulatorFirestoreDocs<any>(user.uid, 'chat_sessions')).map((c) => c.title), { timeout: 10_000 })
+        .toEqual(['Local Device Chat']);
+
+      // ...but the account profile (settings + encrypted API key) must survive untouched.
+      const profiles = await getEmulatorFirestoreDocs<any>(user.uid, 'user_profile');
+      expect(profiles).toHaveLength(1);
+      // updatedAt is excluded: a correct fix may legitimately re-save the profile.
+      const { updatedAt: _seededUpdatedAt, ...intactFields } = cloudProfile;
+      expect(profiles[0]).toMatchObject({ ...intactFields, userId: user.uid });
     });
   });
 });
