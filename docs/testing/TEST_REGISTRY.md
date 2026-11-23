@@ -215,7 +215,7 @@
 
 ## SYNC
 
-### T400–T406 Local-First Persistence
+### T400–T404 Local-First Persistence
 
 | ID | Test | Smoke | Location |
 | :--- | :--- | :---: | :--- |
@@ -224,8 +224,6 @@
 | T402 | local data survives a hard refresh (F5) |  | `e2e/specs/sync/sync.spec.ts:98` |
 | T403 | UI reflects saved local state without cloud |  | `e2e/specs/sync/sync.spec.ts:111` |
 | T404 | multiple chats save without overwriting each other |  | `e2e/specs/sync/sync.spec.ts:128` |
-| T405 | cloud chats are restored into chat history on a new device after sign-in |  | `e2e/specs/sync/sync.spec.ts:165` |
-| T406 | restored chats keep message content and the timestamps used for conflict resolution |  | `e2e/specs/sync/sync.spec.ts:189` |
 
 ### T405–T413 Restore Across Devices
 

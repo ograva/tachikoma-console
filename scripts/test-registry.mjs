@@ -8,7 +8,7 @@
  *
  * Usage:
  *   node scripts/test-registry.mjs          write the registry
- *   node scripts/test-registry.mjs --check  exit 1 if the registry is stale or IDs are duplicated
+ *   node scripts/test-registry.mjs --check  exit 1 if the registry is stale, IDs are duplicated, or reserved ranges overlap
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -120,6 +120,17 @@ function render({ tests, blocks }) {
     lines.push("");
     lines.push(`**⚠ Duplicate IDs:** ${[...new Set(duplicates)].join(", ")}. Each ID must be unique; renumber before merging.`);
   }
+  const sorted = [...blocks].sort((a, b) => a.start - b.start || a.end - b.end);
+  const overlaps = [];
+  for (let i = 0; i < sorted.length; i++) {
+    for (let j = i + 1; j < sorted.length && sorted[j].start <= sorted[i].end; j++) {
+      overlaps.push(`${fmt(sorted[i].start)}–${fmt(sorted[i].end)} "${sorted[i].title}" overlaps ${fmt(sorted[j].start)}–${fmt(sorted[j].end)} "${sorted[j].title}"`);
+    }
+  }
+  if (overlaps.length) {
+    lines.push("");
+    lines.push(`**⚠ Overlapping reserved ranges:** ${overlaps.join("; ")}. Narrow one block's title range.`);
+  }
   const orphans = [...byId.values()].filter((t) => !moduleFor(t.n));
   if (orphans.length) {
     lines.push("");
@@ -155,7 +166,7 @@ function render({ tests, blocks }) {
     while (lines[lines.length - 1] === "") lines.pop();
   }
   lines.push("");
-  return { text: lines.join("\n"), duplicates };
+  return { text: lines.join("\n"), duplicates, overlaps };
 }
 
 function escapeCell(s) {
@@ -179,7 +190,7 @@ function compress(ids) {
   return parts.join(", ");
 }
 
-const { text, duplicates } = render(collect());
+const { text, duplicates, overlaps } = render(collect());
 if (process.argv.includes("--check")) {
   const current = fs.existsSync(outPath) ? fs.readFileSync(outPath, "utf8") : "";
   if (current !== text) {
@@ -188,6 +199,10 @@ if (process.argv.includes("--check")) {
   }
   if (duplicates.length) {
     console.error(`Duplicate test IDs: ${[...new Set(duplicates)].join(", ")}`);
+    process.exit(1);
+  }
+  if (overlaps.length) {
+    console.error(`Overlapping test ID ranges:\n  - ${overlaps.join("\n  - ")}`);
     process.exit(1);
   }
   console.log("TEST_REGISTRY.md is up to date.");

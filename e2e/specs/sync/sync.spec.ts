@@ -54,16 +54,16 @@ async function openChatHistory(page: import('@playwright/test').Page): Promise<v
 }
 
 /**
- * SYNC-001: Save Locally Before Cloud Sync (T400-T406)
+ * SYNC-001: Save Locally Before Cloud Sync (T400-T404)
  * SYNC-002: Restore Data Across Devices (T407-T413)
  * SYNC-003: Support Offline-First Operation (T414-T420)
  * SYNC-004: Use Firestore App Namespace (T421-T426)
  */
 test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery', () => {
 
-  // ══ SYNC-001: Local-First Save (T400-T406) ════════════════════════════════
+  // ══ SYNC-001: Local-First Save (T400-T404) ════════════════════════════════
 
-  test.describe('T400-T406 Local-First Persistence', () => {
+  test.describe('T400-T404 Local-First Persistence', () => {
     test('T400 chat saves to localStorage immediately on creation', async ({ page }) => {
       await continueAsGuest(page);
       await page.goto('/tachikoma');

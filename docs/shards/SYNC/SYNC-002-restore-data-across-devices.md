@@ -24,7 +24,7 @@ Implement deterministic cross-device restore for authenticated users using cloud
 ## Test Coverage
 
 - [ ] Unit: Restore merge and decrypt flows with timestamp and strategy branch coverage.
-- [ ] E2E: Login on second device and restore path with strategy-aware results (T407-T413).
+- [ ] E2E: Login on second device and restore path with strategy-aware results (T405-T413) in `e2e/specs/sync/sync.spec.ts`.
 
 ## Dev Notes
 
