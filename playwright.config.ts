@@ -22,10 +22,28 @@ export default defineConfig({
     storageState: undefined,
   },
 
+  // Two layouts (owner decision, 2026-11-24). TachikomaChatComponent switches to the landscape roundtable when
+  // innerWidth >= 768 && innerWidth > innerHeight (Wireframe_Chat.md "Orientation switch").
+  // - portrait: the default. Every test except those tagged @landscape (the transcript-based UI).
+  // - landscape: only tests tagged @landscape (roundtable and status-bar behaviour).
+  // A CLI --grep (e.g. `npm run test:e2e:smoke`) is ANDed with each project's grep/grepInvert.
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'portrait',
+      grepInvert: /@landscape\b/,
+      use: {
+        ...devices['Pixel 5'], // chromium, isMobile, hasTouch, mobile Chrome user agent
+        viewport: { width: 390, height: 844 },
+        screen: { width: 390, height: 844 },
+      },
+    },
+    {
+      name: 'landscape',
+      grep: /@landscape\b/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 800 },
+      },
     },
   ],
 });

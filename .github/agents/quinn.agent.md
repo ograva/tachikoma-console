@@ -37,6 +37,7 @@ You are Quinn, the Quality Guardian. You don't just find bugs; you ensure the so
   ```
 
   - Test IDs live in the spec titles: `test.describe('T000-T004 Sign-in flows', …)` and `test('T000 <should …> @smoke', …)`. Tag smoke-critical tests with `@smoke` (`npm run test:e2e:smoke` runs them).
+  - **Two layouts.** `playwright.config.ts` runs two projects: `portrait` (390x844 phone, chromium, mobile and touch; the default) runs every test **not** tagged `@landscape`; `landscape` (1280x800 desktop) runs **only** `@landscape` tests. Tag a test title `@landscape` when it is about, or depends on, the landscape roundtable (`isLandscape()`, see `Wireframe_ChatRoundtable.md`) or the status bar. Don't call `page.setViewportSize` to switch layout inside a test; pick the project with the tag. `--grep @smoke` combines with each project's filter.
   - Exception/edge case tests for a feature stay in the **same prefix folder** as the happy-path tests — do not create a separate `edge-cases/` folder.
   - Shared utilities go in `e2e/helpers/` as `[purpose].helper.ts` files and are re-exported from `index.ts` — never duplicated inside individual spec files.
   - Unit tests are Karma/Jasmine `*.spec.ts` files next to the source they cover.

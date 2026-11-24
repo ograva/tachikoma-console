@@ -40,11 +40,11 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
   // ══ OPER-001: Token and Cost Estimates (T500-T506) ════════════════════════
 
   test.describe('T500-T506 Token and Cost Visibility', () => {
-    test('T500 metrics dashboard is visible in the header @smoke', async ({ page }) => {
+    test('T500 metrics dashboard is visible in the header @smoke @landscape', async ({ page }) => {
       await expect(page.locator('.metrics-dashboard')).toBeVisible({ timeout: 5_000 });
     });
 
-    test('T501 per-model metrics section is present', async ({ page }) => {
+    test('T501 per-model metrics section is present @landscape', async ({ page }) => {
       await expect(page.locator('.model-group, .model-metrics').first()).toBeVisible({ timeout: 5_000 });
     });
 
@@ -81,7 +81,7 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       expect(text).toMatch(/\$|< \$/);
     });
 
-    test('T504 daily request counter increments after each round', async ({ page }) => {
+    test('T504 daily request counter increments after each round @landscape', async ({ page }) => {
       await mockGeminiApi(page, [{ text: 'A' }, { text: 'B' }]);
 
       const before = await page.locator('.meter-info', { hasText: '/' }).first().textContent();
@@ -109,7 +109,7 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       expect(elapsed).toBeLessThan(15_000);
     });
 
-    test('T506 formatTokenCount renders M suffix for large counts', async ({ page }) => {
+    test('T506 formatTokenCount renders M suffix for large counts @landscape', async ({ page }) => {
       // We test the display by checking the metrics dashboard text format
       // For model with 1M token limit, the display should show "xM" or "xK"
       const metricsText = await page.locator('.metrics-dashboard').textContent();
@@ -142,12 +142,12 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       expect(ariaLive).toBe('polite');
     });
 
-    test('T509 daily quota meter shows progress towards free tier limit', async ({ page }) => {
+    test('T509 daily quota meter shows progress towards free tier limit @landscape', async ({ page }) => {
       const meterBar = page.locator('.meter-bar').first();
       await expect(meterBar).toBeVisible({ timeout: 5_000 });
     });
 
-    test('T510 meter bar shows warning class when approaching limit', async ({ page }) => {
+    test('T510 meter bar shows warning class when approaching limit @landscape', async ({ page }) => {
       test.setTimeout(120_000);
       // Set daily request count to near-limit in the component
       await mockGeminiApi(page, Array(17).fill({ text: 'Request.' }));
@@ -165,7 +165,7 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       expect(classes).toMatch(/warning|danger/);
     });
 
-    test('T511 rate limit per minute is shown in metrics', async ({ page }) => {
+    test('T511 rate limit per minute is shown in metrics @landscape', async ({ page }) => {
       const rpmInfo = page.locator('.meter-info, .metrics-dashboard');
       await expect(rpmInfo.first()).toBeVisible({ timeout: 5_000 });
     });

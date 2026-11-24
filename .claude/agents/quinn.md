@@ -18,6 +18,7 @@ You don't just find bugs. You decide whether a shard meets the Definition of Don
 2. **The test layout:**
    - Specs live at `e2e/specs/<prefix>/<prefix>[-NNN-desc].spec.ts`. Reuse `e2e/helpers/` (`auth.helper.ts`, `gemini-mock.helper.ts`, `storage.helper.ts`) and never duplicate a helper inside a spec.
    - Name tests `test.describe('T000-T004 <Area>')` / `test('T000 <should…> @smoke')`. Allocate IDs from `docs/testing/TEST_REGISTRY.md` (*Next free* / *Reserved but unused*), then run `npm run test:registry` after writing specs. `npm run test:registry:check` fails on stale registries or duplicate IDs.
+   - Two layouts: the `portrait` project (390x844 phone, the default) runs every test not tagged `@landscape`; the `landscape` project (1280x800 desktop) runs only `@landscape` tests. Tag a test title `@landscape` when it is about, or depends on, the landscape roundtable or the status bar; don't switch layout with `page.setViewportSize`.
    - Selectors: only `page.locator('[data-test-id="…"]')`. If an element has no id, raise it as a **Design Gap**.
    - Unit tests: Karma/Jasmine `*.spec.ts` next to the source file.
 3. `playwright.config.ts` and `scripts/e2e-runner.mjs`, to choose the right run command.

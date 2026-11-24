@@ -56,11 +56,13 @@ function collect() {
         blocks.push({ start: num(startId), end: Number(endId), title: rest.trim(), file: rel });
       } else if (!isDescribe) {
         const smoke = /@smoke\b/.test(rest);
+        const landscape = /@landscape\b/.test(rest);
         tests.push({
           id: startId,
           n: num(startId),
-          title: rest.replace(/\s*@smoke\b/, "").trim(),
+          title: rest.replace(/\s*@(smoke|landscape)\b/g, "").trim(),
           smoke,
+          landscape,
           file: rel,
           line,
         });
@@ -92,6 +94,7 @@ function render({ tests, blocks }) {
   lines.push("");
   lines.push("- Group tests in a `test.describe('T###-T### <Area>', …)` block. The range reserves those IDs for that area.");
   lines.push("- Title each test `test('T### should …', …)`. Add `@smoke` to tests that guard a critical path (`npm run test:e2e:smoke`).");
+  lines.push("- Layouts: Playwright runs two projects. `portrait` (390x844 phone, the default) runs every test not tagged `@landscape`; `landscape` (1280x800 desktop) runs only `@landscape` tests. Tag the test title `@landscape` when it is about, or depends on, the landscape roundtable or the status bar. Don't set per-test viewports to switch layout.");
   lines.push("- Select elements only with `[data-test-id=\"…\"]`. Reuse the helpers in `e2e/helpers/`.");
   lines.push("- Allocate new IDs from the module's block: use **Next free** below for a new area, or an unused ID inside an existing reserved range.");
   lines.push("- Note `Source: Quinn` in a comment above tests that Quinn authored beyond Eunice's flow diagrams.");
@@ -115,7 +118,7 @@ function render({ tests, blocks }) {
     );
   }
   lines.push("");
-  lines.push(`**Total:** ${byId.size} tests, ${[...byId.values()].filter((t) => t.smoke).length} tagged \`@smoke\`.`);
+  lines.push(`**Total:** ${byId.size} tests, ${[...byId.values()].filter((t) => t.smoke).length} tagged \`@smoke\`, ${[...byId.values()].filter((t) => t.landscape).length} tagged \`@landscape\`.`);
   if (duplicates.length) {
     lines.push("");
     lines.push(`**⚠ Duplicate IDs:** ${[...new Set(duplicates)].join(", ")}. Each ID must be unique; renumber before merging.`);
@@ -147,10 +150,10 @@ function render({ tests, blocks }) {
     for (const b of modBlocks) {
       lines.push(`### ${fmt(b.start)}–${fmt(b.end)} ${b.title}`);
       lines.push("");
-      lines.push("| ID | Test | Smoke | Location |");
-      lines.push("| :--- | :--- | :---: | :--- |");
+      lines.push("| ID | Test | Smoke | Landscape | Location |");
+      lines.push("| :--- | :--- | :---: | :---: | :--- |");
       for (const t of mod.filter((t) => t.n >= b.start && t.n <= b.end)) {
-        lines.push(`| ${t.id} | ${escapeCell(t.title)} | ${t.smoke ? "✓" : ""} | \`${t.file}:${t.line}\` |`);
+        lines.push(`| ${t.id} | ${escapeCell(t.title)} | ${t.smoke ? "✓" : ""} | ${t.landscape ? "✓" : ""} | \`${t.file}:${t.line}\` |`);
       }
       lines.push("");
     }
@@ -158,9 +161,9 @@ function render({ tests, blocks }) {
     if (loose.length) {
       lines.push("### Ungrouped");
       lines.push("");
-      lines.push("| ID | Test | Smoke | Location |");
-      lines.push("| :--- | :--- | :---: | :--- |");
-      for (const t of loose) lines.push(`| ${t.id} | ${escapeCell(t.title)} | ${t.smoke ? "✓" : ""} | \`${t.file}:${t.line}\` |`);
+      lines.push("| ID | Test | Smoke | Landscape | Location |");
+      lines.push("| :--- | :--- | :---: | :---: | :--- |");
+      for (const t of loose) lines.push(`| ${t.id} | ${escapeCell(t.title)} | ${t.smoke ? "✓" : ""} | ${t.landscape ? "✓" : ""} | \`${t.file}:${t.line}\` |`);
       lines.push("");
     }
     while (lines[lines.length - 1] === "") lines.pop();

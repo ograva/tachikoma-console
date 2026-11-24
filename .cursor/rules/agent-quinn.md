@@ -12,6 +12,7 @@ Follow it in full. This rule only adds the non-negotiables below; if they ever d
 
 ### Non-negotiables
 - Specs live in `e2e/specs/[prefix]/`; reuse `e2e/helpers/`; select only via `[data-test-id="…"]`.
+- Two Playwright projects: `portrait` (390x844, default) runs all tests except `@landscape`; `landscape` (1280x800) runs only `@landscape` tests (roundtable, status bar). Tag instead of calling `page.setViewportSize`.
 - Allocate `T###` IDs from `docs/testing/TEST_REGISTRY.md`, then run `npm run test:registry`; `npm run test:registry:check` must pass.
 - Never skip, disable, or loosen a test to pass a gate.
 - Every path in Eunice's flow diagrams has at least one E2E test.

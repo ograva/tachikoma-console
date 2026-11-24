@@ -76,18 +76,18 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
   test.describe('T400-T404 Local-First Persistence', () => {
     test('T400 chat saves to localStorage immediately on creation', async ({ page }) => {
-      // BUG (CHAT / SYNC-001 UI): at the 1280x720 Desktop Chrome viewport the new-chat agent selector
-      // (.agent-selector-dialog: max-height 80vh, overflow visible, inside a fixed overlay) renders START CHAT at
-      // y~774-814px, below the viewport and unscrollable, so a chat cannot be started from the dialog.
-      // Remove test.fail() once the dialog body scrolls or the footer stays within the viewport.
-      test.fail(true, 'new-chat dialog START CHAT button is outside the viewport at 1280x720');
+      // BUG (CHAT UI, portrait project 390x844): with no API key the header API-key block (.header-api-init,
+      // flex-shrink: 0, never hidden on phones) overlaps the header add/history buttons, so the new-chat button
+      // cannot be clicked. (At 1280x720 the new-chat dialog also rendered START CHAT below the viewport.)
+      // Remove test.fail() once the header fits at 390px wide. See docs/testing/STABILISATION_TRIAGE.md.
+      test.fail(true, 'portrait header API-key block covers the new-chat button when no key is set');
       await continueAsGuest(page);
       await suppressExplainerDialog(page);
       await page.goto('/tachikoma');
       await closeAutoOpenedNewChatSelector(page);
 
       // Trigger new chat creation
-      await page.locator('button mat-icon:text("add")').first().click();
+      await page.locator('button mat-icon:text("add")').first().click({ timeout: 5_000 });
       const dialog = page.locator('.agent-selector-dialog');
       await expect(dialog).toBeVisible({ timeout: 5_000 });
       await dialog.locator('input[name="new-chat-title-field"]').fill('Local-First Test');
@@ -148,18 +148,18 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
     });
 
     test('T404 multiple chats save without overwriting each other', async ({ page }) => {
-      // BUG (CHAT / SYNC-001 UI): at the 1280x720 Desktop Chrome viewport the new-chat agent selector
-      // (.agent-selector-dialog: max-height 80vh, overflow visible, inside a fixed overlay) renders START CHAT at
-      // y~774-814px, below the viewport and unscrollable, so a chat cannot be started from the dialog.
-      // Remove test.fail() once the dialog body scrolls or the footer stays within the viewport.
-      test.fail(true, 'new-chat dialog START CHAT button is outside the viewport at 1280x720');
+      // BUG (CHAT UI, portrait project 390x844): with no API key the header API-key block (.header-api-init,
+      // flex-shrink: 0, never hidden on phones) overlaps the header add/history buttons, so the new-chat button
+      // cannot be clicked. (At 1280x720 the new-chat dialog also rendered START CHAT below the viewport.)
+      // Remove test.fail() once the header fits at 390px wide. See docs/testing/STABILISATION_TRIAGE.md.
+      test.fail(true, 'portrait header API-key block covers the new-chat button when no key is set');
       await continueAsGuest(page);
       await suppressExplainerDialog(page);
       await page.goto('/tachikoma');
       await closeAutoOpenedNewChatSelector(page);
 
       // Create first chat
-      await page.locator('button mat-icon:text("add")').first().click();
+      await page.locator('button mat-icon:text("add")').first().click({ timeout: 5_000 });
       const dialog = page.locator('.agent-selector-dialog');
       await expect(dialog).toBeVisible({ timeout: 5_000 });
       await dialog.locator('input[name="new-chat-title-field"]').fill('Chat One');
@@ -242,8 +242,7 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
         messages.map((m) => [m.id, m.text, m.isUser, m.timestamp, m.roundId])
       );
 
-      // `chat-user-message` is a portrait-only bubble (Wireframe_Chat.md §4); landscape shows the roundtable instead.
-      await page.setViewportSize({ width: 390, height: 844 });
+      // `chat-user-message` is a portrait-only bubble (Wireframe_Chat.md §4); the default `portrait` project renders it.
       await openChatHistory(page);
       await page.locator('[data-test-id="chat-history-item"]', { hasText: 'Timestamp Fidelity' }).click();
       await expect(page.locator('[data-test-id="chat-user-message"]').filter({ hasText: 'Restore probe question from device A' })).toBeVisible();
@@ -651,6 +650,36 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
       // updatedAt is excluded: a correct fix may legitimately re-save the profile.
       const { updatedAt: _seededUpdatedAt, ...intactFields } = cloudProfile;
       expect(profiles[0]).toMatchObject({ ...intactFields, userId: user.uid });
+    });
+
+    // Source: Quinn
+    test('T428 merge strategy on a new device keeps the cloud edit of a built-in agent', async ({ page }) => {
+      // BUG (SYNC-002 /gate, 2026-11-24): a fresh device stamps the default agents with boot time, so in
+      // planCollectionSync('merge') (src/app/services/firestore.service.ts) the untouched local `logikoma` looks newer
+      // than the user's cloud edit: it wins, is uploaded over the cloud copy and replaces it locally. The
+      // untouched-default rule exists only in AgentProfileService.loadFromCloud(), not in the merge strategy.
+      // Remove test.fail() once the merge strategy lets untouched defaults yield to the cloud.
+      test.fail(true, 'merge strategy overwrites cloud-edited default agents with boot-time defaults');
+      const user = await createUniqueEmulatorUser('t428');
+      const t = Date.now() - 10 * 60_000;
+      await seedEmulatorFirestoreDoc(user.uid, 'agent_profiles', 'logikoma', {
+        id: 'logikoma', name: 'LOGIKOMA-T428-EDITED', color: 'logikoma', hex: '#00f3ff', temp: 0.9, role: 'chatter',
+        model: 'models/gemini-3.5-flash', system: 'Edited on device A.', status: 'idle',
+        silenceProtocol: 'standard', systemMode: 'default', createdAt: t, updatedAt: t,
+      });
+
+      // A fresh device writes the default agents on boot, so sign-in offers the sync dialog.
+      await page.goto('/authentication/login');
+      const syncCompleted = page.waitForEvent('console', { predicate: (msg) => msg.text() === 'Sync completed', timeout: 20_000 });
+      await signInWithEmail(page, user.email, user.password);
+      await resolveSyncDialog(page, 'merge');
+      await syncCompleted;
+
+      const cloud = await getEmulatorFirestoreDocs<any>(user.uid, 'agent_profiles');
+      expect(cloud.find((p) => p.id === 'logikoma')?.name).toBe('LOGIKOMA-T428-EDITED');
+      await expect.poll(async () => page.evaluate((key) =>
+        JSON.parse(localStorage.getItem(key) || '[]').find((p: any) => p.id === 'logikoma')?.name, AGENT_PROFILES_KEY), { timeout: 10_000 })
+        .toBe('LOGIKOMA-T428-EDITED');
     });
   });
 });
