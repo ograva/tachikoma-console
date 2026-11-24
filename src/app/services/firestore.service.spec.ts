@@ -3,8 +3,11 @@ import {
   FirestoreService,
   SyncTarget,
   planCollectionSync,
+  mergeSyncRecords,
+  cloudCopyWins,
 } from './firestore.service';
-import { SyncableData } from '../models';
+import { SyncableData, AgentProfileModel, UserProfileModel } from '../models';
+import { ChatStorageService } from './chat-storage.service';
 import { AuthService } from './auth.service';
 
 /**
@@ -248,6 +251,79 @@ describe('FirestoreService (SYNC-001/003/004)', () => {
       expect(plan.local[0]['v']).toBe('cloud');
       expect(plan.upserts).toEqual([]);
     });
+    // A4 (STABILISATION_TRIAGE.md): a fresh device stamps default agents with boot time.
+    it('merge: an untouched default agent yields to its older cloud edit and is not uploaded', () => {
+      const bootTime = Date.now();
+      const defaults = AgentProfileModel.getDefaults().map((p) => ({ ...p, createdAt: bootTime, updatedAt: bootTime }));
+      const logikoma = defaults.find((p) => p.id === 'logikoma')!;
+      const cloudEdit = { ...logikoma, name: 'LOGIKOMA-EDITED', createdAt: 1, updatedAt: 1 };
+      const plan = planCollectionSync('merge', defaults, [cloudEdit], {
+        allowDeletes: true,
+        yieldsToCloud: (item) => AgentProfileModel.isUntouchedDefault(item as any),
+      });
+      expect(plan.local.find((p) => p.id === 'logikoma')!['name']).toBe('LOGIKOMA-EDITED');
+      expect(plan.upserts.map((p) => p.id)).not.toContain('logikoma');
+      // Other defaults the cloud does not hold are still kept and uploaded.
+      expect(plan.upserts.length).toBe(defaults.length - 1);
+      expect(plan.local.length).toBe(defaults.length);
+    });
+
+    it('merge: a locally edited default agent still wins when it is newer', () => {
+      const logikoma = AgentProfileModel.getDefaults().find((p) => p.id === 'logikoma')!;
+      const localEdit = { ...logikoma, name: 'LOCAL-EDIT', updatedAt: 50 };
+      const cloudEdit = { ...logikoma, name: 'CLOUD-EDIT', updatedAt: 10 };
+      const plan = planCollectionSync('merge', [localEdit], [cloudEdit], {
+        allowDeletes: true,
+        yieldsToCloud: (item) => AgentProfileModel.isUntouchedDefault(item as any),
+      });
+      expect(plan.local[0]['name']).toBe('LOCAL-EDIT');
+      expect(plan.upserts.map((p) => p.id)).toEqual(['logikoma']);
+    });
+  });
+
+  // A4: one conflict rule for the login merge strategy and the post-sign-in restore.
+  describe('shared merge rule (cloudCopyWins / mergeSyncRecords)', () => {
+    const rec = (id: string, updatedAt: number | undefined, extra: object = {}) =>
+      ({ id, updatedAt, ...extra }) as SyncableData;
+
+    it('cloudCopyWins: newer wins, the cloud wins a tie, a yielding local record always loses', () => {
+      expect(cloudCopyWins(rec('a', 1), rec('a', 2))).toBeTrue();
+      expect(cloudCopyWins(rec('a', 2), rec('a', 1))).toBeFalse();
+      expect(cloudCopyWins(rec('a', 5), rec('a', 5))).toBeTrue();
+      expect(cloudCopyWins(rec('a', undefined), rec('a', undefined))).toBeTrue();
+      expect(cloudCopyWins(rec('a', 99), rec('a', 1), () => true)).toBeTrue();
+    });
+
+    it('mergeSyncRecords keeps local order, appends cloud-only records and reports local winners', () => {
+      const result = mergeSyncRecords(
+        [rec('l1', 1), rec('both', 9, { v: 'local' }), rec('l2', 1)],
+        [rec('c1', 1), rec('both', 3, { v: 'cloud' })],
+      );
+      expect(result.merged.map((r) => r.id)).toEqual(['l1', 'both', 'l2', 'c1']);
+      expect(result.merged[1]['v']).toBe('local');
+      expect(result.localWinners.map((r) => r.id)).toEqual(['l1', 'both', 'l2']);
+      expect(result.fromCloud).toBe(1);
+    });
+
+    it('a tie with identical content changes nothing; a tie with different content takes the cloud', () => {
+      const same = mergeSyncRecords([rec('x', 5, { a: 1, b: 2 })], [rec('x', 5, { b: 2, a: 1 })]);
+      expect(same.fromCloud).toBe(0);
+      expect(same.localWinners).toEqual([]);
+
+      const differ = mergeSyncRecords([rec('x', 5, { v: 'local' })], [rec('x', 5, { v: 'cloud' })]);
+      expect(differ.fromCloud).toBe(1);
+      expect(differ.merged[0]['v']).toBe('cloud');
+    });
+
+    it('planCollectionSync(merge) and ChatStorageService.mergeByUpdatedAt resolve a tie the same way (cloud wins)', () => {
+      const local = [rec('x', 5, { v: 'local' })];
+      const cloud = [rec('x', 5, { v: 'cloud' })];
+      const plan = planCollectionSync('merge', local, cloud, { allowDeletes: true });
+      const restore = ChatStorageService.mergeByUpdatedAt(local, cloud);
+      expect(plan.local[0]['v']).toBe('cloud');
+      expect(restore.merged[0]['v']).toBe('cloud');
+      expect(restore.restored).toBe(1);
+    });
   });
 
   describe('syncOnLogin (SYNC-002)', () => {
@@ -354,6 +430,19 @@ describe('FirestoreService (SYNC-001/003/004)', () => {
       expect(chats.getLocalSyncData).not.toHaveBeenCalled();
     });
 
+    it('merge passes the target yieldsToCloud rule: untouched defaults neither win nor upload (A4)', async () => {
+      const bootTime = Date.now();
+      const logikoma = { ...AgentProfileModel.getDefaults().find((p) => p.id === 'logikoma')!, createdAt: bootTime, updatedAt: bootTime };
+      cloud['agent_profiles'] = [{ ...logikoma, name: 'LOGIKOMA-EDITED', updatedAt: 1 } as SyncableData];
+      const agents = makeTarget([logikoma as SyncableData]);
+      (agents as any).yieldsToCloud = (item: SyncableData) => AgentProfileModel.isUntouchedDefault(item as any);
+
+      await service.syncOnLogin('merge', { agent_profiles: agents });
+
+      expect(commits.find((c) => c.collection === 'agent_profiles')!.upserts).toEqual([]);
+      expect(agents.applySyncResult).toHaveBeenCalledWith([jasmine.objectContaining({ id: 'logikoma', name: 'LOGIKOMA-EDITED' })]);
+    });
+
     it('a failing collection does not stop the others', async () => {
       (service as any).readCloudCollection.and.callFake(async (name: string) => {
         if (name === 'chat_sessions') throw new Error('boom');
@@ -366,6 +455,32 @@ describe('FirestoreService (SYNC-001/003/004)', () => {
 
       expect(chats.applySyncResult).not.toHaveBeenCalled();
       expect(agents.applySyncResult).toHaveBeenCalled();
+    });
+  });
+
+  // ── DAT-302: sanitizeForFirestore (A7) ───────────────────────────────────
+
+  describe('sanitizeForFirestore (DAT-302)', () => {
+    const sanitize = (data: unknown) => (service as any).sanitizeForFirestore(data);
+
+    it('omits null and undefined fields', () => {
+      expect(sanitize({ a: 1, b: null, c: undefined, d: '' })).toEqual({ a: 1, d: '' });
+    });
+
+    it('omits null and undefined in nested objects and arrays', () => {
+      expect(sanitize({ nested: { x: null, y: 2 }, list: [1, null, undefined, { z: null, w: 3 }] }))
+        .toEqual({ nested: { y: 2 }, list: [1, { w: 3 }] });
+    });
+
+    it('keeps falsy non-null values (0, false, empty string, empty array)', () => {
+      expect(sanitize({ n: 0, f: false, s: '', arr: [] })).toEqual({ n: 0, f: false, s: '', arr: [] });
+    });
+
+    it('a default user profile carries no null field after sanitizing', () => {
+      const profile = UserProfileModel.create('uid-1', 'major@section9.test');
+      const written = sanitize(profile);
+      expect(Object.values(written)).not.toContain(null);
+      expect(written.photoURL).toBe('');
     });
   });
 });

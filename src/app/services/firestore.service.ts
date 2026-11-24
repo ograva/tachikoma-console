@@ -44,6 +44,12 @@ export interface SyncTarget<T extends SyncableData = SyncableData> {
   toCloud?(item: SyncableData): SyncableData | Promise<SyncableData>;
   /** Convert a cloud record into its local shape (e.g. decrypt secrets). */
   fromCloud?(item: SyncableData): SyncableData | Promise<SyncableData>;
+  /**
+   * True when a local record carries no user data and must lose to its cloud
+   * version whatever its `updatedAt` (e.g. an untouched default agent stamped
+   * with boot time). See `mergeSyncRecords`.
+   */
+  yieldsToCloud?(item: SyncableData): boolean;
 }
 
 export type SyncTargets = Partial<Record<SyncCollectionName, SyncTarget>>;
@@ -57,6 +63,86 @@ export interface SyncPlan {
   deletes: string[];
 }
 
+export interface MergeSyncOptions<T extends SyncableData> {
+  /** Local records for which this returns true always lose to their cloud version. */
+  yieldsToCloud?: (local: T) => boolean;
+}
+
+export interface MergeSyncResult<T extends SyncableData> {
+  /** The union by id: local order first, then cloud-only records. */
+  merged: T[];
+  /** Cloud records that changed the local state (new, newer, or a differing tie). */
+  fromCloud: number;
+  /** Local records that won (local-only or strictly newer): the ones to upload. */
+  localWinners: T[];
+}
+
+/**
+ * True when the cloud copy of a record held on both sides must be kept.
+ *
+ * The single conflict rule for every merge path, so the login "merge"
+ * strategy (`planCollectionSync`) and the post-sign-in restores
+ * (`ChatStorageService.mergeByUpdatedAt`, `AgentProfileService.loadFromCloud`)
+ * cannot drift apart:
+ * 1. A local record that `yieldsToCloud` (an untouched default agent) loses.
+ * 2. Otherwise the newer `updatedAt` wins (a missing timestamp counts as 0).
+ * 3. Tie-break: on equal `updatedAt` the CLOUD copy wins. The cloud is the
+ *    copy every device converges on, so a tie never triggers an upload and
+ *    two devices that tie both settle on the same version.
+ */
+export function cloudCopyWins<T extends SyncableData>(
+  local: T,
+  cloud: T,
+  yieldsToCloud?: (local: T) => boolean,
+): boolean {
+  if (yieldsToCloud?.(local)) return true;
+  return (cloud.updatedAt ?? 0) >= (local.updatedAt ?? 0);
+}
+
+/** JSON with object keys sorted, for an order-independent content comparison. */
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, v) =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
+      : v,
+  );
+}
+
+/**
+ * Merge cloud records into local records by id with `cloudCopyWins`. Records
+ * held on one side only are kept. Pure; shared by every merge path.
+ */
+export function mergeSyncRecords<T extends SyncableData>(
+  local: T[],
+  cloud: T[],
+  options: MergeSyncOptions<T> = {},
+): MergeSyncResult<T> {
+  const merged = new Map<string, T>();
+  local.forEach((item) => merged.set(item.id, item));
+  const localWinnerIds = new Set(local.map((item) => item.id));
+  let fromCloud = 0;
+  for (const item of cloud) {
+    const existing = merged.get(item.id);
+    if (!existing) {
+      merged.set(item.id, item);
+      fromCloud++;
+      continue;
+    }
+    if (!cloudCopyWins(existing, item, options.yieldsToCloud)) continue;
+    localWinnerIds.delete(item.id);
+    const tie = (item.updatedAt ?? 0) === (existing.updatedAt ?? 0);
+    if (!tie || stableStringify(existing) !== stableStringify(item)) {
+      fromCloud++;
+    }
+    merged.set(item.id, item);
+  }
+  return {
+    merged: Array.from(merged.values()),
+    fromCloud,
+    localWinners: local.filter((item) => localWinnerIds.has(item.id)),
+  };
+}
+
 /**
  * Pure strategy resolution for one collection.
  * - cloud-to-local: local becomes the cloud copy; the cloud is not written.
@@ -64,14 +150,19 @@ export interface SyncPlan {
  *   keeps the local record instead of erasing it.
  * - local-to-cloud: the cloud becomes the local copy. Cloud-only documents are
  *   deleted only when `allowDeletes` is true.
- * - merge: union by id; the newer `updatedAt` wins (cloud wins ties). Only
- *   records where the local version won are uploaded.
+ * - merge: union by id with the shared conflict rule (`cloudCopyWins`: the
+ *   newer `updatedAt` wins, the cloud wins ties, and a local record that
+ *   `yieldsToCloud` always loses). Only records where the local version won
+ *   are uploaded.
  */
 export function planCollectionSync(
   strategy: SyncStrategyName,
   local: SyncableData[],
   cloud: SyncableData[],
-  options: { allowDeletes: boolean },
+  options: {
+    allowDeletes: boolean;
+    yieldsToCloud?: (local: SyncableData) => boolean;
+  },
 ): SyncPlan {
   switch (strategy) {
     case 'cloud-to-local':
@@ -94,17 +185,10 @@ export function planCollectionSync(
 
     case 'merge':
     default: {
-      const merged = new Map<string, SyncableData>();
-      cloud.forEach((item) => merged.set(item.id, item));
-      const upserts: SyncableData[] = [];
-      for (const item of local) {
-        const existing = merged.get(item.id);
-        if (!existing || (item.updatedAt ?? 0) > (existing.updatedAt ?? 0)) {
-          merged.set(item.id, item);
-          upserts.push(item);
-        }
-      }
-      return { local: Array.from(merged.values()), upserts, deletes: [] };
+      const { merged, localWinners } = mergeSyncRecords(local, cloud, {
+        yieldsToCloud: options.yieldsToCloud,
+      });
+      return { local: merged, upserts: localWinners, deletes: [] };
     }
   }
 }
@@ -259,34 +343,27 @@ export class FirestoreService {
   }
 
   /**
-   * Sanitize data for Firestore by removing undefined fields
-   * Firestore doesn't allow undefined values - must be null or omitted
+   * Sanitize data for Firestore (DAT-302: never write `null` or `undefined`).
+   * `null` and `undefined` fields are omitted, and `null`/`undefined` array
+   * items are dropped. Every write is a full `setDoc`/`batch.set`, so omitting
+   * a field clears it just as writing `null` would.
    */
   private sanitizeForFirestore<T>(data: T): Partial<T> {
     const sanitized: any = {};
 
     for (const [key, value] of Object.entries(data as any)) {
-      if (value === undefined) {
-        // Skip undefined fields entirely
+      if (value === undefined || value === null) {
+        // Skip null/undefined fields entirely
         continue;
       }
 
-      if (value === null) {
-        // Null is allowed in Firestore
-        sanitized[key] = null;
-      } else if (Array.isArray(value)) {
-        // Recursively sanitize array items (handle objects in arrays)
+      if (Array.isArray(value)) {
+        // Drop null/undefined items; recursively sanitize object items
         sanitized[key] = value
-          .map((item) => {
-            if (item === undefined) {
-              return null; // Convert undefined to null in arrays
-            }
-            if (typeof item === 'object' && item !== null) {
-              return this.sanitizeForFirestore(item);
-            }
-            return item;
-          })
-          .filter((item) => item !== null || value.includes(null)); // Keep nulls only if original array had nulls
+          .filter((item) => item !== undefined && item !== null)
+          .map((item) =>
+            typeof item === 'object' ? this.sanitizeForFirestore(item) : item,
+          );
       } else if (typeof value === 'object') {
         // Recursively sanitize nested objects
         const sanitizedNested = this.sanitizeForFirestore(value);
@@ -596,6 +673,9 @@ export class FirestoreService {
 
     const plan = planCollectionSync(strategy, local, cloud, {
       allowDeletes: !singleDocument,
+      yieldsToCloud: target.yieldsToCloud
+        ? (item) => target.yieldsToCloud!(item)
+        : undefined,
     });
 
     const upserts: SyncableData[] = [];

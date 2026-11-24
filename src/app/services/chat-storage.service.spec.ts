@@ -250,6 +250,15 @@ describe('ChatStorageService (CHAT-001/002/003)', () => {
       expect(service.getSessions().map((s) => s.title)).toEqual(['Local new']);
     });
 
+    it('takes the cloud version on an updatedAt tie, like the login merge strategy (A4)', async () => {
+      service.applySyncResult([chat('c1', 'Local tie', 1, 15)]);
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([chat('c1', 'Cloud tie', 1, 15)]));
+
+      await service.loadFromCloud();
+
+      expect(service.getSessions().map((s) => s.title)).toEqual(['Cloud tie']);
+    });
+
     it('restores chats most-recent-first regardless of Firestore doc order', async () => {
       mockFirestore.getDocuments.and.returnValue(Promise.resolve([
         chat('chat_100_a', 'Oldest', 100, 100),

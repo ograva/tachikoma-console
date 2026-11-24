@@ -1,5 +1,9 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { FirestoreService, SyncTarget } from './firestore.service';
+import {
+  FirestoreService,
+  SyncTarget,
+  mergeSyncRecords,
+} from './firestore.service';
 import { AuthService } from './auth.service';
 import {
   AgentProfile,
@@ -364,25 +368,17 @@ export class ChatStorageService implements SyncTarget<ChatSession> {
   }
 
   /**
-   * Merge cloud chats into local chats by id, keeping the newer `updatedAt`
-   * (local wins ties). Returns the merged list and how many cloud records were
-   * taken (new or newer).
+   * Merge cloud chats into local chats by id with the shared conflict rule
+   * (`mergeSyncRecords` / `cloudCopyWins`): the newer `updatedAt` wins and the
+   * cloud wins ties, exactly as in the login "merge" strategy. Returns the
+   * merged list and how many cloud records changed the local state.
    */
   static mergeByUpdatedAt<T extends SyncableData>(
     local: T[],
     cloud: T[]
   ): { merged: T[]; restored: number } {
-    const merged = new Map<string, T>();
-    local.forEach((item) => merged.set(item.id, item));
-    let restored = 0;
-    for (const item of cloud) {
-      const existing = merged.get(item.id);
-      if (!existing || (item.updatedAt ?? 0) > (existing.updatedAt ?? 0)) {
-        merged.set(item.id, item);
-        restored++;
-      }
-    }
-    return { merged: Array.from(merged.values()), restored };
+    const { merged, fromCloud } = mergeSyncRecords(local, cloud);
+    return { merged, restored: fromCloud };
   }
 
   /**

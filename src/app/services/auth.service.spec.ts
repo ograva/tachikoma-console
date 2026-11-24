@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from './auth.service';
+import { AgentProfileModel } from '../models/agent-profile.model';
 
 /**
  * AUTH-001: Sign In and Resume
@@ -101,6 +102,30 @@ describe('AuthService (AUTH-001)', () => {
     it('should not flag firstLogin when localStorage is empty', () => {
       (service as any).checkForLocalData();
       expect(service.firstLogin()).toBeFalse();
+    });
+
+    // A5 (Flow E1): boot-time data is not user data.
+    it('should not flag firstLogin when the only local data is the untouched boot-time default agents', () => {
+      const bootTime = Date.now();
+      localStorage.setItem('tachikoma_agent_profiles', JSON.stringify(
+        AgentProfileModel.getDefaults().map((p) => ({ ...p, createdAt: bootTime, updatedAt: bootTime }))));
+      localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([]));
+      (service as any).checkForLocalData();
+      expect(service.firstLogin()).toBeFalse();
+    });
+
+    it('should flag firstLogin when a default agent has been edited locally', () => {
+      const profiles = AgentProfileModel.getDefaults();
+      profiles[0] = { ...profiles[0], system: 'Edited locally' };
+      localStorage.setItem('tachikoma_agent_profiles', JSON.stringify(profiles));
+      (service as any).checkForLocalData();
+      expect(service.firstLogin()).toBeTrue();
+    });
+
+    it('should flag firstLogin when the local agent list is unreadable', () => {
+      localStorage.setItem('tachikoma_agent_profiles', '{not json');
+      (service as any).checkForLocalData();
+      expect(service.firstLogin()).toBeTrue();
     });
   });
 

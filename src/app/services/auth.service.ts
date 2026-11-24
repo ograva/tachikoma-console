@@ -12,6 +12,7 @@ import {
   UserCredential,
   Unsubscribe,
 } from '@angular/fire/auth';
+import { AgentProfileModel } from '../models/agent-profile.model';
 
 export interface AuthUser {
   uid: string;
@@ -225,14 +226,45 @@ export class AuthService implements OnDestroy {
   }
 
   /**
-   * Check if there's local data that needs syncing
+   * Check if there's local data that needs syncing (shows the sync dialog).
+   * Boot-time data is not user data (A5, Flow E1): an empty chat list and the
+   * built-in default agents the user never edited are ignored, using the same
+   * `AgentProfileModel.isUntouchedDefault` rule the merge strategy applies.
    */
   private checkForLocalData(): void {
-    const hasLocalChats = localStorage.getItem('tachikoma_chat_sessions');
-    const hasLocalAgents = localStorage.getItem('tachikoma_agent_profiles');
+    const hasLocalChats = AuthService.hasLocalRecords(
+      'tachikoma_chat_sessions',
+      () => true
+    );
+    const hasLocalAgents = AuthService.hasLocalRecords(
+      'tachikoma_agent_profiles',
+      (p) => !AgentProfileModel.isUntouchedDefault(p)
+    );
 
     if (hasLocalChats || hasLocalAgents) {
       this.isFirstLogin.set(true);
+    }
+  }
+
+  /**
+   * True when the localStorage array under `key` holds a record that counts as
+   * user data. An unreadable value counts as data, so the user is still asked
+   * before anything could overwrite it.
+   */
+  private static hasLocalRecords(
+    key: string,
+    isUserData: (record: any) => boolean
+  ): boolean {
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    try {
+      const records = JSON.parse(raw);
+      if (!Array.isArray(records)) return true;
+      return records.some(
+        (record) => record === null || typeof record !== 'object' || isUserData(record)
+      );
+    } catch {
+      return true;
     }
   }
 

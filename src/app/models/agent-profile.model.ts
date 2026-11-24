@@ -131,6 +131,31 @@ export class AgentProfileModel {
   }
 
   /**
+   * True when `profile` is a built-in default agent with no user edits, i.e.
+   * equal to its factory definition apart from timestamps and runtime status.
+   * A fresh device stamps the defaults with boot time, so such a record must
+   * never count as user data: it yields to its cloud version in every merge
+   * (FirestoreService `mergeSyncRecords`) and does not trigger the sign-in
+   * sync dialog (AuthService `checkForLocalData`).
+   */
+  static isUntouchedDefault(profile: Partial<AgentProfile>): boolean {
+    const factory = AgentProfileModel.getDefaults().find(
+      (d) => d.id === profile.id
+    );
+    if (!factory) return false;
+    const content = (p: Partial<AgentProfile>) => {
+      const { createdAt, updatedAt, status, ...rest } =
+        AgentProfileModel.normalize(p);
+      return JSON.stringify(
+        Object.entries(rest)
+          .filter(([, value]) => value !== undefined)
+          .sort(([a], [b]) => a.localeCompare(b))
+      );
+    };
+    return content(profile) === content(factory);
+  }
+
+  /**
    * Get default agent profiles (LOGIKOMA, GHOST-1, MODERATOR, NEUTRAL)
    */
   static getDefaults(): AgentProfile[] {

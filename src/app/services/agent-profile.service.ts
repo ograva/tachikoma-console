@@ -1,5 +1,9 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { FirestoreService, SyncTarget } from './firestore.service';
+import {
+  FirestoreService,
+  SyncTarget,
+  mergeSyncRecords,
+} from './firestore.service';
 import { AuthService } from './auth.service';
 import { AgentProfile, AgentProfileModel, SyncableData } from '../models';
 
@@ -152,10 +156,10 @@ export class AgentProfileService implements SyncTarget<AgentProfile> {
 
   /**
    * Load profiles from Firestore (called after sign-in).
-   * Merges cloud data into local state by id; when both sides hold a profile
-   * the newer `updatedAt` wins. A local default agent the user never edited
-   * (e.g. the fresh-device `logikoma`, stamped with boot time) always yields
-   * to its cloud version.
+   * Merges cloud data into local state by id with the shared conflict rule
+   * (`mergeSyncRecords`): the newer `updatedAt` wins, the cloud wins ties, and
+   * a local default agent the user never edited (e.g. the fresh-device
+   * `logikoma`, stamped with boot time) always yields to its cloud version.
    */
   async loadFromCloud(): Promise<void> {
     if (!this.authService.isRealUser()) {
@@ -173,24 +177,14 @@ export class AgentProfileService implements SyncTarget<AgentProfile> {
         return;
       }
 
-      const merged = new Map<string, AgentProfile>();
-      this.profilesSignal().forEach((p) => merged.set(p.id, p));
-      let restored = 0;
-      for (const raw of profiles) {
-        const cloud = AgentProfileModel.fromFirestore(raw);
-        const local = merged.get(cloud.id);
-        if (
-          !local ||
-          AgentProfileService.isUntouchedDefault(local) ||
-          (cloud.updatedAt ?? 0) > (local.updatedAt ?? 0)
-        ) {
-          merged.set(cloud.id, cloud);
-          restored++;
-        }
-      }
+      const { merged, fromCloud: restored } = mergeSyncRecords(
+        this.profilesSignal(),
+        profiles.map((raw) => AgentProfileModel.fromFirestore(raw)),
+        { yieldsToCloud: (local) => this.yieldsToCloud(local) }
+      );
 
       if (restored > 0) {
-        this.profilesSignal.set(Array.from(merged.values()));
+        this.profilesSignal.set(merged);
         this.saveProfiles();
         console.log(
           `✅ Restored ${restored} agent profiles from Firestore (${profiles.length} in cloud)`
@@ -206,27 +200,23 @@ export class AgentProfileService implements SyncTarget<AgentProfile> {
   }
 
   /**
-   * True when `profile` is a built-in default agent with no user edits, i.e.
-   * equal to its factory definition apart from timestamps and runtime status.
+   * True when `profile` is a built-in default agent with no user edits.
+   * Delegates to AgentProfileModel.isUntouchedDefault, the single definition
+   * shared with the login merge strategy and first-login detection.
    */
   static isUntouchedDefault(profile: AgentProfile): boolean {
-    const factory = AgentProfileModel.getDefaults().find(
-      (d) => d.id === profile.id
-    );
-    if (!factory) return false;
-    const content = (p: AgentProfile) => {
-      const { createdAt, updatedAt, status, ...rest } =
-        AgentProfileModel.normalize(p);
-      return JSON.stringify(
-        Object.entries(rest)
-          .filter(([, value]) => value !== undefined)
-          .sort(([a], [b]) => a.localeCompare(b))
-      );
-    };
-    return content(profile) === content(factory);
+    return AgentProfileModel.isUntouchedDefault(profile);
   }
 
   // ── SyncTarget (login sync strategies, FirestoreService.syncOnLogin) ──────
+
+  /**
+   * An untouched built-in default agent always yields to its cloud version,
+   * in the login merge strategy and in loadFromCloud alike.
+   */
+  yieldsToCloud(item: SyncableData): boolean {
+    return AgentProfileModel.isUntouchedDefault(item as AgentProfile);
+  }
 
   /** The profiles the app currently holds (the signal persisted under `tachikoma_agent_profiles`). */
   getLocalSyncData(): AgentProfile[] {

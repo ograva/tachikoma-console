@@ -5,6 +5,7 @@ import {
   signal,
   inject,
   effect,
+  untracked,
   HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -392,12 +393,15 @@ export class TachikomaChatComponent {
       }
     });
 
-    // React to authentication state changes
+    // React to authentication state changes. Only a real (non-guest) user has a
+    // profile to save the key to (A1). The effect tracks the auth user alone:
+    // the signals read inside checkAndSyncApiKey() (e.g. the profile) are read
+    // untracked, so a profile update cannot re-fire it and stack a second dialog.
     effect(() => {
-      const isAuth = this.authService.isAuthenticated();
-      if (isAuth) {
+      const isRealUser = this.authService.isRealUser();
+      if (isRealUser) {
         // User just logged in - check if we need to sync localStorage key to profile
-        this.checkAndSyncApiKey();
+        untracked(() => this.checkAndSyncApiKey());
       }
     });
   }
@@ -433,8 +437,8 @@ export class TachikomaChatComponent {
    * Called when user becomes authenticated
    */
   private async checkAndSyncApiKey(): Promise<void> {
-    // Only proceed if authenticated
-    if (!this.authService.isAuthenticated()) {
+    // Only proceed for a real (non-guest) user; guests have no profile to sync to
+    if (!this.authService.isRealUser()) {
       return;
     }
 

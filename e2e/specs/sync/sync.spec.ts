@@ -654,12 +654,9 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
     // Source: Quinn
     test('T428 merge strategy on a new device keeps the cloud edit of a built-in agent', async ({ page }) => {
-      // BUG (SYNC-002 /gate, 2026-11-24): a fresh device stamps the default agents with boot time, so in
-      // planCollectionSync('merge') (src/app/services/firestore.service.ts) the untouched local `logikoma` looks newer
-      // than the user's cloud edit: it wins, is uploaded over the cloud copy and replaces it locally. The
-      // untouched-default rule exists only in AgentProfileService.loadFromCloud(), not in the merge strategy.
-      // Remove test.fail() once the merge strategy lets untouched defaults yield to the cloud.
-      test.fail(true, 'merge strategy overwrites cloud-edited default agents with boot-time defaults');
+      // Regression (SYNC-002 /gate, 2026-11-24, A4): a fresh device stamps the default agents with boot time, so in
+      // planCollectionSync('merge') the untouched local `logikoma` used to look newer than the user's cloud edit and
+      // was uploaded over it. The merge now applies the shared untouched-default rule (mergeSyncRecords + yieldsToCloud).
       const user = await createUniqueEmulatorUser('t428');
       const t = Date.now() - 10 * 60_000;
       await seedEmulatorFirestoreDoc(user.uid, 'agent_profiles', 'logikoma', {
@@ -668,8 +665,12 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
         silenceProtocol: 'standard', systemMode: 'default', createdAt: t, updatedAt: t,
       });
 
-      // A fresh device writes the default agents on boot, so sign-in offers the sync dialog.
+      // A fresh device holding one local chat (real user data, so sign-in offers the sync dialog) plus the
+      // untouched default agents written on boot. The defaults alone no longer trigger the dialog (A5).
       await page.goto('/authentication/login');
+      await page.evaluate(([key, chats]) => localStorage.setItem(key as string, JSON.stringify(chats)), [CHAT_SESSIONS_KEY, [
+        { ...makeSeedChat(chatId(t, 't428l'), 'T428 Local Chat'), createdAt: t, updatedAt: t },
+      ]] as const);
       const syncCompleted = page.waitForEvent('console', { predicate: (msg) => msg.text() === 'Sync completed', timeout: 20_000 });
       await signInWithEmail(page, user.email, user.password);
       await resolveSyncDialog(page, 'merge');

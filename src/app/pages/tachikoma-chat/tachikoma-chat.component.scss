@@ -1052,8 +1052,24 @@
     transition: opacity 0.2s;
 }
 
-.chat-item:hover .chat-actions {
+// A6: desktop keeps the reveal-on-hover; keyboard focus (on the item or a
+// button) reveals the actions too, and touch devices, which cannot hover,
+// always show them.
+.chat-item:hover .chat-actions,
+.chat-item:focus-within .chat-actions {
     opacity: 1;
+}
+
+@media (hover: none) {
+    .chat-actions {
+        opacity: 1;
+    }
+}
+
+.edit-chat-btn:focus-visible,
+.delete-chat-btn:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 1px;
 }
 
 .edit-chat-btn,

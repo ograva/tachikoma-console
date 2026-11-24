@@ -26,7 +26,7 @@ export interface UserProfile extends SyncableData {
   email: string;
   displayName: string;
   chatUsername: string;
-  photoURL: string | null;
+  photoURL: string; // '' when there is none (DAT-302: never null)
   geminiApiKey?: string; // Encrypted in Firestore, plain in localStorage
   geminiApiKeyEncrypted?: string; // Used only for Firestore storage
   geminiModel?: GeminiModel;
@@ -45,7 +45,7 @@ export class UserProfileModel {
   static readonly DEFAULTS = {
     displayName: '',
     chatUsername: 'USER',
-    photoURL: null,
+    photoURL: '',
     geminiApiKey: '',
     geminiModel: 'models/gemini-3.5-flash' as GeminiModel,
     rateLimitRPM: 15, // Free tier default
@@ -123,7 +123,7 @@ export class UserProfileModel {
       email: '',
       displayName: 'Guest',
       chatUsername: 'USER',
-      photoURL: null,
+      photoURL: UserProfileModel.DEFAULTS.photoURL,
       geminiModel: UserProfileModel.DEFAULTS.geminiModel,
       rateLimitRPM: UserProfileModel.DEFAULTS.rateLimitRPM,
       createdAt: now,
