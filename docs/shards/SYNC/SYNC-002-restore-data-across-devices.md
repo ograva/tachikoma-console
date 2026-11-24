@@ -6,7 +6,7 @@
 | **Module** | SYNC - Persistence, Offline Continuity, and Cross-Device Recovery |
 | **Story Ref** | SYNC-002 |
 | **Priority** | High |
-| **Status** | In Progress |
+| **Status** | Ready for Review |
 | **GitHub Issue** | #58 |
 | **Complexity** | M |
 | **Depends On** | SYNC-001, AUTH-003 |

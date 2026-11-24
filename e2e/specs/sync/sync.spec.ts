@@ -187,11 +187,8 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
     // Source: Quinn
     test('T406 restored chats keep message content and the timestamps used for conflict resolution', async ({ page }) => {
-      // BUG (SYNC-002): ChatMessageModel.normalize() (src/app/models/chat-message.model.ts) rebuilds each message
-      // from a fixed field list and drops `roundId` (also `messageType`, `retryCount`). Restored transcripts lose
-      // their round grouping, so TachikomaChatComponent renders "No prompt yet" for a restored chat.
-      // Remove test.fail() once normalize() preserves these fields.
-      test.fail(true, 'ChatMessageModel.normalize drops roundId/messageType/retryCount on restore');
+      // Regression (SYNC-002 reopen): ChatMessageModel.normalize() used to drop `roundId` on restore, so restored
+      // transcripts lost their round grouping and rendered "No prompt yet".
       const user = await createUniqueEmulatorUser('t406');
       const createdAt = 1_760_000_000_000;
       const updatedAt = 1_760_000_123_456;
@@ -217,6 +214,8 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
         messages.map((m) => [m.id, m.text, m.isUser, m.timestamp, m.roundId])
       );
 
+      // `chat-user-message` is a portrait-only bubble (Wireframe_Chat.md §4); landscape shows the roundtable instead.
+      await page.setViewportSize({ width: 390, height: 844 });
       await openChatHistory(page);
       await page.locator('[data-test-id="chat-history-item"]', { hasText: 'Timestamp Fidelity' }).click();
       await expect(page.locator('[data-test-id="chat-user-message"]').filter({ hasText: 'Restore probe question from device A' })).toBeVisible();
@@ -225,10 +224,8 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
     // Source: Quinn
     test('T407 restored chat history keeps the most-recent-first order of the originating device', async ({ page }) => {
-      // BUG (SYNC-002): ChatStorageService.loadFromCloud() prepends cloud chats in Firestore document-id order
-      // (ascending chat_<createdAt>_…), so a new device lists chats oldest-first, the reverse of the originating
-      // device. Remove test.fail() once restored chats are ordered by recency.
-      test.fail(true, 'loadFromCloud restores chats oldest-first (Firestore doc-id order)');
+      // Regression (SYNC-002 reopen): ChatStorageService.loadFromCloud() used to restore chats in Firestore doc-id
+      // order (oldest-first), the reverse of the originating device.
       const user = await createUniqueEmulatorUser('t407');
       const base = Date.now() - 3 * 60_000;
       // Ids in the app's own chat_<createdAt>_<rand> format, created oldest → newest.
@@ -329,11 +326,8 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
     // Source: Quinn
     test('T410 use-cloud strategy replaces the local device chats with the cloud copy', async ({ page }) => {
-      // BUG (SYNC-002 / AUTH-003): "Use Cloud Data" keeps the device's local-only chat. FirestoreService.syncCollection()
-      // writes the result to `firestore_{uid}_chat_sessions` (a key no UI service reads) and removes
-      // `tachikoma_chat_sessions`, while ChatStorageService keeps and re-persists its in-memory sessions.
-      // Remove test.fail() once cloud-to-local updates the keys/signals the app actually reads.
-      test.fail(true, 'cloud-to-local strategy does not discard local chats');
+      // Regression (SYNC-002 reopen): FirestoreService.syncCollection() used to write the result to
+      // `firestore_{uid}_chat_sessions` (a key no UI service reads), so "Use Cloud Data" kept the local-only chat.
       const user = await createUniqueEmulatorUser('t410');
       const t = Date.now() - 60_000;
       const cloudId = chatId(t, 'cloud');
@@ -350,6 +344,9 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
       // Cloud is untouched by a cloud-to-local restore.
       await expect.poll(async () => (await getEmulatorFirestoreDocs<any>(user.uid, 'chat_sessions')).map((c) => c.title), { timeout: 10_000 })
+        .toEqual(['Cloud Copy Wins']);
+      // The strategy lands in the key the UI reads; wait for it before reloading the page.
+      await expect.poll(async () => (await readLocalChats(page)).map((c) => c.title), { timeout: 10_000 })
         .toEqual(['Cloud Copy Wins']);
 
       await openChatHistory(page);
@@ -374,6 +371,8 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
       await resolveSyncDialog(page, 'local-to-cloud');
 
       await expect.poll(async () => (await getEmulatorFirestoreDocs<any>(user.uid, 'chat_sessions')).map((c) => c.title), { timeout: 10_000 })
+        .toEqual(['Local Copy Wins']);
+      await expect.poll(async () => (await readLocalChats(page)).map((c) => c.title), { timeout: 10_000 })
         .toEqual(['Local Copy Wins']);
 
       await openChatHistory(page);

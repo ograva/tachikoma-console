@@ -231,32 +231,32 @@
 | :--- | :--- | :---: | :--- |
 | T405 | cloud chats are restored into chat history on a new device after sign-in |  | `e2e/specs/sync/sync.spec.ts:165` |
 | T406 | restored chats keep message content and the timestamps used for conflict resolution |  | `e2e/specs/sync/sync.spec.ts:189` |
-| T407 | restored chat history keeps the most-recent-first order of the originating device |  | `e2e/specs/sync/sync.spec.ts:227` |
-| T408 | agent profiles and user settings synced from a first device are restored on a second device |  | `e2e/specs/sync/sync.spec.ts:258` |
-| T409 | merge strategy keeps local-only and cloud-only chats and the newest version of shared chats |  | `e2e/specs/sync/sync.spec.ts:299` |
-| T410 | use-cloud strategy replaces the local device chats with the cloud copy |  | `e2e/specs/sync/sync.spec.ts:331` |
-| T411 | use-local strategy replaces the cloud copy with the local device data |  | `e2e/specs/sync/sync.spec.ts:361` |
-| T412 | anonymous guest on a new device does not restore any cloud data |  | `e2e/specs/sync/sync.spec.ts:384` |
-| T413 | sign-in with an empty cloud copy completes without errors and keeps default agents |  | `e2e/specs/sync/sync.spec.ts:409` |
+| T407 | restored chat history keeps the most-recent-first order of the originating device |  | `e2e/specs/sync/sync.spec.ts:226` |
+| T408 | agent profiles and user settings synced from a first device are restored on a second device |  | `e2e/specs/sync/sync.spec.ts:255` |
+| T409 | merge strategy keeps local-only and cloud-only chats and the newest version of shared chats |  | `e2e/specs/sync/sync.spec.ts:296` |
+| T410 | use-cloud strategy replaces the local device chats with the cloud copy |  | `e2e/specs/sync/sync.spec.ts:328` |
+| T411 | use-local strategy replaces the cloud copy with the local device data |  | `e2e/specs/sync/sync.spec.ts:358` |
+| T412 | anonymous guest on a new device does not restore any cloud data |  | `e2e/specs/sync/sync.spec.ts:383` |
+| T413 | sign-in with an empty cloud copy completes without errors and keeps default agents |  | `e2e/specs/sync/sync.spec.ts:408` |
 
 ### T414–T420 Offline-First
 
 | ID | Test | Smoke | Location |
 | :--- | :--- | :---: | :--- |
-| T414 | existing local chats remain accessible when offline |  | `e2e/specs/sync/sync.spec.ts:431` |
-| T415 | agent profiles remain accessible when offline |  | `e2e/specs/sync/sync.spec.ts:454` |
-| T416 | new changes made while offline persist to localStorage |  | `e2e/specs/sync/sync.spec.ts:468` |
-| T417 | app does not crash when network requests fail |  | `e2e/specs/sync/sync.spec.ts:488` |
-| T418 | localStorage writes succeed while offline |  | `e2e/specs/sync/sync.spec.ts:500` |
+| T414 | existing local chats remain accessible when offline |  | `e2e/specs/sync/sync.spec.ts:430` |
+| T415 | agent profiles remain accessible when offline |  | `e2e/specs/sync/sync.spec.ts:453` |
+| T416 | new changes made while offline persist to localStorage |  | `e2e/specs/sync/sync.spec.ts:467` |
+| T417 | app does not crash when network requests fail |  | `e2e/specs/sync/sync.spec.ts:487` |
+| T418 | localStorage writes succeed while offline |  | `e2e/specs/sync/sync.spec.ts:499` |
 
 ### T421–T426 Firestore Namespace
 
 | ID | Test | Smoke | Location |
 | :--- | :--- | :---: | :--- |
-| T421 | localStorage uses user-scoped keys for authenticated data |  | `e2e/specs/sync/sync.spec.ts:520` |
-| T422 | anonymous user data is stored under anonymous key prefix |  | `e2e/specs/sync/sync.spec.ts:536` |
-| T423 | anonymous and authenticated data are in separate localStorage namespaces |  | `e2e/specs/sync/sync.spec.ts:549` |
-| T424 | user-specific data is not accessible in anonymous namespace |  | `e2e/specs/sync/sync.spec.ts:571` |
+| T421 | localStorage uses user-scoped keys for authenticated data |  | `e2e/specs/sync/sync.spec.ts:519` |
+| T422 | anonymous user data is stored under anonymous key prefix |  | `e2e/specs/sync/sync.spec.ts:535` |
+| T423 | anonymous and authenticated data are in separate localStorage namespaces |  | `e2e/specs/sync/sync.spec.ts:548` |
+| T424 | user-specific data is not accessible in anonymous namespace |  | `e2e/specs/sync/sync.spec.ts:570` |
 
 ## OPER
 
