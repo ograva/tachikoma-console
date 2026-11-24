@@ -208,4 +208,50 @@ describe('UserProfileService (AUTH-002)', () => {
       expect(stored).toBeTruthy();
     });
   });
+
+  // ── SYNC-002 (reopen): user_profile as a login-sync target ─────────────────
+
+  describe('SyncTarget (SYNC-002)', () => {
+    it('getLocalSyncData returns null when no profile is loaded (sync must skip, not delete)', () => {
+      expect(service.getLocalSyncData()).toBeNull();
+    });
+
+    it('getLocalSyncData returns the current profile as a single record', () => {
+      service.createAnonymousProfile();
+      const data = service.getLocalSyncData()!;
+      expect(data.length).toBe(1);
+      expect(data[0].chatUsername).toBe('USER');
+    });
+
+    it('toCloud encrypts the API key and strips the plaintext key', async () => {
+      const out = await service.toCloud({ id: 'uid-1', updatedAt: 1, geminiApiKey: 'AIzaSy-plain' } as any);
+      expect(mockEncryption.encrypt).toHaveBeenCalledWith('AIzaSy-plain', 'uid-1');
+      expect(out.geminiApiKeyEncrypted).toBe('encrypted-key');
+      expect('geminiApiKey' in out).toBeFalse();
+    });
+
+    it('fromCloud decrypts the API key with the document user id', async () => {
+      const out = await service.fromCloud({ id: 'uid-1', updatedAt: 1, email: 'a@b.c', chatUsername: 'X', geminiApiKeyEncrypted: 'cipher' } as any);
+      expect(mockEncryption.decrypt).toHaveBeenCalledWith('cipher', 'uid-1');
+      expect(out.geminiApiKey).toBe('decrypted-key');
+    });
+
+    it('fromCloud leaves the key empty when decryption fails', async () => {
+      mockEncryption.decrypt.and.returnValue(Promise.reject(new Error('bad key')));
+      const out = await service.fromCloud({ id: 'uid-1', updatedAt: 1, geminiApiKeyEncrypted: 'cipher' } as any);
+      expect(out.geminiApiKey).toBe('');
+    });
+
+    it('applySyncResult updates the profile signal and tachikoma_user_profile', () => {
+      service.applySyncResult([{ id: 'uid-1', updatedAt: 5, email: 'a@b.c', chatUsername: 'MAJOR', displayName: 'Motoko' } as any]);
+      expect(service.chatUsername()).toBe('MAJOR');
+      expect(JSON.parse(localStorage.getItem('tachikoma_user_profile')!).chatUsername).toBe('MAJOR');
+    });
+
+    it('applySyncResult with no record keeps the current profile', () => {
+      service.createAnonymousProfile();
+      service.applySyncResult([]);
+      expect(service.profile()?.id).toBe('anonymous');
+    });
+  });
 });

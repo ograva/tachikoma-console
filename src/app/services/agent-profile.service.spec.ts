@@ -194,6 +194,77 @@ describe('AgentProfileService (AGNT-001/002)', () => {
     });
   });
 
+  // ── SYNC-002 (reopen): merge by updatedAt and strategy target ─────────────
+
+  describe('loadFromCloud merge by updatedAt (SYNC-002)', () => {
+    beforeEach(() => (isRealUser.value = true));
+    afterEach(() => (isRealUser.value = false));
+
+    it('restores a newer cloud version of an existing custom profile', async () => {
+      const local = AgentProfileModel.create({ id: 'custom-1', name: 'LOCAL', color: 'c', hex: '#abc', temp: 0.5, system: 'S', role: 'chatter' });
+      service.applySyncResult([...service.getProfiles(), { ...local, updatedAt: 10 }]);
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([{ ...local, name: 'CLOUD', updatedAt: 20 }]));
+
+      await service.loadFromCloud();
+
+      expect(service.getProfiles().find((p) => p.id === 'custom-1')!.name).toBe('CLOUD');
+    });
+
+    it('keeps the local profile when the cloud version is older', async () => {
+      const local = AgentProfileModel.create({ id: 'custom-1', name: 'LOCAL', color: 'c', hex: '#abc', temp: 0.5, system: 'S', role: 'chatter' });
+      service.applySyncResult([...service.getProfiles(), { ...local, updatedAt: 20 }]);
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([{ ...local, name: 'CLOUD', updatedAt: 10 }]));
+
+      await service.loadFromCloud();
+
+      expect(service.getProfiles().find((p) => p.id === 'custom-1')!.name).toBe('LOCAL');
+    });
+
+    it('restores an edited default agent (logikoma) over the untouched fresh-device default', async () => {
+      const logikoma = service.getProfiles().find((p) => p.id === 'logikoma')!;
+      // Cloud edit is OLDER than the freshly stamped local default.
+      const cloudEdit = { ...logikoma, temp: 0.9, system: 'Edited on device A', updatedAt: logikoma.updatedAt - 60_000 };
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([cloudEdit]));
+
+      await service.loadFromCloud();
+
+      const restored = service.getProfiles().find((p) => p.id === 'logikoma')!;
+      expect(restored.system).toBe('Edited on device A');
+      expect(restored.temp).toBe(0.9);
+    });
+
+    it('keeps a locally edited default when the cloud version is older', async () => {
+      const ghost = service.getProfiles().find((p) => p.id === 'ghost')!;
+      const now = Date.now();
+      service.applySyncResult(service.getProfiles().map((p) => (p.id === 'ghost' ? { ...p, system: 'Local edit', updatedAt: now } : p)));
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([{ ...ghost, system: 'Cloud edit', updatedAt: now - 1000 }]));
+
+      await service.loadFromCloud();
+
+      expect(service.getProfiles().find((p) => p.id === 'ghost')!.system).toBe('Local edit');
+    });
+  });
+
+  describe('SyncTarget (SYNC-002)', () => {
+    it('isUntouchedDefault is true for factory defaults and false after an edit', () => {
+      const [first] = AgentProfileModel.getDefaults();
+      expect(AgentProfileService.isUntouchedDefault({ ...first, updatedAt: 123 })).toBeTrue();
+      expect(AgentProfileService.isUntouchedDefault({ ...first, temp: 0.99 })).toBeFalse();
+    });
+
+    it('applySyncResult replaces the signal and tachikoma_agent_profiles', () => {
+      const custom = AgentProfileModel.create({ id: 'only', name: 'ONLY', color: 'c', hex: '#abc', temp: 0.5, system: 'S', role: 'chatter' });
+      service.applySyncResult([custom]);
+      expect(service.getProfiles().map((p) => p.id)).toEqual(['only']);
+      expect(JSON.parse(localStorage.getItem('tachikoma_agent_profiles')!).map((p: any) => p.id)).toEqual(['only']);
+    });
+
+    it('applySyncResult falls back to the default agents for an empty result', () => {
+      service.applySyncResult([]);
+      expect(service.getProfiles().map((p) => p.id)).toEqual(AgentProfileModel.getDefaults().map((p) => p.id));
+    });
+  });
+
   // ── clearLocalStorage ─────────────────────────────────────────────────────
 
   describe('clearLocalStorage', () => {

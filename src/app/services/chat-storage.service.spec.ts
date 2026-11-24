@@ -222,6 +222,85 @@ describe('ChatStorageService (CHAT-001/002/003)', () => {
     });
   });
 
+  // ── SYNC-002 (reopen): restore merge, order and strategy target ───────────
+
+  describe('loadFromCloud merge by updatedAt (SYNC-002)', () => {
+    const chat = (id: string, title: string, createdAt: number, updatedAt: number) =>
+      ({ ...ChatSessionModel.create(title), id, createdAt, updatedAt });
+
+    beforeEach(() => (isRealUser.value = true));
+    afterEach(() => (isRealUser.value = false));
+
+    it('replaces a local chat with a newer cloud version of the same id', async () => {
+      service.applySyncResult([chat('c1', 'Local old', 1, 10)]);
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([chat('c1', 'Cloud new', 1, 20)]));
+
+      await service.loadFromCloud();
+
+      expect(service.getSessions().map((s) => s.title)).toEqual(['Cloud new']);
+      expect(JSON.parse(localStorage.getItem('tachikoma_chat_sessions')!)[0].title).toBe('Cloud new');
+    });
+
+    it('keeps the local chat when the cloud version is older', async () => {
+      service.applySyncResult([chat('c1', 'Local new', 1, 20)]);
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([chat('c1', 'Cloud old', 1, 10)]));
+
+      await service.loadFromCloud();
+
+      expect(service.getSessions().map((s) => s.title)).toEqual(['Local new']);
+    });
+
+    it('restores chats most-recent-first regardless of Firestore doc order', async () => {
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([
+        chat('chat_100_a', 'Oldest', 100, 100),
+        chat('chat_200_b', 'Middle', 200, 200),
+        chat('chat_300_c', 'Newest', 300, 300),
+      ]));
+
+      await service.loadFromCloud();
+
+      expect(service.getSessions().map((s) => s.title)).toEqual(['Newest', 'Middle', 'Oldest']);
+    });
+
+    it('preserves message roundId on restore', async () => {
+      const restored = { ...chat('c1', 'Rounds', 1, 1), messages: [
+        { id: 'm1', sender: 'USER', text: 'q', html: 'q', isUser: true, timestamp: 1, roundId: 0 },
+        { id: 'm2', sender: 'LOGIKOMA', text: 'a', html: 'a', isUser: false, agentId: 'logikoma', timestamp: 2, roundId: 0 },
+      ] };
+      mockFirestore.getDocuments.and.returnValue(Promise.resolve([restored]));
+
+      await service.loadFromCloud();
+
+      expect(service.getSessions()[0].messages.map((m: any) => m.roundId)).toEqual([0, 0]);
+    });
+  });
+
+  describe('SyncTarget (SYNC-002)', () => {
+    it('getLocalSyncData returns the in-memory sessions', async () => {
+      const created = await service.createNewChat('Mine');
+      expect(service.getLocalSyncData().map((s) => s.id)).toEqual([created.id]);
+    });
+
+    it('applySyncResult replaces the signal and tachikoma_chat_sessions, newest first', async () => {
+      await service.createNewChat('Discard me');
+      service.applySyncResult([
+        { ...ChatSessionModel.create('Old'), id: 'a', createdAt: 1, updatedAt: 1 },
+        { ...ChatSessionModel.create('New'), id: 'b', createdAt: 2, updatedAt: 2 },
+      ]);
+
+      expect(service.getSessions().map((s) => s.title)).toEqual(['New', 'Old']);
+      const stored = JSON.parse(localStorage.getItem('tachikoma_chat_sessions')!);
+      expect(stored.map((s: any) => s.title)).toEqual(['New', 'Old']);
+    });
+
+    it('applySyncResult clears a current chat id that no longer exists', async () => {
+      await service.createNewChat('Gone');
+      service.applySyncResult([]);
+      expect(service.getCurrentChatId()).toBeNull();
+      expect(localStorage.getItem('tachikoma_current_chat_id')).toBeNull();
+    });
+  });
+
   // ── CHAT-003: exportChat / filename sanitization ─────────────────────────
 
   describe('exportChat', () => {

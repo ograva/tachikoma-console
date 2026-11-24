@@ -10,6 +10,9 @@ import { TablerIconsModule } from 'angular-tabler-icons';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from 'src/app/services/auth.service';
 import { FirestoreService } from 'src/app/services/firestore.service';
+import { ChatStorageService } from 'src/app/services/chat-storage.service';
+import { AgentProfileService } from 'src/app/services/agent-profile.service';
+import { UserProfileService } from 'src/app/services/user-profile.service';
 import {
   SyncDialogComponent,
   SyncStrategy,
@@ -32,6 +35,11 @@ export class AppSideLoginComponent {
   private router = inject(Router);
   private authService = inject(AuthService);
   private firestoreService = inject(FirestoreService);
+  // Owners of the synced collections: the sync strategy reads and writes their
+  // local state (tachikoma_* keys + signals) so the UI reflects the result.
+  private chatStorageService = inject(ChatStorageService);
+  private agentProfileService = inject(AgentProfileService);
+  private userProfileService = inject(UserProfileService);
   private dialog = inject(MatDialog);
 
   isLoading = signal<boolean>(false);
@@ -74,7 +82,11 @@ export class AppSideLoginComponent {
       ) {
         this.isLoading.set(true);
         try {
-          await this.firestoreService.syncOnLogin(strategy);
+          await this.firestoreService.syncOnLogin(strategy, {
+            chat_sessions: this.chatStorageService,
+            agent_profiles: this.agentProfileService,
+            user_profile: this.userProfileService,
+          });
           console.log(`✓ Sync completed with strategy: ${strategy}`);
         } catch (error) {
           console.error('Sync error:', error);

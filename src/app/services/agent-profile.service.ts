@@ -1,14 +1,14 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { FirestoreService } from './firestore.service';
+import { FirestoreService, SyncTarget } from './firestore.service';
 import { AuthService } from './auth.service';
-import { AgentProfile, AgentProfileModel } from '../models';
+import { AgentProfile, AgentProfileModel, SyncableData } from '../models';
 
 export { AgentProfile };
 
 @Injectable({
   providedIn: 'root',
 })
-export class AgentProfileService {
+export class AgentProfileService implements SyncTarget<AgentProfile> {
   private readonly STORAGE_KEY = 'tachikoma_agent_profiles';
   private readonly COLLECTION_NAME = 'agent_profiles';
   private profilesSignal = signal<AgentProfile[]>([]);
@@ -151,8 +151,11 @@ export class AgentProfileService {
   }
 
   /**
-   * Load profiles from Firestore (called after login sync)
-   * Merges cloud data with existing localStorage data
+   * Load profiles from Firestore (called after sign-in).
+   * Merges cloud data into local state by id; when both sides hold a profile
+   * the newer `updatedAt` wins. A local default agent the user never edited
+   * (e.g. the fresh-device `logikoma`, stamped with boot time) always yields
+   * to its cloud version.
    */
   async loadFromCloud(): Promise<void> {
     if (!this.authService.isRealUser()) {
@@ -165,41 +168,82 @@ export class AgentProfileService {
         this.COLLECTION_NAME
       );
 
-      if (profiles.length > 0) {
-        // Normalize profiles using model
-        const normalizedProfiles = profiles.map((p) =>
-          AgentProfileModel.fromFirestore(p)
-        );
-
-        // Merge with existing localStorage data instead of replacing
-        const existingProfiles = this.profilesSignal();
-        const existingProfileIds = new Set(existingProfiles.map((p) => p.id));
-
-        // Add only profiles that don't exist locally
-        const newProfiles = normalizedProfiles.filter(
-          (profile) => !existingProfileIds.has(profile.id)
-        );
-
-        if (newProfiles.length > 0) {
-          this.profilesSignal.update((profiles) => [
-            ...profiles,
-            ...newProfiles,
-          ]);
-          this.saveProfiles();
-          console.log(
-            `✅ Merged ${newProfiles.length} new agent profiles from Firestore (${profiles.length} total in cloud)`
-          );
-        } else {
-          console.log(
-            `✅ All ${profiles.length} Firestore agent profiles already exist locally`
-          );
-        }
-      } else {
+      if (profiles.length === 0) {
         console.log('📭 No agent profiles found in Firestore');
+        return;
+      }
+
+      const merged = new Map<string, AgentProfile>();
+      this.profilesSignal().forEach((p) => merged.set(p.id, p));
+      let restored = 0;
+      for (const raw of profiles) {
+        const cloud = AgentProfileModel.fromFirestore(raw);
+        const local = merged.get(cloud.id);
+        if (
+          !local ||
+          AgentProfileService.isUntouchedDefault(local) ||
+          (cloud.updatedAt ?? 0) > (local.updatedAt ?? 0)
+        ) {
+          merged.set(cloud.id, cloud);
+          restored++;
+        }
+      }
+
+      if (restored > 0) {
+        this.profilesSignal.set(Array.from(merged.values()));
+        this.saveProfiles();
+        console.log(
+          `✅ Restored ${restored} agent profiles from Firestore (${profiles.length} in cloud)`
+        );
+      } else {
+        console.log(
+          `✅ All ${profiles.length} Firestore agent profiles are already up to date locally`
+        );
       }
     } catch (error) {
       console.error('❌ Error loading agent profiles from cloud:', error);
     }
+  }
+
+  /**
+   * True when `profile` is a built-in default agent with no user edits, i.e.
+   * equal to its factory definition apart from timestamps and runtime status.
+   */
+  static isUntouchedDefault(profile: AgentProfile): boolean {
+    const factory = AgentProfileModel.getDefaults().find(
+      (d) => d.id === profile.id
+    );
+    if (!factory) return false;
+    const content = (p: AgentProfile) => {
+      const { createdAt, updatedAt, status, ...rest } =
+        AgentProfileModel.normalize(p);
+      return JSON.stringify(
+        Object.entries(rest)
+          .filter(([, value]) => value !== undefined)
+          .sort(([a], [b]) => a.localeCompare(b))
+      );
+    };
+    return content(profile) === content(factory);
+  }
+
+  // ── SyncTarget (login sync strategies, FirestoreService.syncOnLogin) ──────
+
+  /** The profiles the app currently holds (the signal persisted under `tachikoma_agent_profiles`). */
+  getLocalSyncData(): AgentProfile[] {
+    return this.profilesSignal();
+  }
+
+  /**
+   * Replace local profiles with the strategy result and persist them locally.
+   * An empty result falls back to the default agents (locally only) so the
+   * console always has agents to run.
+   */
+  applySyncResult(items: SyncableData[]): void {
+    const profiles = items.map((p) => AgentProfileModel.fromFirestore(p));
+    this.profilesSignal.set(
+      profiles.length > 0 ? profiles : this.getDefaultProfiles()
+    );
+    this.saveProfiles();
   }
 
   /**

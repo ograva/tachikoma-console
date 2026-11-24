@@ -25,6 +25,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private agentProfileService = inject(AgentProfileService);
 
   private hasCheckedInitialSync = false;
+  /** Set while the sign-in sync dialog (AUTH-003) is pending; the restore waits for its choice. */
+  private cloudRestoreDeferred = false;
 
   constructor() {
     // Use Angular effect to react to auth state changes
@@ -35,6 +37,16 @@ export class AppComponent implements OnInit, OnDestroy {
       // Only proceed when auth is not loading and we have a user
       if (!isLoading && user && !this.hasCheckedInitialSync) {
         this.handleAuthStateChange(user);
+      }
+    });
+
+    // Run the deferred restore once the sync dialog is resolved, so it cannot
+    // race (and undo) the strategy the user picked.
+    effect(() => {
+      const firstLogin = this.authService.firstLogin();
+      if (this.cloudRestoreDeferred && !firstLogin) {
+        this.cloudRestoreDeferred = false;
+        this.checkAndSyncFromFirestore();
       }
     });
   }
@@ -62,6 +74,13 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     console.log('✅ Authenticated user detected:', user.email);
+
+    if (this.authService.firstLogin()) {
+      // The sync dialog is about to ask for a strategy; restore after it.
+      console.log('⏸️ Deferring cloud restore until the sync dialog is resolved');
+      this.cloudRestoreDeferred = true;
+      return;
+    }
 
     // Check if we need to sync data from Firestore to localStorage
     await this.checkAndSyncFromFirestore();

@@ -17,12 +17,14 @@ describe('AppComponent', () => {
   let userSignal: WritableSignal<AuthUser | null>;
   let isLoadingSignal: WritableSignal<boolean>;
   let isAuthenticatedSignal: WritableSignal<boolean>;
+  let firstLoginSignal: WritableSignal<boolean>;
 
   beforeEach(async () => {
     // Create writable signals that we can control in tests
     userSignal = signal(null);
     isLoadingSignal = signal(true);
     isAuthenticatedSignal = signal(false);
+    firstLoginSignal = signal(false);
     
     // Create mock services
     const authServiceSpy = jasmine.createSpyObj('AuthService', ['isRealUser']);
@@ -32,7 +34,8 @@ describe('AppComponent', () => {
       ...authServiceSpy,
       user: userSignal,
       isLoading: isLoadingSignal,
-      isAuthenticated: isAuthenticatedSignal
+      isAuthenticated: isAuthenticatedSignal,
+      firstLogin: firstLoginSignal
     };
     
     mockFirestoreService = jasmine.createSpyObj('FirestoreService', [
@@ -110,6 +113,41 @@ describe('AppComponent', () => {
 
     expect(mockChatStorageService.loadFromCloud).toHaveBeenCalled();
     expect(mockAgentProfileService.loadFromCloud).toHaveBeenCalled();
+  });
+
+  // SYNC-002 reopen: the restore must not race the sign-in sync dialog strategy
+  describe('cloud restore while the sync dialog is pending (SYNC-002)', () => {
+    beforeEach(() => {
+      mockAuthService.isRealUser.and.returnValue(true);
+      mockChatStorageService.loadFromCloud.and.returnValue(Promise.resolve());
+      mockAgentProfileService.loadFromCloud.and.returnValue(Promise.resolve());
+      userSignal.set({ uid: 'user123', email: 'test@example.com', displayName: null, photoURL: null });
+      isLoadingSignal.set(false);
+    });
+
+    it('defers loadFromCloud while firstLogin is set', async () => {
+      firstLoginSignal.set(true);
+      const fixture = TestBed.createComponent(AppComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(mockChatStorageService.loadFromCloud).not.toHaveBeenCalled();
+      expect(mockAgentProfileService.loadFromCloud).not.toHaveBeenCalled();
+    });
+
+    it('runs the deferred restore once the dialog is resolved', async () => {
+      firstLoginSignal.set(true);
+      const fixture = TestBed.createComponent(AppComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      firstLoginSignal.set(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(mockChatStorageService.loadFromCloud).toHaveBeenCalledTimes(1);
+      expect(mockAgentProfileService.loadFromCloud).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('should skip Firestore sync for anonymous/guest users', async () => {

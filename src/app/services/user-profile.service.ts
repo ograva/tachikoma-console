@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, inject, effect } from '@angular/core';
-import { FirestoreService } from './firestore.service';
+import { FirestoreService, SyncTarget } from './firestore.service';
 import { AuthService } from './auth.service';
 import { EncryptionService } from './encryption.service';
 import {
@@ -7,6 +7,7 @@ import {
   UserProfileModel,
   GeminiModel,
   GEMINI_MODELS,
+  SyncableData,
 } from '../models';
 
 export { GeminiModel, GEMINI_MODELS, UserProfile };
@@ -14,7 +15,7 @@ export { GeminiModel, GEMINI_MODELS, UserProfile };
 @Injectable({
   providedIn: 'root',
 })
-export class UserProfileService {
+export class UserProfileService implements SyncTarget<UserProfile> {
   private firestoreService = inject(FirestoreService);
   private authService = inject(AuthService);
   private encryptionService = inject(EncryptionService);
@@ -101,22 +102,11 @@ export class UserProfileService {
       );
 
       if (existing) {
-        // Normalize profile using model
-        const normalizedProfile = UserProfileModel.fromFirestore(existing);
-
-        // Decrypt API key if present
-        if (normalizedProfile.geminiApiKeyEncrypted) {
-          try {
-            normalizedProfile.geminiApiKey =
-              await this.encryptionService.decrypt(
-                normalizedProfile.geminiApiKeyEncrypted,
-                userId
-              );
-          } catch (error) {
-            console.error('Error decrypting API key:', error);
-            normalizedProfile.geminiApiKey = '';
-          }
-        }
+        // Normalize and decrypt the API key for the signed-in user
+        const normalizedProfile = await this.fromCloud({
+          ...existing,
+          id: userId,
+        });
 
         this.profileSignal.set(normalizedProfile);
         this.saveToLocalStorage(normalizedProfile);
@@ -156,19 +146,8 @@ export class UserProfileService {
 
     try {
       console.log('☁️ Syncing user profile to Firestore...');
-      const userId = profile.id;
-      const profileToSave = { ...profile };
-
-      // Encrypt API key before saving to Firestore
-      if (profileToSave.geminiApiKey) {
-        profileToSave.geminiApiKeyEncrypted =
-          await this.encryptionService.encrypt(
-            profileToSave.geminiApiKey,
-            userId
-          );
-        // Remove plain API key from Firestore document
-        delete profileToSave.geminiApiKey;
-      }
+      // Encrypt API key; the plaintext key never leaves localStorage
+      const profileToSave = await this.toCloud(profile);
 
       await this.firestoreService.saveDocument(
         this.COLLECTION_NAME,
@@ -321,6 +300,69 @@ export class UserProfileService {
    */
   async updateRateLimitRPM(rateLimitRPM: number): Promise<void> {
     await this.updateProfile({ rateLimitRPM });
+  }
+
+  // ── SyncTarget (login sync strategies, FirestoreService.syncOnLogin) ──────
+
+  /**
+   * The profile the app currently holds, as the single `user_profile` record.
+   * `null` when there is no local profile, so sync leaves both sides untouched
+   * instead of treating it as "no profile".
+   */
+  getLocalSyncData(): UserProfile[] | null {
+    const profile = this.profileSignal();
+    if (!profile) return null;
+    return [
+      {
+        ...profile,
+        email: profile.email || this.authService.user()?.email || '',
+      },
+    ];
+  }
+
+  /** Apply the strategy result to the profile signal and `tachikoma_user_profile`. */
+  applySyncResult(items: SyncableData[]): void {
+    const [profile] = items;
+    if (!profile) return;
+    const normalized = UserProfileModel.fromLocalStorage(profile);
+    this.profileSignal.set(normalized);
+    this.saveToLocalStorage(normalized);
+  }
+
+  /**
+   * Cloud shape: the API key is encrypted into `geminiApiKeyEncrypted` and the
+   * plaintext key is removed (CONSTRAINTS §4).
+   */
+  async toCloud(item: SyncableData): Promise<UserProfile> {
+    const profileToSave = { ...(item as UserProfile) };
+    if (profileToSave.geminiApiKey) {
+      profileToSave.geminiApiKeyEncrypted = await this.encryptionService.encrypt(
+        profileToSave.geminiApiKey,
+        profileToSave.id
+      );
+    }
+    delete profileToSave.geminiApiKey;
+    return profileToSave;
+  }
+
+  /**
+   * Local shape: normalized, with the API key decrypted for the document's
+   * user. A key that cannot be decrypted is left empty.
+   */
+  async fromCloud(item: SyncableData): Promise<UserProfile> {
+    const profile = UserProfileModel.fromFirestore(item);
+    if (profile.geminiApiKeyEncrypted) {
+      try {
+        profile.geminiApiKey = await this.encryptionService.decrypt(
+          profile.geminiApiKeyEncrypted,
+          profile.id
+        );
+      } catch (error) {
+        console.error('Error decrypting API key:', error);
+        profile.geminiApiKey = '';
+      }
+    }
+    return profile;
   }
 
   /**

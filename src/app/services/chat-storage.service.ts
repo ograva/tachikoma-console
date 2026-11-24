@@ -1,8 +1,9 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { FirestoreService } from './firestore.service';
+import { FirestoreService, SyncTarget } from './firestore.service';
 import { AuthService } from './auth.service';
 import {
   AgentProfile,
+  SyncableData,
   ChatSession,
   ChatSessionModel,
   ChatMessage,
@@ -14,7 +15,7 @@ export { ChatSession, ChatMessage };
 @Injectable({
   providedIn: 'root',
 })
-export class ChatStorageService {
+export class ChatStorageService implements SyncTarget<ChatSession> {
   private readonly STORAGE_KEY = 'tachikoma_chat_sessions';
   private readonly CURRENT_CHAT_KEY = 'tachikoma_current_chat_id';
   private readonly COLLECTION_NAME = 'chat_sessions';
@@ -317,8 +318,10 @@ export class ChatStorageService {
   }
 
   /**
-   * Load chats from Firestore (called after login sync)
-   * Merges cloud data with existing localStorage data
+   * Load chats from Firestore (called after sign-in).
+   * Merges cloud data into local state by id; when both sides hold a chat the
+   * newer `updatedAt` wins. The result is ordered most-recent-first, matching
+   * the history order of the device that created the chats.
    */
   async loadFromCloud(): Promise<void> {
     if (!this.authService.isRealUser()) {
@@ -331,57 +334,89 @@ export class ChatStorageService {
         this.COLLECTION_NAME
       );
 
-      if (chats.length > 0) {
-        // Normalize chats using model
-        const normalizedChats = chats.map((chat) =>
-          ChatSessionModel.fromFirestore(chat)
-        );
-
-        // Merge with existing localStorage data instead of replacing
-        const existingChats = this.sessionsSignal();
-        const existingChatIds = new Set(existingChats.map((c) => c.id));
-
-        console.log(
-          `📊 Existing chats in localStorage: ${existingChats.length}`,
-          existingChats.map((c) => c.id)
-        );
-        console.log(
-          `📊 Chats from Firestore: ${normalizedChats.length}`,
-          normalizedChats.map((c) => c.id)
-        );
-
-        // Add only chats that don't exist locally
-        const newChats = normalizedChats.filter(
-          (chat) => !existingChatIds.has(chat.id)
-        );
-
-        console.log(
-          `📊 New chats to merge: ${newChats.length}`,
-          newChats.map((c) => c.id)
-        );
-
-        if (newChats.length > 0) {
-          this.sessionsSignal.update((sessions) => [...newChats, ...sessions]);
-          this.saveSessions();
-
-          const finalCount = this.sessionsSignal().length;
-          console.log(
-            `📊 Final chat count after merge: ${finalCount}`,
-            this.sessionsSignal().map((c) => c.id)
-          );
-          console.log(
-            `✅ Merged ${newChats.length} new chats from Firestore (${chats.length} total in cloud)`
-          );
-        } else {
-          console.log(
-            `✅ All ${chats.length} Firestore chats already exist locally`
-          );
-        }
-      } else {
+      if (chats.length === 0) {
         console.log('📭 No chats found in Firestore');
+        return;
+      }
+
+      const cloudChats = chats.map((chat) =>
+        ChatSessionModel.fromFirestore(chat)
+      );
+      const { merged, restored } = ChatStorageService.mergeByUpdatedAt(
+        this.sessionsSignal(),
+        cloudChats
+      );
+
+      if (restored > 0) {
+        this.sessionsSignal.set(ChatStorageService.sortByRecency(merged));
+        this.saveSessions();
+        console.log(
+          `✅ Restored ${restored} chats from Firestore (${chats.length} in cloud, ${merged.length} total)`
+        );
+      } else {
+        console.log(
+          `✅ All ${chats.length} Firestore chats are already up to date locally`
+        );
       }
     } catch (error) {
       console.error('❌ Error loading chats from cloud:', error);
+    }
+  }
+
+  /**
+   * Merge cloud chats into local chats by id, keeping the newer `updatedAt`
+   * (local wins ties). Returns the merged list and how many cloud records were
+   * taken (new or newer).
+   */
+  static mergeByUpdatedAt<T extends SyncableData>(
+    local: T[],
+    cloud: T[]
+  ): { merged: T[]; restored: number } {
+    const merged = new Map<string, T>();
+    local.forEach((item) => merged.set(item.id, item));
+    let restored = 0;
+    for (const item of cloud) {
+      const existing = merged.get(item.id);
+      if (!existing || (item.updatedAt ?? 0) > (existing.updatedAt ?? 0)) {
+        merged.set(item.id, item);
+        restored++;
+      }
+    }
+    return { merged: Array.from(merged.values()), restored };
+  }
+
+  /**
+   * Most-recent-first, as the history list shows chats on the originating
+   * device (new chats are prepended): newest `createdAt` first, then newest
+   * `updatedAt`.
+   */
+  static sortByRecency(sessions: ChatSession[]): ChatSession[] {
+    return [...sessions].sort(
+      (a, b) =>
+        (b.createdAt ?? 0) - (a.createdAt ?? 0) ||
+        (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
+    );
+  }
+
+  // ── SyncTarget (login sync strategies, FirestoreService.syncOnLogin) ──────
+
+  /** The chats the app currently holds (the signal persisted under `tachikoma_chat_sessions`). */
+  getLocalSyncData(): ChatSession[] {
+    return this.sessionsSignal();
+  }
+
+  /** Replace local chats with the strategy result and persist them. */
+  applySyncResult(items: SyncableData[]): void {
+    const sessions = ChatStorageService.sortByRecency(
+      items.map((item) => ChatSessionModel.fromFirestore(item))
+    );
+    this.sessionsSignal.set(sessions);
+    this.saveSessions();
+
+    const currentId = this.currentChatIdSignal();
+    if (currentId && !sessions.some((s) => s.id === currentId)) {
+      this.currentChatIdSignal.set(null);
+      this.saveCurrentChatId();
     }
   }
 

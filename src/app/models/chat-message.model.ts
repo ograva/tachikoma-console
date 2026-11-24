@@ -11,6 +11,12 @@ export interface ChatMessage {
   isUser: boolean;
   agentId?: string;
   timestamp: number;
+  /** Orchestration round this message belongs to (CanonicalDataModelSpec: live chat contract) */
+  roundId?: number;
+  /** Persona step outcome (CanonicalDataModelSpec) */
+  status?: 'ok' | 'failed';
+  failureCode?: string;
+  failureMessage?: string;
   /** Explicit message type for failed-step and rate-limit transcript cards (ORCH-004) */
   messageType?: ChatMessageType;
   /** Number of retry attempts made before failure */
@@ -47,7 +53,7 @@ export class ChatMessageModel {
    * Normalize message data (ensure all fields exist)
    */
   static normalize(message: Partial<ChatMessage>): ChatMessage {
-    return {
+    const normalized: ChatMessage = {
       id:
         message.id ||
         `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -55,10 +61,32 @@ export class ChatMessageModel {
       text: message.text || '',
       html: message.html || message.text || '',
       isUser: message.isUser !== undefined ? message.isUser : false,
-      agentId: message.agentId,
       timestamp: message.timestamp || Date.now(),
     };
+
+    // Preserve the documented optional fields (round grouping, failure state,
+    // retry metadata). Only defined values are copied so the normalized
+    // message never carries `undefined`/`null` toward Firestore (DAT-302).
+    for (const field of ChatMessageModel.OPTIONAL_FIELDS) {
+      const value = message[field];
+      if (value !== undefined && value !== null) {
+        (normalized as any)[field] = value;
+      }
+    }
+
+    return normalized;
   }
+
+  /** Optional ChatMessage fields that normalize() must carry through. */
+  static readonly OPTIONAL_FIELDS: readonly (keyof ChatMessage)[] = [
+    'agentId',
+    'roundId',
+    'messageType',
+    'retryCount',
+    'status',
+    'failureCode',
+    'failureMessage',
+  ];
 
   /**
    * Type guard to check if an object is a valid ChatMessage

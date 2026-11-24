@@ -16,6 +16,99 @@ import {
 import { AuthService } from './auth.service';
 import { SyncableData } from '../models';
 
+export type SyncStrategyName = 'merge' | 'cloud-to-local' | 'local-to-cloud';
+
+/** Collections synced on login, in order. */
+export const SYNC_COLLECTIONS = [
+  'chat_sessions',
+  'user_profile',
+  'agent_profiles',
+] as const;
+export type SyncCollectionName = (typeof SYNC_COLLECTIONS)[number];
+
+/** Collections holding exactly one document (id = user id); never bulk-deleted. */
+export const SINGLE_DOCUMENT_COLLECTIONS: ReadonlySet<string> = new Set([
+  'user_profile',
+]);
+
+/**
+ * A service that owns a synced collection's local state (localStorage key and
+ * signal). FirestoreService reads from and writes back to it during login sync.
+ */
+export interface SyncTarget<T extends SyncableData = SyncableData> {
+  /** The records the app currently holds; `null` when the local copy is unreadable. */
+  getLocalSyncData(): T[] | null;
+  /** Replace the local state (signal + localStorage) with the sync result. */
+  applySyncResult(items: SyncableData[]): void | Promise<void>;
+  /** Convert a local record for upload (e.g. encrypt secrets). */
+  toCloud?(item: SyncableData): SyncableData | Promise<SyncableData>;
+  /** Convert a cloud record into its local shape (e.g. decrypt secrets). */
+  fromCloud?(item: SyncableData): SyncableData | Promise<SyncableData>;
+}
+
+export type SyncTargets = Partial<Record<SyncCollectionName, SyncTarget>>;
+
+export interface SyncPlan {
+  /** What local state should become. */
+  local: SyncableData[];
+  /** Records to write to the cloud. */
+  upserts: SyncableData[];
+  /** Cloud document ids to delete. */
+  deletes: string[];
+}
+
+/**
+ * Pure strategy resolution for one collection.
+ * - cloud-to-local: local becomes the cloud copy; the cloud is not written.
+ *   With `allowDeletes` false (single-document collections) an empty cloud
+ *   keeps the local record instead of erasing it.
+ * - local-to-cloud: the cloud becomes the local copy. Cloud-only documents are
+ *   deleted only when `allowDeletes` is true.
+ * - merge: union by id; the newer `updatedAt` wins (cloud wins ties). Only
+ *   records where the local version won are uploaded.
+ */
+export function planCollectionSync(
+  strategy: SyncStrategyName,
+  local: SyncableData[],
+  cloud: SyncableData[],
+  options: { allowDeletes: boolean },
+): SyncPlan {
+  switch (strategy) {
+    case 'cloud-to-local':
+      return {
+        local: cloud.length > 0 || options.allowDeletes ? [...cloud] : [...local],
+        upserts: [],
+        deletes: [],
+      };
+
+    case 'local-to-cloud': {
+      const localIds = new Set(local.map((item) => item.id));
+      return {
+        local: [...local],
+        upserts: [...local],
+        deletes: options.allowDeletes
+          ? cloud.map((item) => item.id).filter((id) => !localIds.has(id))
+          : [],
+      };
+    }
+
+    case 'merge':
+    default: {
+      const merged = new Map<string, SyncableData>();
+      cloud.forEach((item) => merged.set(item.id, item));
+      const upserts: SyncableData[] = [];
+      for (const item of local) {
+        const existing = merged.get(item.id);
+        if (!existing || (item.updatedAt ?? 0) > (existing.updatedAt ?? 0)) {
+          merged.set(item.id, item);
+          upserts.push(item);
+        }
+      }
+      return { local: Array.from(merged.values()), upserts, deletes: [] };
+    }
+  }
+}
+
 /**
  * FirestoreService implements a store-forward pattern:
  * 1. Store in localStorage first for immediate access
@@ -421,11 +514,16 @@ export class FirestoreService {
   }
 
   /**
-   * Sync localStorage with Firestore on login
-   * User chooses to merge or overwrite
+   * Sync the app's local state with Firestore on login, using the strategy the
+   * user picked in the sync dialog.
+   *
+   * Each collection is read from, and written back to, the service that owns it
+   * (`targets`), so the result lands in the `tachikoma_*` keys and the signals
+   * the UI actually reads.
    */
   async syncOnLogin(
-    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud',
+    strategy: SyncStrategyName,
+    targets: SyncTargets,
   ): Promise<void> {
     // Skip if Firestore not configured
     if (!this.firestore || !this.firestoreConfigured) {
@@ -441,12 +539,14 @@ export class FirestoreService {
 
     console.log(`Starting sync on login with strategy: ${strategy}`);
 
-    // Sync each collection
-    const collections = ['chat_sessions', 'user_profile', 'agent_profiles'];
-
-    for (const collectionName of collections) {
+    for (const collectionName of SYNC_COLLECTIONS) {
+      const target = targets[collectionName];
+      if (!target) {
+        console.warn(`No sync target for ${collectionName}, skipping`);
+        continue;
+      }
       try {
-        await this.syncCollection(collectionName, strategy);
+        await this.syncCollection(collectionName, strategy, target);
       } catch (error) {
         console.error(`Error syncing ${collectionName}:`, error);
       }
@@ -456,11 +556,12 @@ export class FirestoreService {
   }
 
   /**
-   * Sync a specific collection between localStorage and Firestore
+   * Sync one collection between the owning service's local state and Firestore.
    */
   private async syncCollection(
-    collectionName: string,
-    strategy: 'merge' | 'cloud-to-local' | 'local-to-cloud',
+    collectionName: SyncCollectionName,
+    strategy: SyncStrategyName,
+    target: SyncTarget,
   ): Promise<void> {
     // Skip if Firestore not configured
     if (!this.firestore || !this.firestoreConfigured) {
@@ -470,119 +571,92 @@ export class FirestoreService {
     const userId = this.authService.getCurrentUserId();
     if (!userId) return;
 
-    try {
-      // Get localStorage data (anonymous user data)
-      const anonymousKey = `tachikoma_${collectionName}`;
-      const localKey = `tachikoma_${collectionName}`;
+    const singleDocument = SINGLE_DOCUMENT_COLLECTIONS.has(collectionName);
 
-      // Check both possible keys
-      const anonymousDataStr = localStorage.getItem(anonymousKey);
-      const localDataStr = localStorage.getItem(localKey);
+    // Local copy as the app holds it. `null` means it could not be read, so no
+    // strategy may treat it as "empty" (that would delete cloud data).
+    let local = target.getLocalSyncData();
+    if (local === null) {
+      console.warn(
+        `${collectionName}: local copy unreadable, leaving cloud and local untouched`,
+      );
+      return;
+    }
+    if (singleDocument) {
+      // The only valid document id is the user id (users/{uid}/user_profile/{uid}).
+      local = local.slice(0, 1).map((item) => ({ ...item, id: userId }));
+    }
 
-      let localData: SyncableData[] = [];
+    const rawCloud = await this.readCloudCollection(collectionName, userId);
+    const cloud: SyncableData[] = [];
+    for (const item of rawCloud) {
+      if (singleDocument && item.id !== userId) continue;
+      cloud.push(target.fromCloud ? await target.fromCloud(item) : item);
+    }
 
-      if (anonymousDataStr) {
-        try {
-          const parsed = JSON.parse(anonymousDataStr);
-          localData = Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-          console.error(`Error parsing ${anonymousKey}:`, e);
-        }
-      } else if (localDataStr) {
-        try {
-          const parsed = JSON.parse(localDataStr);
-          localData = Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-          console.error(`Error parsing ${localKey}:`, e);
-        }
-      }
+    const plan = planCollectionSync(strategy, local, cloud, {
+      allowDeletes: !singleDocument,
+    });
 
-      // Get Firestore data
-      const path = this.getUserCollectionPath(userId, collectionName);
-      const collRef = collection(this.firestore, path);
-      const snapshot = await getDocs(collRef);
-      const firestoreData = new Map<string, SyncableData>();
-      snapshot.docs.forEach((docSnap) => {
-        const data = docSnap.data() as SyncableData;
-        firestoreData.set(data.id, data);
-      });
+    const upserts: SyncableData[] = [];
+    for (const item of plan.upserts) {
+      const upload = target.toCloud ? await target.toCloud(item) : item;
+      // A single-document collection is updated, never replaced: fields only
+      // the cloud holds (e.g. geminiApiKeyEncrypted) survive a local upload.
+      const existing = singleDocument
+        ? rawCloud.find((doc) => doc.id === userId)
+        : undefined;
+      upserts.push(existing ? { ...existing, ...upload } : upload);
+    }
+    await this.commitCloudChanges(collectionName, userId, upserts, plan.deletes);
 
-      let finalData: SyncableData[] = [];
+    await target.applySyncResult(plan.local);
 
-      // Apply sync strategy
-      switch (strategy) {
-        case 'cloud-to-local':
-          // Overwrite local with cloud data
-          finalData = Array.from(firestoreData.values());
-          console.log(
-            `${collectionName}: Overwriting local with ${finalData.length} cloud items`,
-          );
-          break;
+    console.log(
+      `✓ Synced ${collectionName} (${strategy}): ${plan.local.length} local, ` +
+        `${upserts.length} uploaded, ${plan.deletes.length} deleted in cloud`,
+    );
+  }
 
-        case 'local-to-cloud':
-          // Overwrite cloud with local data
-          finalData = localData;
-          console.log(
-            `${collectionName}: Overwriting cloud with ${finalData.length} local items`,
-          );
+  /** Read every document of a user collection from Firestore. */
+  private async readCloudCollection(
+    collectionName: string,
+    userId: string,
+  ): Promise<SyncableData[]> {
+    const path = this.getUserCollectionPath(userId, collectionName);
+    const snapshot = await getDocs(collection(this.firestore!, path));
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data() as SyncableData;
+      return { ...data, id: data.id || docSnap.id };
+    });
+  }
 
-          // Delete all existing cloud documents
-          const deleteBatch = writeBatch(this.firestore);
-          firestoreData.forEach((_, id) => {
-            const docRef = firestoreDoc(this.firestore!, path, id);
-            deleteBatch.delete(docRef);
-          });
-          await deleteBatch.commit();
-          break;
+  /**
+   * Write upserts and deletes to Firestore in batches (≤ 450 ops each, below
+   * the 500-op limit). Every write is sanitized so no `undefined` reaches
+   * Firestore.
+   */
+  private async commitCloudChanges(
+    collectionName: string,
+    userId: string,
+    upserts: SyncableData[],
+    deletes: string[],
+  ): Promise<void> {
+    const path = this.getUserCollectionPath(userId, collectionName);
+    const ops: Array<(batch: ReturnType<typeof writeBatch>) => void> = [
+      ...upserts.map((item) => (batch: ReturnType<typeof writeBatch>) => {
+        const docRef = firestoreDoc(this.firestore!, path, item.id);
+        batch.set(docRef, this.sanitizeForFirestore({ ...item, userId }) as any);
+      }),
+      ...deletes.map((id) => (batch: ReturnType<typeof writeBatch>) => {
+        batch.delete(firestoreDoc(this.firestore!, path, id));
+      }),
+    ];
 
-        case 'merge':
-        default:
-          // Merge: prefer newer versions based on updatedAt
-          const merged = new Map<string, SyncableData>();
-
-          // Add all Firestore data
-          firestoreData.forEach((data, id) => {
-            merged.set(id, data);
-          });
-
-          // Merge local data (prefer newer)
-          for (const localItem of localData) {
-            const existing = merged.get(localItem.id);
-            if (!existing || localItem.updatedAt > existing.updatedAt) {
-              merged.set(localItem.id, localItem);
-            }
-          }
-
-          finalData = Array.from(merged.values());
-          console.log(`${collectionName}: Merged to ${finalData.length} items`);
-          break;
-      }
-
-      // Save final data to Firestore
-      if (finalData.length > 0) {
-        const batch = writeBatch(this.firestore);
-
-        for (const item of finalData) {
-          const docRef = firestoreDoc(this.firestore, path, item.id);
-          batch.set(docRef, { ...item, userId });
-        }
-
-        await batch.commit();
-      }
-
-      // Update localStorage with final data
-      this.storeInLocalStorage(collectionName, finalData);
-
-      // Clear old anonymous keys
-      localStorage.removeItem(anonymousKey);
-      if (anonymousKey !== localKey) {
-        localStorage.removeItem(localKey);
-      }
-
-      console.log(`✓ Synced ${collectionName}: ${finalData.length} items`);
-    } catch (error) {
-      console.error(`✗ Error syncing ${collectionName}:`, error);
-      throw error;
+    for (let i = 0; i < ops.length; i += 450) {
+      const batch = writeBatch(this.firestore!);
+      ops.slice(i, i + 450).forEach((op) => op(batch));
+      await batch.commit();
     }
   }
 
