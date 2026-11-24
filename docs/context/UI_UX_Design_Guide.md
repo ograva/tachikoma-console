@@ -4,6 +4,7 @@
 
 | Version | Date | Author | Summary of Changes |
 | :---- | :---- | :---- | :---- |
+| v1.6 | 2026-11-24 | Eunice (UI UX Designer) | Stabilisation: final test-id list, touch-reachable history actions, restore flow refreshed; API-key UI deferred to Firebase AI Logic migration |
 | v1.5 | 2026-11-23 | Eunice (UI UX Designer) | As-built wireframe and flow reference for shipped screens. |
 | v1.4 | 2026-06-18 | Eunice (UI UX Designer) | Added Landscape Roundtable Panel Layout and VS Code-Style Compact Status Bar specifications. |
 | v1.3 | 2026-05-29 | Eunice (UI UX Designer) | Added reusable template pack for tasking, sharding, component contracts, QA validation, and theme rollout gating. |
@@ -450,7 +451,7 @@ Resolution used for this theme:
 
 ## Wireframe & Flow Index
 
-As-built references (v1.5, 2026-11-23). These files document what the shipped code **does**, so that Quinn ("every flow path has an E2E test") and Athena ("use the wireframe `data-test-id` verbatim") have a source. Every `data-test-id` map was re-read from the final template state. Interactive elements without an id are listed in each file's **Design Gaps** section with a proposed `[page]-[element]-[purpose]` id. Behaviour that looks unintended is recorded as **As-Built Observations** for the owner and Jason, not fixed.
+As-built references (v1.5, 2026-11-23; stabilisation refresh v1.6, 2026-11-24, see [Final id list for stabilisation](#final-id-list-for-stabilisation)). These files document what the shipped code **does**, so that Quinn ("every flow path has an E2E test") and Athena ("use the wireframe `data-test-id` verbatim") have a source. Every `data-test-id` map was re-read from the final template state. Interactive elements without an id are listed in each file's **Design Gaps** section with a proposed `[page]-[element]-[purpose]` id. Behaviour that looks unintended is recorded as **As-Built Observations** for the owner and Jason, not fixed.
 
 Styling: Angular Material 20 for component behaviour, with app-owned SCSS tokens in `src/assets/scss/_sac-tokens.scss` for the SAC identity. No Tailwind (`CONSTRAINTS.md` §7). Several shipped components still hard-code hex values (sync dialog, status bar); see the per-file observations.
 
@@ -506,3 +507,66 @@ Template leftovers that no product route renders: `src/app/components/{apps-blog
   - docs/context/designs/templates/QA_UI_Validation_Template.md
 - Theme rollout checklist template:
   - docs/context/designs/templates/Theme_Rollout_Checklist_Template.md
+
+## Final id list for stabilisation
+
+Stabilisation (v1.6, 2026-11-24). These ids close the Design Gaps that `docs/testing/STABILISATION_TRIAGE.md` lists as blocking tests (T4, T9, T11, T12, T1/T2 and T6). Every name is **final** and is to be implemented by Quinn as a **test-id-only change**: add `data-test-id` and nothing else (no behaviour, style or structure change). Names match the committed wireframes' Design Gaps sections verbatim; the only names new in v1.6 are the three per-option mode ids (`profiles-{new|edit}-mode-{form|xml|plaintext}-btn`). Repeated elements (history rows, agent options, form rows) carry the same id on every instance.
+
+Out of scope: every API-key element (`chat-api-key-input`, `chat-init-btn`, the API key sync dialog, the `/profile` API-key field) is **Deferred: Firebase AI Logic migration**. No API-key id is scheduled here. The A6 visibility change for the history actions is Athena's SCSS fix, specified in [Wireframe_Chat.md § History row actions: as-to-be (A6)](designs/Wireframe_Chat.md#history-row-actions-as-to-be-a6).
+
+| Screen | Element | Template file | `data-test-id` |
+| :--- | :--- | :--- | :--- |
+| App shell header | Hamburger (toggle sidenav) | `src/app/layouts/full/header/header.component.html` | `shell-header-menu-btn` |
+| App shell header | Profile avatar FAB (menu trigger) | `src/app/layouts/full/header/header.component.html` | `shell-header-profile-btn` |
+| App shell profile menu | My Profile item | `src/app/layouts/full/header/header.component.html` | `shell-profile-menu-profile-btn` |
+| App shell profile menu | Logout button | `src/app/layouts/full/header/header.component.html` | `shell-profile-menu-logout-btn` |
+| App shell profile menu | Login item (anonymous) | `src/app/layouts/full/header/header.component.html` | `shell-profile-menu-login-btn` |
+| App shell profile menu | Register item (anonymous) | `src/app/layouts/full/header/header.component.html` | `shell-profile-menu-register-btn` |
+| Chat history drawer | Row edit button | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-history-edit-btn` |
+| Chat history drawer | Row delete button | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-history-delete-btn` |
+| Chat New Chat overlay | Dialog container (`.agent-selector-dialog`) | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-new-chat-dialog` |
+| Chat New Chat overlay | Title input | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-new-chat-title-input` |
+| Chat New Chat overlay | Description textarea | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-new-chat-description-input` |
+| Chat New Chat overlay | Agent option row (per agent) | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-new-chat-agent-option` |
+| Chat New Chat overlay | START CHAT button | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-new-chat-start-btn` |
+| Chat (portrait) | Processing typing indicator | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-processing-indicator` |
+| Chat (portrait, wide) | Neural activity panel | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-neural-activity-panel` |
+| Chat (landscape) | Round-level processing indicator | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-round-processing-indicator` |
+| Chat status bar | Processing segment | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-status-processing` |
+| Chat status bar | Model segment | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-status-model` |
+| Chat status bar | TPM segment | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-status-tpm` |
+| Chat status bar | CTX segment | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-status-ctx` |
+| Chat status bar | RPM segment | `src/app/pages/tachikoma-chat/tachikoma-chat.component.html` | `chat-status-rpm` |
+| Agent profiles create card | Template select | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-template-select` |
+| Agent profiles create card / edit form | Agent Name input | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-name-input` / `profiles-edit-name-input` |
+| Agent profiles create card / edit form | Color Name input | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-color-input` / `profiles-edit-color-input` |
+| Agent profiles create card / edit form | Hex Color input | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-hex-input` / `profiles-edit-hex-input` |
+| Agent profiles create card / edit form | Temperature input | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-temp-input` / `profiles-edit-temp-input` |
+| Agent profiles create card / edit form | Agent role select (CHATTER / MODERATOR; the first "Role" field) | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-role-select` / `profiles-edit-role-select` |
+| Agent profiles create card / edit form | Model select | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-model-select` / `profiles-edit-model-select` |
+| Agent profiles create card / edit form | Silence Protocol select | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-silence-select` / `profiles-edit-silence-select` |
+| Agent profiles create card / edit form | System mode toggle group | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-mode-toggle` / `profiles-edit-mode-toggle` |
+| Agent profiles create card / edit form | Mode option: Form | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-mode-form-btn` / `profiles-edit-mode-form-btn` |
+| Agent profiles create card / edit form | Mode option: XML | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-mode-xml-btn` / `profiles-edit-mode-xml-btn` |
+| Agent profiles create card / edit form | Mode option: Plain Text | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-mode-plaintext-btn` / `profiles-edit-mode-plaintext-btn` |
+| Agent profiles create card / edit form | Form mode: system role input (the second "Role" field) | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-sys-role-input` / `profiles-edit-sys-role-input` |
+| Agent profiles create card / edit form | Form mode: add personality trait | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-trait-add-btn` / `profiles-edit-trait-add-btn` |
+| Agent profiles create card / edit form | Form mode: personality trait input (per row) | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-trait-input` / `profiles-edit-trait-input` |
+| Agent profiles create card / edit form | Form mode: remove personality trait | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-trait-remove-btn` / `profiles-edit-trait-remove-btn` |
+| Agent profiles create card / edit form | Form mode: add instruction | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-instruction-add-btn` / `profiles-edit-instruction-add-btn` |
+| Agent profiles create card / edit form | Form mode: instruction input (per row) | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-instruction-input` / `profiles-edit-instruction-input` |
+| Agent profiles create card / edit form | Form mode: remove instruction | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-instruction-remove-btn` / `profiles-edit-instruction-remove-btn` |
+| Agent profiles create card / edit form | Form mode: add constraint | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-constraint-add-btn` / `profiles-edit-constraint-add-btn` |
+| Agent profiles create card / edit form | Form mode: constraint input (per row) | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-constraint-input` / `profiles-edit-constraint-input` |
+| Agent profiles create card / edit form | Form mode: remove constraint | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-constraint-remove-btn` / `profiles-edit-constraint-remove-btn` |
+| Agent profiles create card / edit form | Form mode: output format input | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-output-format-input` / `profiles-edit-output-format-input` |
+| Agent profiles create card / edit form | Form mode: tone input | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-tone-input` / `profiles-edit-tone-input` |
+| Agent profiles create card / edit form | Form mode: add sample dialogue | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-dialogue-add-btn` / `profiles-edit-dialogue-add-btn` |
+| Agent profiles create card / edit form | Form mode: remove sample dialogue | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-dialogue-remove-btn` / `profiles-edit-dialogue-remove-btn` |
+| Agent profiles create card / edit form | Form mode: sample dialogue user textarea | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-dialogue-user-input` / `profiles-edit-dialogue-user-input` |
+| Agent profiles create card / edit form | Form mode: sample dialogue assistant textarea | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-dialogue-assistant-input` / `profiles-edit-dialogue-assistant-input` |
+| Agent profiles create card / edit form | XML mode: system-instruction textarea | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-xml-input` / `profiles-edit-xml-input` |
+| Agent profiles create card / edit form | Plain-text mode: system-instruction textarea (default mode) | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-plaintext-input` / `profiles-edit-plaintext-input` |
+| Agent profiles create card / edit form | Plain-text mode: Convert to Form/XML button | `src/app/pages/tachikoma-profiles/tachikoma-profiles.component.html` | `profiles-new-convert-btn` / `profiles-edit-convert-btn` |
+
+Sources: [Wireframe_Dashboard.md](designs/Wireframe_Dashboard.md), [Wireframe_Chat.md](designs/Wireframe_Chat.md), [Wireframe_ChatRoundtable.md](designs/Wireframe_ChatRoundtable.md), [Wireframe_AgentProfiles.md](designs/Wireframe_AgentProfiles.md) (Design Gaps, Status = Final).

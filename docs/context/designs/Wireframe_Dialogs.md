@@ -3,8 +3,8 @@
 | Field | Value |
 | :--- | :--- |
 | **Status** | As-built reference |
-| **Version** | v1.0 |
-| **Date** | 2026-11-23 |
+| **Version** | v1.1 (stabilisation: API key sync dialog deferred) |
+| **Date** | 2026-11-24 (v1.0: 2026-11-23) |
 | **Author** | Eunice (UI/UX Designer) |
 | **Routes** | Opened over `/dashboard` (sync dialog, after sign-in on `/authentication/login`), `/tachikoma` (explainer, API key sync), `/tachikoma-profiles` (confirm / alert) |
 | **PRD modules** | AUTH (sync dialog, API key sync), AGNT (confirm / alert), CHAT (explainer) |
@@ -81,7 +81,7 @@ alertOnly:   [ OK ]                    confirm-dialog-confirm
 +------------------------------------------+
 ```
 
-**API key sync** (`width: 500px`, closable by backdrop or Esc):
+**API key sync** (`width: 500px`, closable by backdrop or Esc). **Deferred: Firebase AI Logic migration**: documented as-built only; it will be removed or redesigned with the move to Firebase AI Logic.
 
 ```
 +------------------------------------------+
@@ -136,7 +136,7 @@ alertOnly:   [ OK ]                    confirm-dialog-confirm
 | `confirm-dialog-cancel` | Focused first (confirm mode) | Focus ring | Closes `false` | n/a | Hidden when `alertOnly` |
 | `confirm-dialog-confirm` | Raised, `confirmColor` | Focus ring | Closes `true` | n/a | n/a |
 | Explainer buttons (no ids) | | | Close; set the seen flag | n/a | n/a |
-| API key sync buttons (no ids) | | | Accept: true. Decline: false. | n/a | Accept failure: browser alert |
+| API key sync buttons (no ids; **Deferred: Firebase AI Logic migration**) | | | Accept: true. Decline: false. | n/a | Accept failure: browser alert |
 
 ## 6. UX Flow Diagram
 
@@ -161,7 +161,7 @@ flowchart TD
     subgraph EXPL[Explainer - CHAT]
       X0([first visit to /tachikoma]) --> XD[explainer] -->|either button / Esc| XS[seen flag set]
     end
-    subgraph KEY[API key sync - AUTH-002]
+    subgraph KEY["API key sync - AUTH-002 (DEFERRED: Firebase AI Logic)"]
       K0([auth + profile has no key + local key not declined]) --> KD[api key sync] -->|Yes| KP[save key to profile]
       KD -->|No / Esc| KX[remember decline]
     end
@@ -195,15 +195,17 @@ The confirm ids predate the `[page]-[element]-[purpose]` convention: `confirm-di
 | Explainer | Dialog root | `chat-explainer-dialog` |
 | Explainer | "Don't show again" button | `chat-explainer-dismiss-btn` |
 | Explainer | "Got it, let's start!" button | `chat-explainer-start-btn` |
-| API key sync | Dialog root | `chat-apikey-sync-dialog` |
-| API key sync | "No, Keep Local Only" button | `chat-apikey-sync-decline-btn` |
-| API key sync | "Yes, Save to Profile" button | `chat-apikey-sync-accept-btn` |
+| API key sync | Dialog root | `chat-apikey-sync-dialog` (Deferred: Firebase AI Logic migration) |
+| API key sync | "No, Keep Local Only" button | `chat-apikey-sync-decline-btn` (Deferred: Firebase AI Logic migration) |
+| API key sync | "Yes, Save to Profile" button | `chat-apikey-sync-accept-btn` (Deferred: Firebase AI Logic migration) |
+
+The three API key sync names stay reserved but are not scheduled: the dialog itself is Deferred: Firebase AI Logic migration. Triage A1 (the dialog shown to guests and stacked twice) is an app bug Athena is fixing now; that fix is behavioural and needs no new id.
 
 Accessibility gap (not an id gap): the sync option cards need `role="button"`, `tabindex="0"` and Enter/Space handlers. Flag for OPER-006 follow-up.
 
 ## As-Built Observations
 
 1. The explainer's "Don't show again" and "Got it" are functionally identical.
-2. The explainer tip points to "settings (top right)" for the API key, but the input is in the chat header and on `/profile`.
+2. (Deferred: Firebase AI Logic migration) The explainer tip points to "settings (top right)" for the API key, but the input is in the chat header and on `/profile`.
 3. The confirm dialog wraps its content in `role="dialog"`, inside Material's own `role="dialog"` container, which nests dialog roles.
 4. The sync dialog's styles are hard-coded hex values (`#00ff41`, `#00f3ff`, `#ff00de`) rather than `_sac-tokens.scss` tokens.

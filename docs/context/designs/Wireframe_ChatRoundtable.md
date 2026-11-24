@@ -3,8 +3,8 @@
 | Field | Value |
 | :--- | :--- |
 | **Status** | As-built reference. This supersedes [Landscape_Roundtable_Panel_Layout.md](Landscape_Roundtable_Panel_Layout.md) (v1.0, 2026-06-18) **as the description of shipped behaviour**. The spec file is retained unchanged, with an As-Built Deltas section appended. |
-| **Version** | v1.0 |
-| **Date** | 2026-11-23 |
+| **Version** | v1.1 (stabilisation: processing and status-bar metric ids final; API-key UI deferred) |
+| **Date** | 2026-11-24 (v1.0: 2026-11-23) |
 | **Author** | Eunice (UI/UX Designer) |
 | **Route** | `/tachikoma` when `isLandscape()` is true (layout: `FullComponent`, public) |
 | **PRD modules** | CHAT, ORCH (round display, silence), OPER (status bar metrics, soft limit) |
@@ -51,7 +51,7 @@ On a wide desktop all agents sit in one row (each column ≥ 240px). With the de
 ```
 +--------------------------------------------------------------------------------------------+
 | [V4.4] TACHIKOMA PROTOCOL  (o) SYNC MODE: SECURE-LINK                 [+] [hist] [download] |
-| [Enter Gemini API Key][INIT]   (only when !isInitialized)                                   |
+| [Enter Gemini API Key][INIT]   (only when !isInitialized; DEFERRED: Firebase AI Logic)      |
 +--------------------------------------------------------------------------------------------+
 | [clip] [ Send initiating prompt to the roundtable...                             ] [SEND]  |
 +--------------------------------------------------------------------------------------------+
@@ -165,26 +165,30 @@ Re-read from the final template state on 2026-11-23.
 | Soft-limit banner | `chat-soft-limit-banner` | Landscape instance, `*ngIf="contextSoftWarning"` |
 | Status bar | `chat-status-bar` | **Both orientations**, always |
 
-**Count: 11** (landscape body + status bar). The shared header and drawer ids (`chat-history-toggle-btn`, `chat-export-*`, `chat-api-key-input`, `chat-init-btn`, `chat-history-item`, `chat-history-item-title`, `chat-history-empty`) also render in landscape; see [Wireframe_Chat.md](Wireframe_Chat.md).
+**Count: 11** (landscape body + status bar). The shared header and drawer ids (`chat-history-toggle-btn`, `chat-export-*`, `chat-api-key-input` and `chat-init-btn` (both Deferred: Firebase AI Logic migration), `chat-history-item`, `chat-history-item-title`, `chat-history-empty`) also render in landscape; see [Wireframe_Chat.md](Wireframe_Chat.md).
 
 ## Design Gaps
 
-| Element | Proposed `data-test-id` |
-| :--- | :--- |
-| Hidden file input (landscape, for `setInputFiles`) | `chat-file-input-landscape` |
-| Agent column container | `chat-round-agent-column` (+ `[attr.data-agent-id]`) |
-| Column PROCESSING header badge | `chat-round-column-processing` |
-| SILENCE placeholder | `chat-round-silence-placeholder` |
-| Empty column (`—`) | `chat-round-column-empty` |
-| Round prompt preview | `chat-round-prompt-preview` |
-| Round-level processing indicator | `chat-round-processing-indicator` |
-| Status bar sync segment | `chat-status-sync` |
-| Status bar model segment | `chat-status-model` |
-| Status bar processing segment | `chat-status-processing` |
-| Status bar TPM segment | `chat-status-tpm` |
-| Status bar CTX segment | `chat-status-ctx` |
-| Status bar RPM segment | `chat-status-rpm` |
-| Status bar ROUND segment | `chat-status-round` |
+**Status key.** **Final** = frozen, to be implemented by Quinn as a test-id-only change (no behaviour or style change). **Proposed** = reserved, not yet scheduled. No v1.0 name was changed. All rows live in `tachikoma-chat.component.html`.
+
+| Element | Proposed `data-test-id` | Status | Notes |
+| :--- | :--- | :--- | :--- |
+| Hidden file input (landscape, for `setInputFiles`) | `chat-file-input-landscape` | Proposed |  |
+| Agent column container | `chat-round-agent-column` (+ `[attr.data-agent-id]`) | Proposed |  |
+| Column PROCESSING header badge | `chat-round-column-processing` | Proposed |  |
+| SILENCE placeholder | `chat-round-silence-placeholder` | Proposed |  |
+| Empty column (`—`) | `chat-round-column-empty` | Proposed |  |
+| Round prompt preview | `chat-round-prompt-preview` | Proposed |  |
+| Round-level processing indicator (`div.round-processing`) | `chat-round-processing-indicator` | Final (to be implemented by Quinn as test-id-only change) | Landscape counterpart of `chat-processing-indicator` |
+| Status bar sync segment | `chat-status-sync` | Proposed |  |
+| Status bar model segment | `chat-status-model` | Final (to be implemented by Quinn as test-id-only change) | OPER T500, T501 (triage T6) |
+| Status bar processing segment (`span.status-processing`) | `chat-status-processing` | Final (to be implemented by Quinn as test-id-only change) | ORCH T300 (triage T11), both orientations |
+| Status bar TPM segment | `chat-status-tpm` | Final (to be implemented by Quinn as test-id-only change) | OPER T500, T504, T506, T510 (triage T6) |
+| Status bar CTX segment | `chat-status-ctx` | Final (to be implemented by Quinn as test-id-only change) | OPER T509, T510 (triage T6) |
+| Status bar RPM segment | `chat-status-rpm` | Final (to be implemented by Quinn as test-id-only change) | OPER T511 (triage T6) |
+| Status bar ROUND segment | `chat-status-round` | Proposed |  |
+
+The status-bar metric segments were promoted to Final because triage T6 re-points seven OPER tests at them. The test-to-segment mapping above is indicative; Quinn owns the final assertions.
 
 These are non-interactive observability hooks, except the file input. They are needed to assert the deltas below in E2E.
 

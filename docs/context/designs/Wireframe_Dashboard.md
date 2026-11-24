@@ -3,8 +3,8 @@
 | Field | Value |
 | :--- | :--- |
 | **Status** | As-built reference |
-| **Version** | v1.0 |
-| **Date** | 2026-11-23 |
+| **Version** | v1.1 (stabilisation: shell header and profile-menu ids final) |
+| **Date** | 2026-11-24 (v1.0: 2026-11-23) |
 | **Author** | Eunice (UI/UX Designer) |
 | **Route** | `/dashboard` (and `''`, which redirects to it). Layout: `FullComponent`, public (no route guard). |
 | **PRD module** | Cross-cutting entry point (CHAT entry CTA); shell also serves AUTH (login/logout nav) |
@@ -92,10 +92,10 @@ Above 1024px the sidebar is `mode="side"` and permanently open. Between 769 and 
 | Element | Default | Hover / focus | Active | Loading | Error / empty |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `starter-begin-chat-btn` | Enabled | Flat hover | Navigates to `/tachikoma` | n/a | n/a |
-| Hamburger (no id) | Visible | Icon hover | Toggles sidenav | n/a | n/a |
-| Profile FAB (no id) | Avatar or icon | FAB hover | Opens `mat-menu` | n/a | n/a |
+| Hamburger (`shell-header-menu-btn`, final, not yet in template) | Visible | Icon hover | Toggles sidenav | n/a | n/a |
+| Profile FAB (`shell-header-profile-btn`, final, not yet in template) | Avatar or icon | FAB hover | Opens `mat-menu` | n/a | n/a |
 | Sidebar nav item (no id) | `activeMenu` class when the route is active | List hover | Navigates; in overlay mode also closes the sidenav | n/a | n/a |
-| Logout (sidebar or menu, no id) | Shown when authenticated | Hover | Clears local data, signs out, then `/authentication/login` | n/a | Header: errors logged only |
+| Logout (menu `shell-profile-menu-logout-btn`, final; sidebar `shell-nav-logout-btn`, proposed) | Shown when authenticated | Hover | Clears local data, signs out, then `/authentication/login` | n/a | Header: errors logged only |
 
 "System Ready" next to the CTA is static text and does not reflect real state.
 
@@ -124,22 +124,26 @@ flowchart TD
 
 ## Design Gaps
 
-| Screen | Element | Proposed `data-test-id` |
-| :--- | :--- | :--- |
-| Shell header | Hamburger (toggle sidenav) | `shell-header-menu-btn` |
-| Shell header | Profile avatar FAB (menu trigger) | `shell-header-profile-btn` |
-| Shell profile menu | My Profile item | `shell-profile-menu-profile-btn` |
-| Shell profile menu | Logout button | `shell-profile-menu-logout-btn` |
-| Shell profile menu | Login item (anonymous) | `shell-profile-menu-login-btn` |
-| Shell profile menu | Register item (anonymous) | `shell-profile-menu-register-btn` |
-| Shell sidebar | Close (x) link in overlay mode | `shell-sidebar-close-btn` |
-| Shell sidebar | Dashboard nav item | `shell-nav-dashboard-link` |
-| Shell sidebar | Tachikoma Chat nav item | `shell-nav-chat-link` |
-| Shell sidebar | Tachikomas nav item | `shell-nav-profiles-link` |
-| Shell sidebar | Profile nav item | `shell-nav-profile-link` |
-| Shell sidebar | Logout nav item | `shell-nav-logout-btn` |
-| Shell sidebar | Login nav item | `shell-nav-login-link` |
-| Shell sidebar | Register nav item | `shell-nav-register-link` |
+**Status key.** **Final** = the name is frozen and is to be implemented by Quinn as a test-id-only change (no behaviour or style change); E2E specs may target it now. **Proposed** = the name is reserved but not yet scheduled; it will not be renamed either.
+
+| Screen | Element | Template file | Proposed `data-test-id` | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| Shell header | Hamburger (toggle sidenav) | `layouts/full/header/header.component.html` | `shell-header-menu-btn` | Final (to be implemented by Quinn as test-id-only change) |
+| Shell header | Profile avatar FAB (`mat-mini-fab`, `[matMenuTriggerFor]="profilemenu"`, `aria-label="Profile"`) | `layouts/full/header/header.component.html` | `shell-header-profile-btn` | Final (to be implemented by Quinn as test-id-only change) |
+| Shell profile menu | My Profile item (`mat-menu-item`, authenticated) | `layouts/full/header/header.component.html` | `shell-profile-menu-profile-btn` | Final (to be implemented by Quinn as test-id-only change) |
+| Shell profile menu | Logout button (`mat-stroked-button` inside the menu, authenticated; not a `mat-menu-item`) | `layouts/full/header/header.component.html` | `shell-profile-menu-logout-btn` | Final (to be implemented by Quinn as test-id-only change) |
+| Shell profile menu | Login item (`mat-menu-item`, anonymous) | `layouts/full/header/header.component.html` | `shell-profile-menu-login-btn` | Final (to be implemented by Quinn as test-id-only change) |
+| Shell profile menu | Register item (`mat-menu-item`, anonymous) | `layouts/full/header/header.component.html` | `shell-profile-menu-register-btn` | Final (to be implemented by Quinn as test-id-only change) |
+| Shell sidebar | Close (x) link in overlay mode | `layouts/full/sidebar/sidebar.component.html` | `shell-sidebar-close-btn` | Proposed |
+| Shell sidebar | Dashboard nav item | `layouts/full/sidebar/sidebar-data.ts` (via `nav-item`) | `shell-nav-dashboard-link` | Proposed |
+| Shell sidebar | Tachikoma Chat nav item | `layouts/full/sidebar/sidebar-data.ts` | `shell-nav-chat-link` | Proposed |
+| Shell sidebar | Tachikomas nav item | `layouts/full/sidebar/sidebar-data.ts` | `shell-nav-profiles-link` | Proposed |
+| Shell sidebar | Profile nav item | `layouts/full/sidebar/sidebar-data.ts` | `shell-nav-profile-link` | Proposed |
+| Shell sidebar | Logout nav item | `layouts/full/sidebar/sidebar-data.ts` | `shell-nav-logout-btn` | Proposed |
+| Shell sidebar | Login nav item | `layouts/full/sidebar/sidebar-data.ts` | `shell-nav-login-link` | Proposed |
+| Shell sidebar | Register nav item | `layouts/full/sidebar/sidebar-data.ts` | `shell-nav-register-link` | Proposed |
+
+The six header and profile-menu ids unblock AUTH T005 and T006 (triage T4). The menu items render in a CDK overlay outside `app-header`, so tests should click `shell-header-profile-btn` first and then locate the item at page level. The user-info block (display name and email) is not interactive and gets no id.
 
 Implementation hint for athena: `nav-item` is data-driven, so the cleanest fix is a `testId` field on `NavItem` in `sidebar-data.ts`, bound as `[attr.data-test-id]="item.testId"`.
 

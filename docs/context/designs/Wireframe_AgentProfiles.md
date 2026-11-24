@@ -3,8 +3,8 @@
 | Field | Value |
 | :--- | :--- |
 | **Status** | As-built reference |
-| **Version** | v1.0 |
-| **Date** | 2026-11-23 |
+| **Version** | v1.1 (stabilisation: create/edit form ids final) |
+| **Date** | 2026-11-24 (v1.0: 2026-11-23) |
 | **Author** | Eunice (UI/UX Designer) |
 | **Route** | `/tachikoma-profiles` (layout: `FullComponent`, public, no guard). Sidebar label "Tachikomas". |
 | **PRD module** | AGNT |
@@ -149,45 +149,55 @@ Re-read from the final template state on 2026-11-23.
 
 ## Design Gaps
 
-`{new|edit}` means two ids: one in the create card (`profiles-new-…`) and one in the in-card edit form (`profiles-edit-…`).
+`{new|edit}` means two ids: one in the create card (`profiles-new-…`) and one in the in-card edit form (`profiles-edit-…`). All rows live in `pages/tachikoma-profiles/tachikoma-profiles.component.html`.
 
-| Element | Proposed `data-test-id` |
-| :--- | :--- |
-| Profile card container (per profile) | `profiles-card` |
-| Template select (create only) | `profiles-new-template-select` |
-| Agent Name input | `profiles-{new\|edit}-name-input` |
-| Color Name input | `profiles-{new\|edit}-color-input` |
-| Hex Color input | `profiles-{new\|edit}-hex-input` |
-| Temperature input | `profiles-{new\|edit}-temp-input` |
-| Role select | `profiles-{new\|edit}-role-select` |
-| Model select | `profiles-{new\|edit}-model-select` |
-| Silence Protocol select | `profiles-{new\|edit}-silence-select` |
-| System mode toggle group | `profiles-{new\|edit}-mode-toggle` |
-| Form mode: role input | `profiles-{new\|edit}-sys-role-input` |
-| Form mode: add personality trait | `profiles-{new\|edit}-trait-add-btn` |
-| Form mode: personality trait input (per row) | `profiles-{new\|edit}-trait-input` |
-| Form mode: remove personality trait | `profiles-{new\|edit}-trait-remove-btn` |
-| Form mode: add instruction | `profiles-{new\|edit}-instruction-add-btn` |
-| Form mode: instruction input (per row) | `profiles-{new\|edit}-instruction-input` |
-| Form mode: remove instruction | `profiles-{new\|edit}-instruction-remove-btn` |
-| Form mode: add constraint | `profiles-{new\|edit}-constraint-add-btn` |
-| Form mode: constraint input (per row) | `profiles-{new\|edit}-constraint-input` |
-| Form mode: remove constraint | `profiles-{new\|edit}-constraint-remove-btn` |
-| Form mode: output format input | `profiles-{new\|edit}-output-format-input` |
-| Form mode: tone input | `profiles-{new\|edit}-tone-input` |
-| Form mode: add sample dialogue | `profiles-{new\|edit}-dialogue-add-btn` |
-| Form mode: remove sample dialogue | `profiles-{new\|edit}-dialogue-remove-btn` |
-| Form mode: sample dialogue user textarea | `profiles-{new\|edit}-dialogue-user-input` |
-| Form mode: sample dialogue assistant textarea | `profiles-{new\|edit}-dialogue-assistant-input` |
-| XML mode textarea | `profiles-{new\|edit}-xml-input` |
-| Plain-text mode textarea | `profiles-{new\|edit}-plaintext-input` |
-| Convert to Form/XML button | `profiles-{new\|edit}-convert-btn` |
+**Status key.** **Final** = frozen, to be implemented by Quinn as a test-id-only change (no behaviour or style change). **Proposed** = reserved, not yet scheduled.
 
-That is 29 rows, or 57 concrete ids once `{new|edit}` is expanded.
+| Element | Proposed `data-test-id` | Status | Placement |
+| :--- | :--- | :--- | :--- |
+| Profile card container (per profile) | `profiles-card` | Proposed | `mat-card.profile-card` |
+| Template select (create only) | `profiles-new-template-select` | Final (to be implemented by Quinn as test-id-only change) | On the `mat-select` |
+| Agent Name input | `profiles-{new\|edit}-name-input` | Final (to be implemented by Quinn as test-id-only change) | On the `input` |
+| Color Name input | `profiles-{new\|edit}-color-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Hex Color input | `profiles-{new\|edit}-hex-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Temperature input | `profiles-{new\|edit}-temp-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Agent **Role select** (CHATTER / MODERATOR, `mat-select`, label "Role") | `profiles-{new\|edit}-role-select` | Final (to be implemented by Quinn as test-id-only change) | First "Role" field. On the `mat-select`. |
+| Model select | `profiles-{new\|edit}-model-select` | Final (to be implemented by Quinn as test-id-only change) | On the `mat-select` |
+| Silence Protocol select | `profiles-{new\|edit}-silence-select` | Final (to be implemented by Quinn as test-id-only change) | On the `mat-select` |
+| System mode toggle group | `profiles-{new\|edit}-mode-toggle` | Final (to be implemented by Quinn as test-id-only change) | On the `mat-button-toggle-group` |
+| System mode option: Form | `profiles-{new\|edit}-mode-form-btn` | Final (to be implemented by Quinn as test-id-only change) **New in v1.1** | On the `mat-button-toggle value="form"` |
+| System mode option: XML | `profiles-{new\|edit}-mode-xml-btn` | Final (to be implemented by Quinn as test-id-only change) **New in v1.1** | On the `mat-button-toggle value="xml"` |
+| System mode option: Plain Text | `profiles-{new\|edit}-mode-plaintext-btn` | Final (to be implemented by Quinn as test-id-only change) **New in v1.1** | On the `mat-button-toggle value="plaintext"` |
+| Form mode: **system Role input** (identity text, `input`, label "Role", hint "Primary role and identity…") | `profiles-{new\|edit}-sys-role-input` | Final (to be implemented by Quinn as test-id-only change) | Second "Role" field, form mode only. On the `input`. |
+| Form mode: add personality trait | `profiles-{new\|edit}-trait-add-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: personality trait input (per row) | `profiles-{new\|edit}-trait-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: remove personality trait | `profiles-{new\|edit}-trait-remove-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: add instruction | `profiles-{new\|edit}-instruction-add-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: instruction input (per row) | `profiles-{new\|edit}-instruction-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: remove instruction | `profiles-{new\|edit}-instruction-remove-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: add constraint | `profiles-{new\|edit}-constraint-add-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: constraint input (per row) | `profiles-{new\|edit}-constraint-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: remove constraint | `profiles-{new\|edit}-constraint-remove-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: output format input | `profiles-{new\|edit}-output-format-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: tone input | `profiles-{new\|edit}-tone-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: add sample dialogue | `profiles-{new\|edit}-dialogue-add-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: remove sample dialogue | `profiles-{new\|edit}-dialogue-remove-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: sample dialogue user textarea | `profiles-{new\|edit}-dialogue-user-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| Form mode: sample dialogue assistant textarea | `profiles-{new\|edit}-dialogue-assistant-input` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+| XML mode **system-instruction textarea** (label "System Instruction (XML)", `.xml-editor`) | `profiles-{new\|edit}-xml-input` | Final (to be implemented by Quinn as test-id-only change) | On the `textarea` |
+| Plain-text mode **system-instruction textarea** (label "System Prompt"; the default mode) | `profiles-{new\|edit}-plaintext-input` | Final (to be implemented by Quinn as test-id-only change) | On the `textarea` |
+| Convert to Form/XML button | `profiles-{new\|edit}-convert-btn` | Final (to be implemented by Quinn as test-id-only change) | On the control |
+
+That is 32 rows, or 63 concrete ids once `{new|edit}` is expanded. v1.1 added only the three per-option mode ids; every earlier name is unchanged.
+
+**Disambiguation (AGNT T101, T114, triage T12).**
+- The two fields labelled "Role" are distinct: `profiles-{new|edit}-role-select` is the agent's orchestration role (`mat-select`, always visible); `profiles-{new|edit}-sys-role-input` is the system-instruction identity text (`input`, form mode only). Tests must never match on the label.
+- The system instruction is one of two textareas, depending on mode: `profiles-{new|edit}-plaintext-input` (default, `currentSystemMode = 'plaintext'`) or `profiles-{new|edit}-xml-input`. Select the mode with `profiles-{new|edit}-mode-{form|xml|plaintext}-btn` first if needed. The intent-draft textarea above the form already has `profiles-intent-input`; it is the reason a bare `textarea` selector matches the wrong element.
+- Because the create card and edit form share one `currentSystemMode` signal (Observation 3), only one card shows the mode-specific fields at a time. The `new`/`edit` prefix still keeps the ids unique per card.
 
 ## As-Built Observations
 
 1. On create, `temp: this.newProfile.temp || 0.5` turns a temperature of **0** into **0.5**.
 2. Validation exempts form mode from the System Prompt check, so a form-mode agent can be saved with an empty compiled prompt.
 3. The create card and the edit forms share one `currentSystemMode` signal and one `systemFields` object. Opening an edit after the create card replaces both.
-4. Intent drafting and AI convert read the API key from localStorage (`gemini_api_key`). An authenticated user whose key is stored only on the profile could be told "API KEY REQUIRED". The code path is confirmed (`localStorage.getItem('gemini_api_key')`); whether it bites in practice depends on whether the key was ever saved locally on that device.
+4. (Deferred: Firebase AI Logic migration) Intent drafting and AI convert read the API key from localStorage (`gemini_api_key`). An authenticated user whose key is stored only on the profile could be told "API KEY REQUIRED". The code path is confirmed (`localStorage.getItem('gemini_api_key')`); whether it bites in practice depends on whether the key was ever saved locally on that device.

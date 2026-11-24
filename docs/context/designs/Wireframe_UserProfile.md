@@ -3,8 +3,8 @@
 | Field | Value |
 | :--- | :--- |
 | **Status** | As-built reference |
-| **Version** | v1.0 |
-| **Date** | 2026-11-23 |
+| **Version** | v1.1 (stabilisation: API-key field deferred) |
+| **Date** | 2026-11-24 (v1.0: 2026-11-23) |
 | **Author** | Eunice (UI/UX Designer) |
 | **Route** | `/profile` (layout: `FullComponent`, public route; content is gated in the template by `isAuthenticated()`) |
 | **PRD modules** | AUTH (API key, logout), SYNC (manual cloud sync), OPER (rate-limit tier) |
@@ -34,7 +34,7 @@ A signed-in user (including anonymous guests) manages their display name, chat u
 |  Member Since    <date>                      |  @if (profile()?.createdAt)
 |----------------------------------------------|
 |  (robot) AI Settings                         |
-|  Google AI API Key  (key) AIza****1234 [edit]|  profile-edit-apikey-btn
+|  Google AI API Key  (key) AIza****1234 [edit]|  profile-edit-apikey-btn  (DEFERRED: Firebase AI Logic)
 |     (edit: [pwd____] [save|spinner] [x])     |  -save- / -cancel-apikey-btn
 |     [!] validation error                     |
 |  Gemini Model     [select v]                 |  profile-model-select
@@ -82,9 +82,9 @@ The same single `mat-card`, centred in `.profile-container`. Rows are label/valu
 | `profile-cancel-displayname-btn` | Edit mode | Focus | Back to view | n/a | n/a |
 | `profile-edit-username-btn` / `-save-` / `-cancel-` | Same pattern | | | | Empty: "Chat username cannot be empty." |
 | `profile-chat-username-preview` | Shows `chatUsername` or `USER` | n/a | n/a | n/a | Falls back to `USER` |
-| `profile-edit-apikey-btn` | Masked key or "Not set" | Focus | Edit | n/a | n/a |
-| `profile-save-apikey-btn` | Edit mode | Focus | Validates, then saves | Spinner, disabled | `mat-error` + `.validation-error` with the message; empty: "API key cannot be empty." |
-| `profile-cancel-apikey-btn` | Edit mode | Focus | Back to view | Disabled while validating | n/a |
+| `profile-edit-apikey-btn` (Deferred: Firebase AI Logic migration) | Masked key or "Not set" | Focus | Edit | n/a | n/a |
+| `profile-save-apikey-btn` (Deferred: Firebase AI Logic migration) | Edit mode | Focus | Validates, then saves | Spinner, disabled | `mat-error` + `.validation-error` with the message; empty: "API key cannot be empty." |
+| `profile-cancel-apikey-btn` (Deferred: Firebase AI Logic migration) | Edit mode | Focus | Back to view | Disabled while validating | n/a |
 | `profile-model-select` | Current model | Focus | Saves on change | n/a | Error alert |
 | Rate-limit select (no id) | Current RPM | Focus | Saves on change | n/a | "Failed to save rate limit..." |
 | `profile-sync-chats-btn` | Enabled | Hover | Manual upload | Spinner + "Syncing..." + info alert | Guest: real-account error. "No chats to sync." Partial failures reported. |
@@ -123,9 +123,9 @@ Re-read from the final template state on 2026-11-23.
 | Cancel chat username edit | `profile-cancel-username-btn` | `editingChatUsername()` |
 | Chat username preview | `profile-chat-username-preview` | `!editingChatUsername()` |
 | Edit chat username | `profile-edit-username-btn` | `!editingChatUsername()` |
-| Save API key | `profile-save-apikey-btn` | `editingApiKey()`. Disabled while validating. |
-| Cancel API key edit | `profile-cancel-apikey-btn` | `editingApiKey()` |
-| Edit API key | `profile-edit-apikey-btn` | `!editingApiKey()` |
+| Save API key (Deferred: Firebase AI Logic migration) | `profile-save-apikey-btn` | `editingApiKey()`. Disabled while validating. |
+| Cancel API key edit (Deferred: Firebase AI Logic migration) | `profile-cancel-apikey-btn` | `editingApiKey()` |
+| Edit API key (Deferred: Firebase AI Logic migration) | `profile-edit-apikey-btn` | `!editingApiKey()` |
 | Model select | `profile-model-select` | `isAuthenticated()` |
 | Sync chats button | `profile-sync-chats-btn` | `isAuthenticated()` |
 | Sync agents button | `profile-sync-agents-btn` | `isAuthenticated()` |
@@ -139,7 +139,7 @@ Re-read from the final template state on 2026-11-23.
 | :--- | :--- |
 | Display name input | `profile-displayname-input` |
 | Chat username input | `profile-username-input` |
-| API key input | `profile-apikey-input` |
+| API key input | `profile-apikey-input` (Deferred: Firebase AI Logic migration) |
 | API tier / rate-limit select | `profile-ratelimit-select` |
 | "Go to Login" button (not logged in) | `profile-goto-login-btn` |
 
@@ -149,8 +149,8 @@ Recommended non-interactive hooks:
 | :--- | :--- |
 | Success alert | `profile-success-message` |
 | Error alert | `profile-error-message` |
-| API key validation error | `profile-apikey-error` |
-| Masked API key preview | `profile-apikey-preview` |
+| API key validation error | `profile-apikey-error` (Deferred: Firebase AI Logic migration) |
+| Masked API key preview | `profile-apikey-preview` (Deferred: Firebase AI Logic migration) |
 | Email value | `profile-email-value` |
 | Chat / agent sync progress alerts | `profile-sync-chats-status`, `profile-sync-agents-status` |
 | Not-logged-in panel | `profile-not-logged-in` |
