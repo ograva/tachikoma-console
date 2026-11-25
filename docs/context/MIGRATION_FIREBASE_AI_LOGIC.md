@@ -2,6 +2,7 @@
 
 | Version | Status | Date | Owner |
 | :--- | :--- | :--- | :--- |
+| 0.2 | Decisions recorded (D5 pending spike) | 2026-11-25 | Watson (Architect), with Jason (PM) |
 | 0.1 | Draft: awaiting owner decisions | 2026-11-24 | Watson (Architect), with Jason (PM) |
 
 > Planning document. Nothing here is approved until the owner decides D1–D8. Once approved, it is carried through the cohort phases (§7) and the decisions are logged as ADL entries.
@@ -61,6 +62,21 @@ Not yet read in full: system instructions, count tokens, model parameters, safet
 | D6 | Model selection UI | (a) Keep the per-agent and per-user model pickers with an approved list from Remote Config. (b) One project-wide model, set remotely. | **(a)**, with the list and token limits served from Remote Config plus a static fallback table. No `-preview` / `-latest` models. |
 | D7 | Existing stored keys | (a) Delete `geminiApiKey*` from local storage and Firestore on first run after migration. (b) Leave them. | **(a).** Avoids lingering secrets. Tell users once. |
 | D8 | Testing strategy | No emulator exists. | Playwright `page.route` mocks on the real proxy host (confirm it in the spike) for the whole suite, plus a small `@live` smoke suite against a dev project with an App Check debug token. It doesn't run in CI by default. |
+
+### Owner decisions (2026-11-25)
+
+| # | Decision | Status |
+| :- | :--- | :--- |
+| D1 | **Drop BYOK entirely.** Remove the key UI, key storage and sync, `EncryptionService` and the key tests. | Decided |
+| D2 | **Gemini Developer API** (Spark free tier) to start. | Decided (as recommended) |
+| D3 | **Signed-in users plus anonymous guests** may call the AI. Every call is tied to a Firebase uid. | Decided |
+| D4 | About **20 requests/min per user**, limited-use App Check tokens, and a budget alert. The owner configures these in the console. | Decided (as recommended) |
+| D5 | Persona temperature | **Open**: settled by the spike (§6) |
+| D6 | Per-agent and per-user model pickers, with the approved list and token limits from Remote Config plus a static fallback | Decided (as recommended) |
+| D7 | Delete stored `geminiApiKey*` locally and in Firestore on first run | Decided (as recommended) |
+| D8 | Playwright mocks of the proxy, plus a small `@live` smoke suite on a dev project | Decided (as recommended) |
+
+**Sequencing:** the owner has not done the console setup yet. The docs phases (Mary → Jason → Watson/`/align`) run first; the spike runs once the console setup exists. `/batch` is not used for this migration.
 
 ## 5. Target architecture (Watson draft)
 
