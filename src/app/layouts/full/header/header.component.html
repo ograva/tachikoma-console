@@ -2,7 +2,8 @@
 
   <!-- Hamburger Menu -->
 
-  <button mat-icon-button (click)="toggleMobileNav.emit()" class="d-flex justify-content-center">
+  <button mat-icon-button (click)="toggleMobileNav.emit()" class="d-flex justify-content-center"
+    data-test-id="shell-header-menu-btn">
     <i-tabler name="menu-2" class="icon-20 d-flex"></i-tabler>
   </button>
 
@@ -11,7 +12,8 @@
   <!-- --------------------------------------------------------------- -->
   <!-- profile Dropdown -->
   <!-- --------------------------------------------------------------- -->
-  <button mat-mini-fab [matMenuTriggerFor]="profilemenu" aria-label="Profile">
+  <button mat-mini-fab [matMenuTriggerFor]="profilemenu" aria-label="Profile"
+    data-test-id="shell-header-profile-btn">
     @if (userPhotoURL()) {
     <img [src]="userPhotoURL()" class="rounded-circle object-cover d-block" width="35" alt="User avatar" />
     } @else {
@@ -27,24 +29,26 @@
     </div>
     <mat-divider></mat-divider>
 
-    <button mat-menu-item (click)="goToProfile()">
+    <button mat-menu-item (click)="goToProfile()" data-test-id="shell-profile-menu-profile-btn">
       <mat-icon class="d-flex align-items-center"><i-tabler name="user" class="icon-18 d-flex"></i-tabler></mat-icon>
       My Profile
     </button>
 
     <div class="p-x-12 m-t-12">
-      <button mat-stroked-button class="w-100" (click)="logout()">
+      <button mat-stroked-button class="w-100" (click)="logout()"
+        data-test-id="shell-profile-menu-logout-btn">
         <i-tabler name="logout" class="icon-18 m-r-8"></i-tabler>
         Logout
       </button>
     </div>
     } @else {
     <!-- Show login/register when not authenticated -->
-    <button mat-menu-item (click)="goToLogin()">
+    <button mat-menu-item (click)="goToLogin()" data-test-id="shell-profile-menu-login-btn">
       <mat-icon class="d-flex align-items-center"><i-tabler name="login" class="icon-18 d-flex"></i-tabler></mat-icon>
       Login
     </button>
-    <button mat-menu-item [routerLink]="['/authentication/register']">
+    <button mat-menu-item [routerLink]="['/authentication/register']"
+      data-test-id="shell-profile-menu-register-btn">
       <mat-icon class="d-flex align-items-center"><i-tabler name="user-plus"
           class="icon-18 d-flex"></i-tabler></mat-icon>
       Register

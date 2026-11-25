@@ -13,6 +13,7 @@ import {
   seedEmulatorFirestoreDoc,
   getEmulatorFirestoreDocs,
   resolveSyncDialog,
+  closeAutoOpenedNewChatSelector,
 } from '../../helpers';
 
 const CHAT_SESSIONS_KEY = 'tachikoma_chat_sessions';
@@ -54,17 +55,6 @@ async function openChatHistory(page: import('@playwright/test').Page): Promise<v
 }
 
 /**
- * With no current chat id (fresh device), /tachikoma auto-opens the new-chat agent selector,
- * whose overlay intercepts clicks on the header "add" button. Close it so the test can open it explicitly.
- */
-async function closeAutoOpenedNewChatSelector(page: import('@playwright/test').Page): Promise<void> {
-  const closeBtn = page.locator('[data-test-id="chat-new-chat-close-btn"]');
-  await expect(closeBtn).toBeVisible({ timeout: 5_000 });
-  await closeBtn.click();
-  await expect(closeBtn).toBeHidden({ timeout: 5_000 });
-}
-
-/**
  * SYNC-001: Save Locally Before Cloud Sync (T400-T404)
  * SYNC-002: Restore Data Across Devices (T407-T413)
  * SYNC-003: Support Offline-First Operation (T414-T420)
@@ -76,22 +66,20 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
 
   test.describe('T400-T404 Local-First Persistence', () => {
     test('T400 chat saves to localStorage immediately on creation', async ({ page }) => {
-      // BUG (CHAT UI, portrait project 390x844): with no API key the header API-key block (.header-api-init,
-      // flex-shrink: 0, never hidden on phones) overlaps the header add/history buttons, so the new-chat button
-      // cannot be clicked. (At 1280x720 the new-chat dialog also rendered START CHAT below the viewport.)
-      // Remove test.fail() once the header fits at 390px wide. See docs/testing/STABILISATION_TRIAGE.md.
-      test.fail(true, 'portrait header API-key block covers the new-chat button when no key is set');
+      // A key is seeded because this test is about local-first saving, not credentials: with no key the
+      // portrait header API-key block covers the new-chat button (APP finding A3, tracked separately).
       await continueAsGuest(page);
+      await seedApiKey(page);
       await suppressExplainerDialog(page);
       await page.goto('/tachikoma');
       await closeAutoOpenedNewChatSelector(page);
 
       // Trigger new chat creation
-      await page.locator('button mat-icon:text("add")').first().click({ timeout: 5_000 });
-      const dialog = page.locator('.agent-selector-dialog');
+      await page.locator('[data-test-id="chat-header-new-chat-btn"]').click({ timeout: 5_000 });
+      const dialog = page.locator('[data-test-id="chat-new-chat-dialog"]');
       await expect(dialog).toBeVisible({ timeout: 5_000 });
-      await dialog.locator('input[name="new-chat-title-field"]').fill('Local-First Test');
-      await dialog.locator('button', { hasText: /start chat/i }).click({ timeout: 5_000 });
+      await dialog.locator('[data-test-id="chat-new-chat-title-input"]').fill('Local-First Test');
+      await dialog.locator('[data-test-id="chat-new-chat-start-btn"]').click({ timeout: 5_000 });
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
       const sessions = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]'), CHAT_SESSIONS_KEY);
@@ -148,29 +136,27 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
     });
 
     test('T404 multiple chats save without overwriting each other', async ({ page }) => {
-      // BUG (CHAT UI, portrait project 390x844): with no API key the header API-key block (.header-api-init,
-      // flex-shrink: 0, never hidden on phones) overlaps the header add/history buttons, so the new-chat button
-      // cannot be clicked. (At 1280x720 the new-chat dialog also rendered START CHAT below the viewport.)
-      // Remove test.fail() once the header fits at 390px wide. See docs/testing/STABILISATION_TRIAGE.md.
-      test.fail(true, 'portrait header API-key block covers the new-chat button when no key is set');
+      // A key is seeded because this test is about local-first saving, not credentials: with no key the
+      // portrait header API-key block covers the new-chat button (APP finding A3, tracked separately).
       await continueAsGuest(page);
+      await seedApiKey(page);
       await suppressExplainerDialog(page);
       await page.goto('/tachikoma');
       await closeAutoOpenedNewChatSelector(page);
 
       // Create first chat
-      await page.locator('button mat-icon:text("add")').first().click({ timeout: 5_000 });
-      const dialog = page.locator('.agent-selector-dialog');
+      await page.locator('[data-test-id="chat-header-new-chat-btn"]').click({ timeout: 5_000 });
+      const dialog = page.locator('[data-test-id="chat-new-chat-dialog"]');
       await expect(dialog).toBeVisible({ timeout: 5_000 });
-      await dialog.locator('input[name="new-chat-title-field"]').fill('Chat One');
-      await dialog.locator('button', { hasText: /start chat/i }).click({ timeout: 5_000 });
+      await dialog.locator('[data-test-id="chat-new-chat-title-input"]').fill('Chat One');
+      await dialog.locator('[data-test-id="chat-new-chat-start-btn"]').click({ timeout: 5_000 });
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
       // Create second chat
-      await page.locator('button mat-icon:text("add")').first().click();
+      await page.locator('[data-test-id="chat-header-new-chat-btn"]').click();
       await expect(dialog).toBeVisible({ timeout: 5_000 });
-      await dialog.locator('input[name="new-chat-title-field"]').fill('Chat Two');
-      await dialog.locator('button', { hasText: /start chat/i }).click({ timeout: 5_000 });
+      await dialog.locator('[data-test-id="chat-new-chat-title-input"]').fill('Chat Two');
+      await dialog.locator('[data-test-id="chat-new-chat-start-btn"]').click({ timeout: 5_000 });
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
       const sessions = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]'), CHAT_SESSIONS_KEY);

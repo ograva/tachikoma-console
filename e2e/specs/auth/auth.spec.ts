@@ -8,7 +8,30 @@ import {
   suppressExplainerDialog,
   clearLocalStorage,
   getLocalStorageJson,
+  createUniqueEmulatorUser,
+  resolveSyncDialog,
 } from '../../helpers';
+
+/** A local chat shaped like the ones the app writes, so the device has "local data" (AUTH-003, Flow_SignIn). */
+function makeLocalChat(id: string, title: string) {
+  const now = Date.now();
+  return { id, title, messages: [], participatingAgents: [], conversationSummary: '', createdAt: now, updatedAt: now };
+}
+
+/** Open the login page, optionally seed local chats, and submit the sign-in form for `user`. */
+async function submitSignIn(
+  page: import('@playwright/test').Page,
+  user: { email: string; password: string },
+  localChats: object[] = []
+): Promise<void> {
+  await page.goto('/authentication/login');
+  if (localChats.length) {
+    await page.evaluate((chats) => localStorage.setItem('tachikoma_chat_sessions', JSON.stringify(chats)), localChats);
+  }
+  await page.locator('[data-test-id="auth-email-input"]').fill(user.email);
+  await page.locator('[data-test-id="auth-password-input"]').fill(user.password);
+  await page.locator('[data-test-id="auth-signin-submit-btn"]').click();
+}
 
 /**
  * AUTH-001: Sign In and Resume (T000-T009)
@@ -72,22 +95,17 @@ test.describe('AUTH — Identity and Secure Configuration', () => {
 
   test.describe('T005-T009 Logout behavior', () => {
     test('T005 logout clears local session data', async ({ page }) => {
-      await createEmulatorUser(SEED_USER.email, SEED_USER.password).catch(() => {});
-      await signInWithEmail(page);
+      const user = await createUniqueEmulatorUser('t005');
+      // Local data on the device makes the first-login sync dialog appear (Flow_SignIn); skip it so the
+      // local chat stays on the device until logout.
+      await submitSignIn(page, user, [makeLocalChat('t005-chat', 'T005 Local Chat')]);
+      await page.waitForURL((url) => !url.pathname.includes('/authentication'), { timeout: 10_000 });
+      await resolveSyncDialog(page, 'skip');
+      expect(await getLocalStorageJson<any[]>(page, 'tachikoma_chat_sessions')).not.toBeNull();
 
-      // Write something to localStorage to verify it gets cleared
-      await page.evaluate(() => {
-        localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([{ id: 'test-chat' }]));
-      });
-
-      // Find and click logout
-      await page.locator('button[aria-label="Profile"]').click().catch(async () => {
-        // Try alternative header menu trigger
-        await page.locator('button:has(mat-icon)').filter({ hasText: '' }).first().click();
-      });
-      const logoutBtn = page.locator('button', { hasText: /logout|sign out/i }).first();
-      await logoutBtn.click();
-
+      // Logout from the shell header profile menu
+      await page.locator('[data-test-id="shell-header-profile-btn"]').click();
+      await page.locator('[data-test-id="shell-profile-menu-logout-btn"]').click();
       await page.waitForURL(/authentication/, { timeout: 8_000 });
 
       // Navigate back and check local data is cleared
@@ -97,12 +115,13 @@ test.describe('AUTH — Identity and Secure Configuration', () => {
     });
 
     test('T006 logout redirects to authentication page', async ({ page }) => {
-      await createEmulatorUser(SEED_USER.email, SEED_USER.password).catch(() => {});
-      await signInWithEmail(page);
-      await page.locator('button[aria-label="Profile"]').click().catch(async () => {
-        await page.locator('[mat-icon-button]').filter({ hasText: '' }).first().click();
-      });
-      await page.locator('button', { hasText: /logout|sign out/i }).first().click();
+      const user = await createUniqueEmulatorUser('t006');
+      await submitSignIn(page, user, [makeLocalChat('t006-chat', 'T006 Local Chat')]);
+      await page.waitForURL((url) => !url.pathname.includes('/authentication'), { timeout: 10_000 });
+      await resolveSyncDialog(page, 'skip');
+
+      await page.locator('[data-test-id="shell-header-profile-btn"]').click();
+      await page.locator('[data-test-id="shell-profile-menu-logout-btn"]').click();
       await expect(page).toHaveURL(/authentication/, { timeout: 8_000 });
     });
   });
@@ -178,95 +197,66 @@ test.describe('AUTH — Identity and Secure Configuration', () => {
 
   test.describe('T020-T026 First-login sync strategy', () => {
     test('T020 sync dialog appears on first authenticated login when local data exists', async ({ page }) => {
-      // Pre-seed local data
-      await page.goto('/authentication/login');
-      await page.evaluate(() => {
-        localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([{
-          id: 'local-chat-1', title: 'Local Chat', messages: [],
-          participatingAgents: [], conversationSummary: '',
-          createdAt: Date.now(), updatedAt: Date.now(),
-        }]));
-      });
-
-      const { email, password } = SEED_USER;
-      await createEmulatorUser(email, password).catch(() => {});
-
-      await page.locator('[data-test-id="auth-email-input"]').fill(email);
-      await page.locator('[data-test-id="auth-password-input"]').fill(password);
-      await page.locator('[data-test-id="auth-signin-submit-btn"]').click();
+      const user = await createUniqueEmulatorUser('t020');
+      await submitSignIn(page, user, [makeLocalChat('local-chat-1', 'Local Chat')]);
 
       // The sync dialog should appear
-      const syncDialog = page.locator('app-sync-dialog, .sync-dialog');
-      await expect(syncDialog).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-test-id="sync-dialog"]')).toBeVisible({ timeout: 10_000 });
     });
 
     test('T021 sync dialog presents three strategy options', async ({ page }) => {
-      await page.goto('/authentication/login');
-      await page.evaluate(() => {
-        localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([{ id: 'c1', title: 'T', messages: [], participatingAgents: [], conversationSummary: '', createdAt: 1, updatedAt: 1 }]));
-      });
-      await createEmulatorUser(SEED_USER.email, SEED_USER.password).catch(() => {});
-      await page.locator('[data-test-id="auth-email-input"]').fill(SEED_USER.email);
-      await page.locator('[data-test-id="auth-password-input"]').fill(SEED_USER.password);
-      await page.locator('[data-test-id="auth-signin-submit-btn"]').click();
+      const user = await createUniqueEmulatorUser('t021');
+      await submitSignIn(page, user, [makeLocalChat('c1', 'T')]);
 
-      const syncDialog = page.locator('app-sync-dialog, .sync-dialog');
+      const syncDialog = page.locator('[data-test-id="sync-dialog"]');
       await expect(syncDialog).toBeVisible({ timeout: 10_000 });
 
-      // Three option cards
-      const optionCards = syncDialog.locator('.option-card');
-      await expect(optionCards).toHaveCount(3);
+      // Three strategy option cards
+      await expect(syncDialog.locator('[data-test-id^="sync-option-"]')).toHaveCount(3);
+      await expect(page.locator('[data-test-id="sync-option-merge"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="sync-option-cloud-to-local"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="sync-option-local-to-cloud"]')).toBeVisible();
     });
 
     test('T022 selecting merge strategy closes dialog and continues', async ({ page }) => {
-      await page.goto('/authentication/login');
-      await page.evaluate(() => {
-        localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([{ id: 'c1', title: 'T', messages: [], participatingAgents: [], conversationSummary: '', createdAt: 1, updatedAt: 1 }]));
-      });
-      await createEmulatorUser(SEED_USER.email, SEED_USER.password).catch(() => {});
-      await page.locator('[data-test-id="auth-email-input"]').fill(SEED_USER.email);
-      await page.locator('[data-test-id="auth-password-input"]').fill(SEED_USER.password);
-      await page.locator('[data-test-id="auth-signin-submit-btn"]').click();
+      const user = await createUniqueEmulatorUser('t022');
+      await submitSignIn(page, user, [makeLocalChat('c1', 'T')]);
 
-      const syncDialog = page.locator('app-sync-dialog, .sync-dialog');
+      const syncDialog = page.locator('[data-test-id="sync-dialog"]');
       await expect(syncDialog).toBeVisible({ timeout: 10_000 });
 
       // Click "Merge Data" option
-      await syncDialog.locator('.option-card').first().click();
+      await page.locator('[data-test-id="sync-option-merge"]').click();
 
-      // Dialog should close
+      // Dialog should close and the user stays in the app
       await expect(syncDialog).not.toBeVisible({ timeout: 5_000 });
+      await expect(page).not.toHaveURL(/authentication/);
     });
 
     test('T023 skip-for-now closes sync dialog without performing sync', async ({ page }) => {
-      await page.goto('/authentication/login');
-      await page.evaluate(() => {
-        localStorage.setItem('tachikoma_chat_sessions', JSON.stringify([{ id: 'c1', title: 'T', messages: [], participatingAgents: [], conversationSummary: '', createdAt: 1, updatedAt: 1 }]));
-      });
-      await createEmulatorUser(SEED_USER.email, SEED_USER.password).catch(() => {});
-      await page.locator('[data-test-id="auth-email-input"]').fill(SEED_USER.email);
-      await page.locator('[data-test-id="auth-password-input"]').fill(SEED_USER.password);
-      await page.locator('[data-test-id="auth-signin-submit-btn"]').click();
+      const user = await createUniqueEmulatorUser('t023');
+      await submitSignIn(page, user, [makeLocalChat('c1', 'T')]);
 
-      const syncDialog = page.locator('app-sync-dialog, .sync-dialog');
+      const syncDialog = page.locator('[data-test-id="sync-dialog"]');
       await expect(syncDialog).toBeVisible({ timeout: 10_000 });
 
-      await syncDialog.locator('.cancel-btn, button:has-text("Skip")').click();
+      await page.locator('[data-test-id="sync-skip-btn"]').click();
       await expect(syncDialog).not.toBeVisible({ timeout: 5_000 });
     });
 
     test('T024 sync dialog does not appear when no local data exists', async ({ page }) => {
-      // Don't seed any local data
-      await page.goto('/authentication/login');
-      await createEmulatorUser(SEED_USER.email, SEED_USER.password).catch(() => {});
-      await page.locator('[data-test-id="auth-email-input"]').fill(SEED_USER.email);
-      await page.locator('[data-test-id="auth-password-input"]').fill(SEED_USER.password);
-      await page.locator('[data-test-id="auth-signin-submit-btn"]').click();
+      // Don't seed any local data: a fresh device holds only the built-in default agents
+      const user = await createUniqueEmulatorUser('t024');
+      await submitSignIn(page, user);
 
-      // Wait for navigation to complete, then confirm no sync dialog appeared
+      // Wait for navigation to complete, then confirm no sync dialog appears over an observation window
       await page.waitForURL((url) => !url.pathname.includes('/authentication'), { timeout: 10_000 });
-      const syncDialog = page.locator('app-sync-dialog, .sync-dialog');
-      await expect(syncDialog).not.toBeVisible();
+      await expect(page.locator('[data-test-id="shell-header-profile-btn"]')).toBeVisible({ timeout: 10_000 });
+      const syncDialog = page.locator('[data-test-id="sync-dialog"]');
+      for (let elapsed = 0; elapsed < 3_000; elapsed += 250) {
+        await expect(syncDialog).toHaveCount(0);
+        await page.waitForTimeout(250);
+      }
     });
   });
 });

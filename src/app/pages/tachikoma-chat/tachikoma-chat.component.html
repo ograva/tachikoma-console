@@ -3,10 +3,10 @@
 
     <!-- Edit Chat Dialog -->
     <div class="agent-selector-overlay" *ngIf="showEditDialog()" (click)="cancelEditChat()">
-        <div class="agent-selector-dialog" (click)="$event.stopPropagation()">
+        <div class="agent-selector-dialog" (click)="$event.stopPropagation()" data-test-id="chat-edit-chat-dialog">
             <div class="dialog-header">
                 <h2>EDIT CHAT DETAILS</h2>
-                <button mat-icon-button (click)="cancelEditChat()" class="close-btn">
+                <button mat-icon-button (click)="cancelEditChat()" class="close-btn" data-test-id="chat-edit-chat-close-btn">
                     <mat-icon>close</mat-icon>
                 </button>
             </div>
@@ -17,6 +17,7 @@
                 </label>
                 <input type="text" [(ngModel)]="editChatTitle" placeholder="Give this chat a memorable title"
                     class="title-input" maxlength="100" (click)="$event.stopPropagation()" name="chat-title-edit-field"
+                    data-test-id="chat-edit-chat-title-input"
                     autocomplete="off" />
                 <div class="char-counter">{{ editChatTitle.length }}/100</div>
             </div>
@@ -27,20 +28,21 @@
                 </label>
                 <textarea [(ngModel)]="editChatDescription" placeholder="Provide context for the agents"
                     class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()"
-                    name="chat-description-edit-field" autocomplete="off">
+                    name="chat-description-edit-field" autocomplete="off" data-test-id="chat-edit-chat-description-input">
                 </textarea>
                 <div class="char-counter">{{ editChatDescription.length }}/500</div>
             </div>
             <div class="dialog-footer">
-                <button mat-stroked-button (click)="cancelEditChat()" class="action-btn">CANCEL</button>
-                <button mat-raised-button color="primary" (click)="saveEditedChat()" class="create-btn">SAVE CHANGES</button>
+                <button mat-stroked-button (click)="cancelEditChat()" class="action-btn" data-test-id="chat-edit-chat-cancel-btn">CANCEL</button>
+                <button mat-raised-button color="primary" (click)="saveEditedChat()" class="create-btn"
+                    data-test-id="chat-edit-chat-save-btn">SAVE CHANGES</button>
             </div>
         </div>
     </div>
 
     <!-- Agent Selection Dialog -->
     <div class="agent-selector-overlay" *ngIf="showAgentSelector()" (click)="cancelNewChat()">
-        <div class="agent-selector-dialog" (click)="$event.stopPropagation()">
+        <div class="agent-selector-dialog" (click)="$event.stopPropagation()" data-test-id="chat-new-chat-dialog">
             <div class="dialog-header">
                 <h2>SELECT PARTICIPATING AGENTS</h2>
                 <button mat-icon-button (click)="cancelNewChat()" class="close-btn" data-test-id="chat-new-chat-close-btn">
@@ -48,8 +50,8 @@
                 </button>
             </div>
             <div class="dialog-actions">
-                <button mat-stroked-button (click)="selectAllAgents()" class="action-btn">Select All</button>
-                <button mat-stroked-button (click)="deselectAllAgents()" class="action-btn">Clear All</button>
+                <button mat-stroked-button (click)="selectAllAgents()" class="action-btn" data-test-id="chat-new-chat-select-all-btn">Select All</button>
+                <button mat-stroked-button (click)="deselectAllAgents()" class="action-btn" data-test-id="chat-new-chat-clear-all-btn">Clear All</button>
             </div>
             <div class="description-section">
                 <label class="description-label">
@@ -59,6 +61,7 @@
                 <input type="text" [(ngModel)]="chatTitle"
                     placeholder="Give this chat a memorable title"
                     class="title-input" maxlength="100" (click)="$event.stopPropagation()" name="new-chat-title-field"
+                    data-test-id="chat-new-chat-title-input"
                     autocomplete="off" />
                 <div class="char-counter">{{ chatTitle.length }}/100</div>
             </div>
@@ -70,13 +73,13 @@
                 <textarea [(ngModel)]="chatDescription"
                     placeholder="Provide context for the agents."
                     class="description-input" rows="3" maxlength="500" (click)="$event.stopPropagation()"
-                    name="new-chat-description-field" autocomplete="off">
+                    name="new-chat-description-field" autocomplete="off" data-test-id="chat-new-chat-description-input">
                 </textarea>
                 <div class="char-counter">{{ chatDescription.length }}/500</div>
             </div>
             <div class="agent-list">
                 <div *ngFor="let agent of availableAgents" class="agent-item"
-                    [class.selected]="selectedAgentIds().has(agent.id)" (click)="toggleAgentSelection(agent.id)">
+                    [class.selected]="selectedAgentIds().has(agent.id)" (click)="toggleAgentSelection(agent.id)" data-test-id="chat-new-chat-agent-option">
                     <div class="agent-checkbox">
                         <mat-icon *ngIf="selectedAgentIds().has(agent.id)">check_box</mat-icon>
                         <mat-icon *ngIf="!selectedAgentIds().has(agent.id)">check_box_outline_blank</mat-icon>
@@ -87,12 +90,13 @@
                     </div>
                     <div class="agent-color-badge" [style.background-color]="agent.hex"></div>
                 </div>
-                <div *ngIf="availableAgents.length === 0" class="empty-agents">
+                <div *ngIf="availableAgents.length === 0" class="empty-agents" data-test-id="chat-new-chat-agents-empty">
                     No agents configured. Please create agents in the Tachikomas page.
                 </div>
             </div>
             <div class="dialog-footer">
-                <button mat-raised-button color="primary" (click)="createNewChat()" class="create-btn">
+                <button mat-raised-button color="primary" (click)="createNewChat()" class="create-btn"
+                    data-test-id="chat-new-chat-start-btn">
                     START CHAT ({{ selectedAgentIds().size }} selected)
                 </button>
             </div>
@@ -112,7 +116,7 @@
             </div>
             <div class="header-actions">
                 <button (click)="showNewChatDialog()" class="new-chat-btn" matTooltip="New Chat"
-                    aria-label="New chat">
+                    aria-label="New chat" data-test-id="chat-header-new-chat-btn">
                     <mat-icon>add</mat-icon>
                 </button>
                 <button mat-icon-button class="history-toggle-btn-header" (click)="toggleHistoryDrawer()"
@@ -260,7 +264,7 @@
                             </div>
                         </ng-container>
 
-                        <div *ngIf="isProcessing" class="processing-indicator">
+                        <div *ngIf="isProcessing" class="processing-indicator" data-test-id="chat-processing-indicator">
                             <div class="typing-dot"></div>
                             <div class="typing-dot"></div>
                             <div class="typing-dot"></div>
@@ -268,7 +272,7 @@
                     </div>
 
                     <!-- Right status panel (desktop, during processing) -->
-                    <div class="status-panel" *ngIf="showNeuralActivity()">
+                    <div class="status-panel" *ngIf="showNeuralActivity()" data-test-id="chat-neural-activity-panel">
                         <h3 class="panel-title">NEURAL ACTIVITY</h3>
                         <div class="agent-status" *ngFor="let agent of agents">
                             <div class="status-row">
@@ -490,10 +494,10 @@
                     <h3>CHAT HISTORY</h3>
                     <div class="drawer-actions">
                         <button mat-icon-button class="new-chat-btn" (click)="showNewChatDialog()"
-                            matTooltip="New Chat">
+                            matTooltip="New Chat" data-test-id="chat-history-new-btn">
                             <mat-icon>add</mat-icon>
                         </button>
-                        <button mat-icon-button (click)="toggleHistoryDrawer()" matTooltip="Close">
+                        <button mat-icon-button (click)="toggleHistoryDrawer()" matTooltip="Close" data-test-id="chat-history-close-btn">
                             <mat-icon>close</mat-icon>
                         </button>
                     </div>
@@ -507,12 +511,12 @@
                             <div class="chat-actions">
                                 <button class="edit-chat-btn"
                                     (click)="showEditChatDialog(session.id); $event.stopPropagation()"
-                                    matTooltip="Edit">
+                                    matTooltip="Edit" data-test-id="chat-history-edit-btn">
                                     <mat-icon>edit</mat-icon>
                                 </button>
                                 <button class="delete-chat-btn"
                                     (click)="deleteChat(session.id); $event.stopPropagation()"
-                                    matTooltip="Delete">
+                                    matTooltip="Delete" data-test-id="chat-history-delete-btn">
                                     <mat-icon>delete</mat-icon>
                                 </button>
                             </div>
@@ -535,18 +539,18 @@
     <div class="vscode-status-bar" data-test-id="chat-status-bar">
         <div class="status-left">
             <span class="status-item sync-item"
-                [class.status-warn]="!!contextSoftWarning">
+                [class.status-warn]="!!contextSoftWarning" data-test-id="chat-status-sync">
                 <span class="status-dot-sm" [class.dot-warn]="!!contextSoftWarning"></span>
                 SECURE-LINK
             </span>
             <span class="status-sep">|</span>
-            <span class="status-item">
+            <span class="status-item" data-test-id="chat-status-model">
                 <mat-icon class="status-icon">smart_toy</mat-icon>
                 {{ primaryModel }}
             </span>
             <ng-container *ngIf="isProcessing">
                 <span class="status-sep">|</span>
-                <span class="status-item status-processing">
+                <span class="status-item status-processing" data-test-id="chat-status-processing">
                     <mat-icon class="status-icon spin-icon">sync</mat-icon>
                     PROCESSING
                 </span>
@@ -557,7 +561,7 @@
                 <span class="status-item"
                     [class.status-warn]="m.tokensThisMinute > m.tokensPerMinute * TOKEN_WARNING_THRESHOLD"
                     [class.status-danger]="m.tokensThisMinute > m.tokensPerMinute * 0.95"
-                    matTooltip="Tokens per minute">
+                    matTooltip="Tokens per minute" data-test-id="chat-status-tpm">
                     <mat-icon class="status-icon">token</mat-icon>
                     TPM: {{ formatTokenCount(m.tokensThisMinute) }}/{{ formatTokenCount(m.tokensPerMinute) }}
                 </span>
@@ -565,7 +569,7 @@
                 <span class="status-item"
                     [class.status-warn]="m.conversationContextTokens > m.inputTokenLimit * TOKEN_WARNING_THRESHOLD"
                     [class.status-danger]="m.conversationContextTokens > m.inputTokenLimit * 0.95"
-                    matTooltip="Context window usage">
+                    matTooltip="Context window usage" data-test-id="chat-status-ctx">
                     <mat-icon class="status-icon">psychology</mat-icon>
                     CTX: {{ (m.conversationContextTokens / m.inputTokenLimit * 100) | number:'1.0-0' }}%
                 </span>
@@ -574,12 +578,12 @@
             <span class="status-item"
                 [class.status-warn]="requestMetrics.requestTimestamps.length > maxRequestsPerMinute * TOKEN_WARNING_THRESHOLD"
                 [class.status-danger]="requestMetrics.requestTimestamps.length > maxRequestsPerMinute * 0.95"
-                matTooltip="Requests per minute">
+                matTooltip="Requests per minute" data-test-id="chat-status-rpm">
                 <mat-icon class="status-icon">speed</mat-icon>
                 RPM: {{ requestMetrics.requestTimestamps.length }}/{{ maxRequestsPerMinute }}
             </span>
             <span class="status-sep">|</span>
-            <span class="status-item" matTooltip="Active conversation round">
+            <span class="status-item" matTooltip="Active conversation round" data-test-id="chat-status-round">
                 <mat-icon class="status-icon">history</mat-icon>
                 ROUND {{ currentRoundId }}
             </span>

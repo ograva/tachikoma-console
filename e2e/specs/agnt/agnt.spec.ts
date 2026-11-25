@@ -25,15 +25,17 @@ test.describe('AGNT — Agent Profiles and Instruction Design', () => {
     test('T101 create a new agent profile with required fields', async ({ page }) => {
       await page.locator('[data-test-id="profiles-new-agent-btn"]').click();
 
-      const form = page.locator('mat-card', { hasText: 'CREATE NEW AGENT' });
-      await form.locator('input[placeholder*="LOGIKOMA"], mat-form-field:has-text("Agent Name") input').fill('TEST-AGENT');
-      await form.locator('mat-select[formcontrolname], mat-select').first().click().catch(() => {});
-      await form.locator('textarea[placeholder*="personality"], textarea').first().fill('You are TEST-AGENT. Your role: testing.');
+      await page.locator('[data-test-id="profiles-new-name-input"]').fill('TEST-AGENT');
+      // Required role: pick it explicitly
+      await page.locator('[data-test-id="profiles-new-role-select"]').click();
+      await page.locator('mat-option', { hasText: /chatter/i }).click();
+      // Plain-text is the default system mode; fill the system prompt
+      await page.locator('[data-test-id="profiles-new-plaintext-input"]').fill('You are TEST-AGENT. Your role: testing.');
 
       await page.locator('[data-test-id="profiles-save-new-btn"]').click();
 
       // The new profile should appear in the list
-      await expect(page.locator('.profile-card', { hasText: 'TEST-AGENT' })).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-test-id="profiles-card-name"]', { hasText: 'TEST-AGENT' })).toBeVisible({ timeout: 5_000 });
     });
 
     test('T102 profile persists to localStorage immediately after save', async ({ page }) => {
@@ -54,7 +56,6 @@ test.describe('AGNT — Agent Profiles and Instruction Design', () => {
       // Edit first profile
       await page.locator('[data-test-id="profiles-edit-btn"]').first().click();
       const nameInput = page.locator('mat-form-field:has-text("Agent Name") input').first();
-      await nameInput.triple_click ? nameInput.click({ clickCount: 3 }) : await nameInput.selectAll;
       await nameInput.fill('EDITED-NAME');
       await page.locator('[data-test-id="profiles-save-edit-btn"]').click();
 
@@ -191,8 +192,8 @@ test.describe('AGNT — Agent Profiles and Instruction Design', () => {
 
     test('T114 switching to form mode shows structured fields', async ({ page }) => {
       await page.locator('[data-test-id="profiles-new-agent-btn"]').click();
-      await page.locator('mat-button-toggle', { hasText: /form/i }).click();
-      await expect(page.locator('mat-form-field:has-text("Role")')).toBeVisible();
+      await page.locator('[data-test-id="profiles-new-mode-toggle"]').locator('mat-button-toggle', { hasText: /form/i }).click();
+      await expect(page.locator('[data-test-id="profiles-new-sys-role-input"]')).toBeVisible();
     });
 
     test('T115 switching to XML mode shows the XML text area', async ({ page }) => {

@@ -19,12 +19,12 @@
 | AUTH | T000–T099 | `e2e/specs/auth/` | 17 | 1 | T027 | T007–T009, T025–T026 |
 | AGNT | T100–T199 | `e2e/specs/agnt/` | 31 | 0 | T131 | — |
 | CHAT | T200–T299 | `e2e/specs/chat/` | 22 | 1 | T224 | T211–T212 |
-| ORCH | T300–T399 | `e2e/specs/orch/` | 25 | 0 | T328 | T312–T314 |
+| ORCH | T300–T399 | `e2e/specs/orch/` | 26 | 0 | T329 | T312–T314 |
 | SYNC | T400–T499 | `e2e/specs/sync/` | 25 | 0 | T429 | T419–T420, T425–T426 |
 | OPER | T500–T599 | `e2e/specs/oper/` | 37 | 11 | T543 | T512–T513, T517–T520 |
 | EDGE | T900–T999 | any module folder | 0 | 0 | T900 | — |
 
-**Total:** 157 tests, 13 tagged `@smoke`, 7 tagged `@landscape`.
+**Total:** 158 tests, 13 tagged `@smoke`, 8 tagged `@landscape`.
 
 ## AUTH
 
@@ -32,38 +32,38 @@
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T000 | anonymous/guest path lands user in the app | ✓ |  | `e2e/specs/auth/auth.spec.ts:26` |
-| T001 | email/password sign-in succeeds with valid credentials |  |  | `e2e/specs/auth/auth.spec.ts:32` |
-| T002 | failed sign-in shows error message |  |  | `e2e/specs/auth/auth.spec.ts:39` |
-| T003 | session persists across page reload |  |  | `e2e/specs/auth/auth.spec.ts:47` |
-| T004 | anonymous user local data is preserved after refresh |  |  | `e2e/specs/auth/auth.spec.ts:58` |
+| T000 | anonymous/guest path lands user in the app | ✓ |  | `e2e/specs/auth/auth.spec.ts:49` |
+| T001 | email/password sign-in succeeds with valid credentials |  |  | `e2e/specs/auth/auth.spec.ts:55` |
+| T002 | failed sign-in shows error message |  |  | `e2e/specs/auth/auth.spec.ts:62` |
+| T003 | session persists across page reload |  |  | `e2e/specs/auth/auth.spec.ts:70` |
+| T004 | anonymous user local data is preserved after refresh |  |  | `e2e/specs/auth/auth.spec.ts:81` |
 
 ### T005–T009 Logout behavior
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T005 | logout clears local session data |  |  | `e2e/specs/auth/auth.spec.ts:74` |
-| T006 | logout redirects to authentication page |  |  | `e2e/specs/auth/auth.spec.ts:99` |
+| T005 | logout clears local session data |  |  | `e2e/specs/auth/auth.spec.ts:97` |
+| T006 | logout redirects to authentication page |  |  | `e2e/specs/auth/auth.spec.ts:117` |
 
 ### T010–T014 API credentials
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T010 | API key input is present in chat header when unauthenticated |  |  | `e2e/specs/auth/auth.spec.ts:113` |
-| T011 | entering a valid API key saves and shows the initialized state |  |  | `e2e/specs/auth/auth.spec.ts:122` |
-| T012 | empty API key shows validation feedback |  |  | `e2e/specs/auth/auth.spec.ts:135` |
-| T013 | API key persists across reload for guest users |  |  | `e2e/specs/auth/auth.spec.ts:148` |
-| T014 | malformed API key (with non-ASCII chars) is sanitized before save |  |  | `e2e/specs/auth/auth.spec.ts:159` |
+| T010 | API key input is present in chat header when unauthenticated |  |  | `e2e/specs/auth/auth.spec.ts:132` |
+| T011 | entering a valid API key saves and shows the initialized state |  |  | `e2e/specs/auth/auth.spec.ts:141` |
+| T012 | empty API key shows validation feedback |  |  | `e2e/specs/auth/auth.spec.ts:154` |
+| T013 | API key persists across reload for guest users |  |  | `e2e/specs/auth/auth.spec.ts:167` |
+| T014 | malformed API key (with non-ASCII chars) is sanitized before save |  |  | `e2e/specs/auth/auth.spec.ts:178` |
 
 ### T020–T026 First-login sync strategy
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T020 | sync dialog appears on first authenticated login when local data exists |  |  | `e2e/specs/auth/auth.spec.ts:180` |
-| T021 | sync dialog presents three strategy options |  |  | `e2e/specs/auth/auth.spec.ts:203` |
+| T020 | sync dialog appears on first authenticated login when local data exists |  |  | `e2e/specs/auth/auth.spec.ts:199` |
+| T021 | sync dialog presents three strategy options |  |  | `e2e/specs/auth/auth.spec.ts:207` |
 | T022 | selecting merge strategy closes dialog and continues |  |  | `e2e/specs/auth/auth.spec.ts:221` |
-| T023 | skip-for-now closes sync dialog without performing sync |  |  | `e2e/specs/auth/auth.spec.ts:241` |
-| T024 | sync dialog does not appear when no local data exists |  |  | `e2e/specs/auth/auth.spec.ts:258` |
+| T023 | skip-for-now closes sync dialog without performing sync |  |  | `e2e/specs/auth/auth.spec.ts:236` |
+| T024 | sync dialog does not appear when no local data exists |  |  | `e2e/specs/auth/auth.spec.ts:247` |
 
 ## AGNT
 
@@ -73,55 +73,55 @@
 | :--- | :--- | :---: | :---: | :--- |
 | T100 | new agent button reveals the create form |  |  | `e2e/specs/agnt/agnt.spec.ts:20` |
 | T101 | create a new agent profile with required fields |  |  | `e2e/specs/agnt/agnt.spec.ts:25` |
-| T102 | profile persists to localStorage immediately after save |  |  | `e2e/specs/agnt/agnt.spec.ts:39` |
-| T103 | edit an existing profile — name change saves correctly |  |  | `e2e/specs/agnt/agnt.spec.ts:53` |
-| T104 | cancel edit does not persist changes |  |  | `e2e/specs/agnt/agnt.spec.ts:64` |
-| T105 | local persistence is immediate — reload shows saved profile |  |  | `e2e/specs/agnt/agnt.spec.ts:80` |
-| T106 | saving a profile shows updated model field with default value |  |  | `e2e/specs/agnt/agnt.spec.ts:90` |
+| T102 | profile persists to localStorage immediately after save |  |  | `e2e/specs/agnt/agnt.spec.ts:41` |
+| T103 | edit an existing profile — name change saves correctly |  |  | `e2e/specs/agnt/agnt.spec.ts:55` |
+| T104 | cancel edit does not persist changes |  |  | `e2e/specs/agnt/agnt.spec.ts:65` |
+| T105 | local persistence is immediate — reload shows saved profile |  |  | `e2e/specs/agnt/agnt.spec.ts:81` |
+| T106 | saving a profile shows updated model field with default value |  |  | `e2e/specs/agnt/agnt.spec.ts:91` |
 
 ### T107–T112 Role, Model, and Silence
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T107 | role selector shows chatter and moderator options |  |  | `e2e/specs/agnt/agnt.spec.ts:110` |
-| T108 | silence protocol selector shows all four options |  |  | `e2e/specs/agnt/agnt.spec.ts:118` |
-| T109 | model selector shows approved Gemini models |  |  | `e2e/specs/agnt/agnt.spec.ts:128` |
-| T110 | save with moderator role stores role correctly |  |  | `e2e/specs/agnt/agnt.spec.ts:135` |
-| T111 | silence protocol defaults to standard when not explicitly selected |  |  | `e2e/specs/agnt/agnt.spec.ts:152` |
-| T112 | conservative silence protocol saves and reloads correctly |  |  | `e2e/specs/agnt/agnt.spec.ts:164` |
+| T107 | role selector shows chatter and moderator options |  |  | `e2e/specs/agnt/agnt.spec.ts:111` |
+| T108 | silence protocol selector shows all four options |  |  | `e2e/specs/agnt/agnt.spec.ts:119` |
+| T109 | model selector shows approved Gemini models |  |  | `e2e/specs/agnt/agnt.spec.ts:129` |
+| T110 | save with moderator role stores role correctly |  |  | `e2e/specs/agnt/agnt.spec.ts:136` |
+| T111 | silence protocol defaults to standard when not explicitly selected |  |  | `e2e/specs/agnt/agnt.spec.ts:153` |
+| T112 | conservative silence protocol saves and reloads correctly |  |  | `e2e/specs/agnt/agnt.spec.ts:165` |
 
 ### T113–T118 System Instruction Authoring
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T113 | mode toggle shows plaintext, form, and XML options |  |  | `e2e/specs/agnt/agnt.spec.ts:185` |
-| T114 | switching to form mode shows structured fields |  |  | `e2e/specs/agnt/agnt.spec.ts:192` |
-| T115 | switching to XML mode shows the XML text area |  |  | `e2e/specs/agnt/agnt.spec.ts:198` |
-| T116 | AI convert button is visible in plain-text mode |  |  | `e2e/specs/agnt/agnt.spec.ts:204` |
-| T117 | convert button is disabled when system prompt is empty |  |  | `e2e/specs/agnt/agnt.spec.ts:211` |
-| T118 | save with form mode stores systemMode as "form" |  |  | `e2e/specs/agnt/agnt.spec.ts:217` |
+| T113 | mode toggle shows plaintext, form, and XML options |  |  | `e2e/specs/agnt/agnt.spec.ts:186` |
+| T114 | switching to form mode shows structured fields |  |  | `e2e/specs/agnt/agnt.spec.ts:193` |
+| T115 | switching to XML mode shows the XML text area |  |  | `e2e/specs/agnt/agnt.spec.ts:199` |
+| T116 | AI convert button is visible in plain-text mode |  |  | `e2e/specs/agnt/agnt.spec.ts:205` |
+| T117 | convert button is disabled when system prompt is empty |  |  | `e2e/specs/agnt/agnt.spec.ts:212` |
+| T118 | save with form mode stores systemMode as "form" |  |  | `e2e/specs/agnt/agnt.spec.ts:218` |
 
 ### T119–T124 Draft Persona from Intent
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T119 | intent panel and input are visible on profiles page |  |  | `e2e/specs/agnt/agnt.spec.ts:237` |
-| T120 | generate draft button is disabled when intent field is empty |  |  | `e2e/specs/agnt/agnt.spec.ts:242` |
-| T121 | generate draft button enables when intent text is entered |  |  | `e2e/specs/agnt/agnt.spec.ts:246` |
-| T122 | intent input accepts up to 500 characters |  |  | `e2e/specs/agnt/agnt.spec.ts:251` |
-| T123 | discard draft button removes the preview panel |  |  | `e2e/specs/agnt/agnt.spec.ts:258` |
-| T124 | apply draft button is not present when no draft exists |  |  | `e2e/specs/agnt/agnt.spec.ts:269` |
+| T119 | intent panel and input are visible on profiles page |  |  | `e2e/specs/agnt/agnt.spec.ts:238` |
+| T120 | generate draft button is disabled when intent field is empty |  |  | `e2e/specs/agnt/agnt.spec.ts:243` |
+| T121 | generate draft button enables when intent text is entered |  |  | `e2e/specs/agnt/agnt.spec.ts:247` |
+| T122 | intent input accepts up to 500 characters |  |  | `e2e/specs/agnt/agnt.spec.ts:252` |
+| T123 | discard draft button removes the preview panel |  |  | `e2e/specs/agnt/agnt.spec.ts:259` |
+| T124 | apply draft button is not present when no draft exists |  |  | `e2e/specs/agnt/agnt.spec.ts:270` |
 
 ### T125–T130 Material Dialog flows
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T125 | delete profile shows Material confirmation dialog |  |  | `e2e/specs/agnt/agnt.spec.ts:277` |
-| T126 | confirm delete removes the profile |  |  | `e2e/specs/agnt/agnt.spec.ts:283` |
-| T127 | cancel delete keeps the profile |  |  | `e2e/specs/agnt/agnt.spec.ts:290` |
-| T128 | reset to defaults shows Material confirmation dialog |  |  | `e2e/specs/agnt/agnt.spec.ts:297` |
-| T129 | confirming reset restores default profiles |  |  | `e2e/specs/agnt/agnt.spec.ts:302` |
-| T130 | Material dialog has proper focus trap — escape closes it |  |  | `e2e/specs/agnt/agnt.spec.ts:320` |
+| T125 | delete profile shows Material confirmation dialog |  |  | `e2e/specs/agnt/agnt.spec.ts:278` |
+| T126 | confirm delete removes the profile |  |  | `e2e/specs/agnt/agnt.spec.ts:284` |
+| T127 | cancel delete keeps the profile |  |  | `e2e/specs/agnt/agnt.spec.ts:291` |
+| T128 | reset to defaults shows Material confirmation dialog |  |  | `e2e/specs/agnt/agnt.spec.ts:298` |
+| T129 | confirming reset restores default profiles |  |  | `e2e/specs/agnt/agnt.spec.ts:303` |
+| T130 | Material dialog has proper focus trap — escape closes it |  |  | `e2e/specs/agnt/agnt.spec.ts:321` |
 
 ## CHAT
 
@@ -129,43 +129,43 @@
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T200 | new chat dialog opens with agent roster | ✓ |  | `e2e/specs/chat/chat.spec.ts:26` |
-| T201 | roster shows all available agents |  |  | `e2e/specs/chat/chat.spec.ts:31` |
-| T202 | creating chat requires at least one agent selected |  |  | `e2e/specs/chat/chat.spec.ts:39` |
-| T203 | chat title input is available in new chat dialog |  |  | `e2e/specs/chat/chat.spec.ts:56` |
-| T204 | chat description input is available in new chat dialog |  |  | `e2e/specs/chat/chat.spec.ts:61` |
-| T205 | chat description persists after creation |  |  | `e2e/specs/chat/chat.spec.ts:66` |
+| T200 | new chat dialog opens with agent roster | ✓ |  | `e2e/specs/chat/chat.spec.ts:33` |
+| T201 | roster shows all available agents |  |  | `e2e/specs/chat/chat.spec.ts:38` |
+| T202 | creating chat requires at least one agent selected |  |  | `e2e/specs/chat/chat.spec.ts:49` |
+| T203 | chat title input is available in new chat dialog |  |  | `e2e/specs/chat/chat.spec.ts:68` |
+| T204 | chat description input is available in new chat dialog |  |  | `e2e/specs/chat/chat.spec.ts:74` |
+| T205 | chat description persists after creation |  |  | `e2e/specs/chat/chat.spec.ts:80` |
 
 ### T206–T212 Resume and Manage
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T206 | history drawer opens and shows saved chats |  |  | `e2e/specs/chat/chat.spec.ts:88` |
-| T207 | switching chats loads the correct session |  |  | `e2e/specs/chat/chat.spec.ts:106` |
-| T208 | edit chat metadata dialog saves title and description |  |  | `e2e/specs/chat/chat.spec.ts:123` |
-| T209 | deleting a chat removes it from history |  |  | `e2e/specs/chat/chat.spec.ts:148` |
-| T210 | switching to deleted chat falls back to next available |  |  | `e2e/specs/chat/chat.spec.ts:167` |
+| T206 | history drawer opens and shows saved chats |  |  | `e2e/specs/chat/chat.spec.ts:104` |
+| T207 | switching chats loads the correct session |  |  | `e2e/specs/chat/chat.spec.ts:120` |
+| T208 | edit chat metadata dialog saves title and description |  |  | `e2e/specs/chat/chat.spec.ts:139` |
+| T209 | deleting a chat removes it from history |  |  | `e2e/specs/chat/chat.spec.ts:167` |
+| T210 | switching to deleted chat falls back to next available |  |  | `e2e/specs/chat/chat.spec.ts:188` |
 
 ### T213–T217 Export
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T213 | export menu button is visible when messages exist |  |  | `e2e/specs/chat/chat.spec.ts:206` |
-| T214 | export menu shows text, PDF, and Word options |  |  | `e2e/specs/chat/chat.spec.ts:212` |
-| T215 | export as text triggers a file download |  |  | `e2e/specs/chat/chat.spec.ts:221` |
-| T216 | export as PDF triggers a file download |  |  | `e2e/specs/chat/chat.spec.ts:234` |
-| T217 | exported filename uses the chat title (sanitized) |  |  | `e2e/specs/chat/chat.spec.ts:247` |
+| T213 | export menu button is visible when messages exist |  |  | `e2e/specs/chat/chat.spec.ts:228` |
+| T214 | export menu shows text, PDF, and Word options |  |  | `e2e/specs/chat/chat.spec.ts:234` |
+| T215 | export as text triggers a file download |  |  | `e2e/specs/chat/chat.spec.ts:243` |
+| T216 | export as PDF triggers a file download |  |  | `e2e/specs/chat/chat.spec.ts:256` |
+| T217 | exported filename uses the chat title (sanitized) |  |  | `e2e/specs/chat/chat.spec.ts:269` |
 
 ### T218–T223 Sticky Transcript Navigation
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T218 | jump-to-top button is present in the DOM |  |  | `e2e/specs/chat/chat.spec.ts:286` |
-| T219 | jump-to-latest button is present in the DOM |  |  | `e2e/specs/chat/chat.spec.ts:290` |
-| T220 | clicking jump-to-latest scrolls feed to the bottom |  |  | `e2e/specs/chat/chat.spec.ts:294` |
-| T221 | clicking jump-to-top scrolls feed to the top |  |  | `e2e/specs/chat/chat.spec.ts:310` |
-| T222 | nav controls appear on scroll interaction |  |  | `e2e/specs/chat/chat.spec.ts:321` |
-| T223 | unread badge shows correct count |  |  | `e2e/specs/chat/chat.spec.ts:330` |
+| T218 | jump-to-top button is present in the DOM |  |  | `e2e/specs/chat/chat.spec.ts:308` |
+| T219 | jump-to-latest button is present in the DOM |  |  | `e2e/specs/chat/chat.spec.ts:312` |
+| T220 | clicking jump-to-latest scrolls feed to the bottom |  |  | `e2e/specs/chat/chat.spec.ts:316` |
+| T221 | clicking jump-to-top scrolls feed to the top |  |  | `e2e/specs/chat/chat.spec.ts:335` |
+| T222 | nav controls appear on scroll interaction |  |  | `e2e/specs/chat/chat.spec.ts:346` |
+| T223 | unread badge shows correct count |  |  | `e2e/specs/chat/chat.spec.ts:355` |
 
 ## ORCH
 
@@ -173,46 +173,52 @@
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T300 | submitting a message triggers agent processing indicators |  |  | `e2e/specs/orch/orch.spec.ts:48` |
-| T301 | all chatter agents produce responses in transcript |  |  | `e2e/specs/orch/orch.spec.ts:62` |
-| T302 | moderator response appears after chatters |  |  | `e2e/specs/orch/orch.spec.ts:78` |
-| T303 | user message appears in transcript immediately |  |  | `e2e/specs/orch/orch.spec.ts:97` |
-| T304 | input is cleared after send |  |  | `e2e/specs/orch/orch.spec.ts:107` |
-| T305 | send button is disabled while processing |  |  | `e2e/specs/orch/orch.spec.ts:117` |
-| T306 | multiple rounds increment the round counter |  |  | `e2e/specs/orch/orch.spec.ts:142` |
-| T307 | messages are saved to localStorage after a round |  |  | `e2e/specs/orch/orch.spec.ts:157` |
+| T300 | submitting a message triggers agent processing indicators |  | ✓ | `e2e/specs/orch/orch.spec.ts:48` |
+| T301 | all chatter agents produce responses in transcript |  |  | `e2e/specs/orch/orch.spec.ts:68` |
+| T302 | moderator response appears after chatters |  |  | `e2e/specs/orch/orch.spec.ts:84` |
+| T303 | user message appears in transcript immediately |  |  | `e2e/specs/orch/orch.spec.ts:103` |
+| T304 | input is cleared after send |  |  | `e2e/specs/orch/orch.spec.ts:113` |
+| T305 | send button is disabled while processing |  |  | `e2e/specs/orch/orch.spec.ts:123` |
+| T306 | multiple rounds increment the round counter |  |  | `e2e/specs/orch/orch.spec.ts:148` |
+| T307 | messages are saved to localStorage after a round |  |  | `e2e/specs/orch/orch.spec.ts:163` |
 
 ### T308–T314 Silence and Synthesis
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T308 | SILENCE response from chatter is excluded from transcript |  |  | `e2e/specs/orch/orch.spec.ts:177` |
-| T309 | SILENCE from moderator is excluded from transcript |  |  | `e2e/specs/orch/orch.spec.ts:191` |
-| T310 | non-silence response from first chatter always shown |  |  | `e2e/specs/orch/orch.spec.ts:203` |
-| T311 | moderator synthesis appears in transcript when agents have spoken |  |  | `e2e/specs/orch/orch.spec.ts:216` |
+| T308 | SILENCE response from chatter is excluded from transcript |  |  | `e2e/specs/orch/orch.spec.ts:183` |
+| T309 | SILENCE from moderator is excluded from transcript |  |  | `e2e/specs/orch/orch.spec.ts:197` |
+| T310 | non-silence response from first chatter always shown |  |  | `e2e/specs/orch/orch.spec.ts:209` |
+| T311 | moderator synthesis appears in transcript when agents have spoken |  |  | `e2e/specs/orch/orch.spec.ts:222` |
 
 ### T315–T320 Shared Context
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T315 | file upload button is present in chat footer |  |  | `e2e/specs/orch/orch.spec.ts:233` |
-| T316 | uploading a text file shows it in the file context bar |  |  | `e2e/specs/orch/orch.spec.ts:238` |
-| T317 | uploaded file appears in shared context section |  |  | `e2e/specs/orch/orch.spec.ts:254` |
-| T318 | removing a file removes it from context bar |  |  | `e2e/specs/orch/orch.spec.ts:268` |
-| T319 | unsupported file type can still be uploaded (read as text) |  |  | `e2e/specs/orch/orch.spec.ts:286` |
-| T320 | file content appears in conversation history sent to agents |  |  | `e2e/specs/orch/orch.spec.ts:301` |
+| T315 | file upload button is present in chat footer |  |  | `e2e/specs/orch/orch.spec.ts:239` |
+| T316 | uploading a text file shows it in the file context bar |  |  | `e2e/specs/orch/orch.spec.ts:244` |
+| T317 | uploaded file appears in shared context section |  |  | `e2e/specs/orch/orch.spec.ts:260` |
+| T318 | removing a file removes it from context bar |  |  | `e2e/specs/orch/orch.spec.ts:274` |
+| T319 | unsupported file type can still be uploaded (read as text) |  |  | `e2e/specs/orch/orch.spec.ts:292` |
+| T320 | file content appears in conversation history sent to agents |  |  | `e2e/specs/orch/orch.spec.ts:307` |
 
 ### T321–T327 Failed Step Handling
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T321 | rate-limit error shows failed-step card instead of crashing |  |  | `e2e/specs/orch/orch.spec.ts:343` |
-| T322 | failed-step card shows the agent name |  |  | `e2e/specs/orch/orch.spec.ts:362` |
-| T323 | rate-limit failed card contains quota messaging |  |  | `e2e/specs/orch/orch.spec.ts:380` |
-| T324 | protocol continues for remaining agents after one fails |  |  | `e2e/specs/orch/orch.spec.ts:401` |
-| T325 | failed-step card is added to localStorage transcript |  |  | `e2e/specs/orch/orch.spec.ts:429` |
-| T326 | no silent failure — every failed agent produces a visible card |  |  | `e2e/specs/orch/orch.spec.ts:449` |
-| T327 | send button re-enables after failed round completes |  |  | `e2e/specs/orch/orch.spec.ts:466` |
+| T321 | rate-limit error shows failed-step card instead of crashing |  |  | `e2e/specs/orch/orch.spec.ts:349` |
+| T322 | failed-step card shows the agent name |  |  | `e2e/specs/orch/orch.spec.ts:368` |
+| T323 | rate-limit failed card contains quota messaging |  |  | `e2e/specs/orch/orch.spec.ts:386` |
+| T324 | protocol continues for remaining agents after one fails |  |  | `e2e/specs/orch/orch.spec.ts:407` |
+| T325 | failed-step card is added to localStorage transcript |  |  | `e2e/specs/orch/orch.spec.ts:435` |
+| T326 | no silent failure — every failed agent produces a visible card |  |  | `e2e/specs/orch/orch.spec.ts:455` |
+| T327 | send button re-enables after failed round completes |  |  | `e2e/specs/orch/orch.spec.ts:472` |
+
+### Ungrouped
+
+| ID | Test | Smoke | Landscape | Location |
+| :--- | :--- | :---: | :---: | :--- |
+| T328 | submitting a message shows the transcript typing indicator in portrait |  |  | `e2e/specs/orch/orch.spec.ts:496` |
 
 ## SYNC
 
@@ -220,56 +226,56 @@
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T400 | chat saves to localStorage immediately on creation |  |  | `e2e/specs/sync/sync.spec.ts:78` |
-| T401 | agent profile saves to localStorage immediately on creation |  |  | `e2e/specs/sync/sync.spec.ts:101` |
-| T402 | local data survives a hard refresh (F5) |  |  | `e2e/specs/sync/sync.spec.ts:115` |
-| T403 | UI reflects saved local state without cloud |  |  | `e2e/specs/sync/sync.spec.ts:133` |
-| T404 | multiple chats save without overwriting each other |  |  | `e2e/specs/sync/sync.spec.ts:150` |
+| T400 | chat saves to localStorage immediately on creation |  |  | `e2e/specs/sync/sync.spec.ts:68` |
+| T401 | agent profile saves to localStorage immediately on creation |  |  | `e2e/specs/sync/sync.spec.ts:89` |
+| T402 | local data survives a hard refresh (F5) |  |  | `e2e/specs/sync/sync.spec.ts:103` |
+| T403 | UI reflects saved local state without cloud |  |  | `e2e/specs/sync/sync.spec.ts:121` |
+| T404 | multiple chats save without overwriting each other |  |  | `e2e/specs/sync/sync.spec.ts:138` |
 
 ### T405–T413 Restore Across Devices
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T405 | cloud chats are restored into chat history on a new device after sign-in |  |  | `e2e/specs/sync/sync.spec.ts:193` |
-| T406 | restored chats keep message content and the timestamps used for conflict resolution |  |  | `e2e/specs/sync/sync.spec.ts:218` |
-| T407 | restored chat history keeps the most-recent-first order of the originating device |  |  | `e2e/specs/sync/sync.spec.ts:255` |
-| T408 | agent profiles and user settings synced from a first device are restored on a second device |  |  | `e2e/specs/sync/sync.spec.ts:285` |
-| T409 | merge strategy keeps local-only and cloud-only chats and the newest version of shared chats |  |  | `e2e/specs/sync/sync.spec.ts:328` |
-| T410 | use-cloud strategy replaces the local device chats with the cloud copy |  |  | `e2e/specs/sync/sync.spec.ts:360` |
-| T411 | use-local strategy replaces the cloud copy with the local device data |  |  | `e2e/specs/sync/sync.spec.ts:390` |
-| T412 | anonymous guest on a new device does not restore any cloud data |  |  | `e2e/specs/sync/sync.spec.ts:415` |
-| T413 | sign-in with an empty cloud copy completes without errors and keeps default agents |  |  | `e2e/specs/sync/sync.spec.ts:440` |
+| T405 | cloud chats are restored into chat history on a new device after sign-in |  |  | `e2e/specs/sync/sync.spec.ts:179` |
+| T406 | restored chats keep message content and the timestamps used for conflict resolution |  |  | `e2e/specs/sync/sync.spec.ts:204` |
+| T407 | restored chat history keeps the most-recent-first order of the originating device |  |  | `e2e/specs/sync/sync.spec.ts:241` |
+| T408 | agent profiles and user settings synced from a first device are restored on a second device |  |  | `e2e/specs/sync/sync.spec.ts:271` |
+| T409 | merge strategy keeps local-only and cloud-only chats and the newest version of shared chats |  |  | `e2e/specs/sync/sync.spec.ts:314` |
+| T410 | use-cloud strategy replaces the local device chats with the cloud copy |  |  | `e2e/specs/sync/sync.spec.ts:346` |
+| T411 | use-local strategy replaces the cloud copy with the local device data |  |  | `e2e/specs/sync/sync.spec.ts:376` |
+| T412 | anonymous guest on a new device does not restore any cloud data |  |  | `e2e/specs/sync/sync.spec.ts:401` |
+| T413 | sign-in with an empty cloud copy completes without errors and keeps default agents |  |  | `e2e/specs/sync/sync.spec.ts:426` |
 
 ### T414–T420 Offline-First
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T414 | existing local chats remain accessible when offline |  |  | `e2e/specs/sync/sync.spec.ts:463` |
-| T415 | agent profiles remain accessible when offline |  |  | `e2e/specs/sync/sync.spec.ts:490` |
-| T416 | new changes made while offline persist to localStorage |  |  | `e2e/specs/sync/sync.spec.ts:504` |
-| T417 | app does not crash when network requests fail |  |  | `e2e/specs/sync/sync.spec.ts:524` |
-| T418 | localStorage writes succeed while offline |  |  | `e2e/specs/sync/sync.spec.ts:536` |
+| T414 | existing local chats remain accessible when offline |  |  | `e2e/specs/sync/sync.spec.ts:449` |
+| T415 | agent profiles remain accessible when offline |  |  | `e2e/specs/sync/sync.spec.ts:476` |
+| T416 | new changes made while offline persist to localStorage |  |  | `e2e/specs/sync/sync.spec.ts:490` |
+| T417 | app does not crash when network requests fail |  |  | `e2e/specs/sync/sync.spec.ts:510` |
+| T418 | localStorage writes succeed while offline |  |  | `e2e/specs/sync/sync.spec.ts:522` |
 
 ### T421–T426 Firestore Namespace
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T421 | localStorage uses user-scoped keys for authenticated data |  |  | `e2e/specs/sync/sync.spec.ts:556` |
-| T422 | anonymous user data is stored under anonymous key prefix |  |  | `e2e/specs/sync/sync.spec.ts:572` |
-| T423 | anonymous and authenticated data are in separate localStorage namespaces |  |  | `e2e/specs/sync/sync.spec.ts:585` |
-| T424 | user-specific data is not accessible in anonymous namespace |  |  | `e2e/specs/sync/sync.spec.ts:607` |
+| T421 | localStorage uses user-scoped keys for authenticated data |  |  | `e2e/specs/sync/sync.spec.ts:542` |
+| T422 | anonymous user data is stored under anonymous key prefix |  |  | `e2e/specs/sync/sync.spec.ts:558` |
+| T423 | anonymous and authenticated data are in separate localStorage namespaces |  |  | `e2e/specs/sync/sync.spec.ts:571` |
+| T424 | user-specific data is not accessible in anonymous namespace |  |  | `e2e/specs/sync/sync.spec.ts:593` |
 
 ### T427–T427 Use-Local Strategy Preserves Cloud Profile
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T427 | use-local strategy keeps the cloud user profile, its settings and encrypted API key |  |  | `e2e/specs/sync/sync.spec.ts:623` |
+| T427 | use-local strategy keeps the cloud user profile, its settings and encrypted API key |  |  | `e2e/specs/sync/sync.spec.ts:609` |
 
 ### Ungrouped
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T428 | merge strategy on a new device keeps the cloud edit of a built-in agent |  |  | `e2e/specs/sync/sync.spec.ts:662` |
+| T428 | merge strategy on a new device keeps the cloud edit of a built-in agent |  |  | `e2e/specs/sync/sync.spec.ts:648` |
 
 ## OPER
 
@@ -277,55 +283,55 @@
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T500 | metrics dashboard is visible in the header | ✓ | ✓ | `e2e/specs/oper/oper.spec.ts:43` |
-| T501 | per-model metrics section is present |  | ✓ | `e2e/specs/oper/oper.spec.ts:47` |
-| T502 | token/cost estimate is tracked after a round |  |  | `e2e/specs/oper/oper.spec.ts:51` |
-| T503 | cost estimate renders with dollar prefix |  |  | `e2e/specs/oper/oper.spec.ts:67` |
-| T504 | daily request counter increments after each round |  | ✓ | `e2e/specs/oper/oper.spec.ts:84` |
-| T505 | token metrics do not block orchestration execution |  |  | `e2e/specs/oper/oper.spec.ts:99` |
-| T506 | formatTokenCount renders M suffix for large counts |  | ✓ | `e2e/specs/oper/oper.spec.ts:112` |
+| T500 | metrics are visible in the status bar | ✓ | ✓ | `e2e/specs/oper/oper.spec.ts:46` |
+| T501 | per-model metrics section is present |  | ✓ | `e2e/specs/oper/oper.spec.ts:53` |
+| T502 | token/cost estimate is tracked after a round |  |  | `e2e/specs/oper/oper.spec.ts:60` |
+| T503 | cost estimate renders with dollar prefix |  |  | `e2e/specs/oper/oper.spec.ts:76` |
+| T504 | daily request counter increments after each round |  | ✓ | `e2e/specs/oper/oper.spec.ts:93` |
+| T505 | token metrics do not block orchestration execution |  |  | `e2e/specs/oper/oper.spec.ts:110` |
+| T506 | formatTokenCount renders M suffix for large counts |  | ✓ | `e2e/specs/oper/oper.spec.ts:123` |
 
 ### T507–T513 Soft and Hard Token Limits
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T507 | soft limit warning banner appears when context approaches limit |  |  | `e2e/specs/oper/oper.spec.ts:123` |
-| T508 | soft limit banner has ARIA live region for screen readers |  |  | `e2e/specs/oper/oper.spec.ts:138` |
-| T509 | daily quota meter shows progress towards free tier limit |  | ✓ | `e2e/specs/oper/oper.spec.ts:145` |
-| T510 | meter bar shows warning class when approaching limit |  | ✓ | `e2e/specs/oper/oper.spec.ts:150` |
-| T511 | rate limit per minute is shown in metrics |  | ✓ | `e2e/specs/oper/oper.spec.ts:168` |
+| T507 | soft limit warning banner appears when context approaches limit |  |  | `e2e/specs/oper/oper.spec.ts:132` |
+| T508 | soft limit banner has ARIA live region for screen readers |  |  | `e2e/specs/oper/oper.spec.ts:148` |
+| T509 | daily quota meter shows progress towards free tier limit |  | ✓ | `e2e/specs/oper/oper.spec.ts:161` |
+| T510 | meter bar shows warning class when approaching limit |  | ✓ | `e2e/specs/oper/oper.spec.ts:167` |
+| T511 | rate limit per minute is shown in metrics |  | ✓ | `e2e/specs/oper/oper.spec.ts:188` |
 
 ### T514–T520 Context Overflow
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T514 | conversation history uses round-based windowing |  |  | `e2e/specs/oper/oper.spec.ts:177` |
-| T515 | older rounds are compressed to moderator-only in context |  |  | `e2e/specs/oper/oper.spec.ts:222` |
-| T516 | long conversation stays responsive (no O(n²) growth) |  |  | `e2e/specs/oper/oper.spec.ts:258` |
+| T514 | conversation history uses round-based windowing |  |  | `e2e/specs/oper/oper.spec.ts:198` |
+| T515 | older rounds are compressed to moderator-only in context |  |  | `e2e/specs/oper/oper.spec.ts:242` |
+| T516 | long conversation stays responsive (no O(n²) growth) |  |  | `e2e/specs/oper/oper.spec.ts:279` |
 
 ### T521–T526 Shell Token Alignment
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T521 | header is rendered with SAC styling | ✓ |  | `e2e/specs/oper/oper.spec.ts:304` |
-| T522 | sidebar is rendered without layout breakage | ✓ |  | `e2e/specs/oper/oper.spec.ts:309` |
-| T523 | core routes load without visual overlap |  |  | `e2e/specs/oper/oper.spec.ts:315` |
-| T524 | SAC token custom properties are defined in page styles |  |  | `e2e/specs/oper/oper.spec.ts:327` |
-| T525 | neon green accent token is applied correctly |  |  | `e2e/specs/oper/oper.spec.ts:334` |
-| T526 | header height token matches actual header height |  |  | `e2e/specs/oper/oper.spec.ts:341` |
+| T521 | header is rendered with SAC styling | ✓ |  | `e2e/specs/oper/oper.spec.ts:325` |
+| T522 | sidebar is rendered without layout breakage | ✓ |  | `e2e/specs/oper/oper.spec.ts:330` |
+| T523 | core routes load without visual overlap |  |  | `e2e/specs/oper/oper.spec.ts:336` |
+| T524 | SAC token custom properties are defined in page styles |  |  | `e2e/specs/oper/oper.spec.ts:348` |
+| T525 | neon green accent token is applied correctly |  |  | `e2e/specs/oper/oper.spec.ts:355` |
+| T526 | header height token matches actual header height |  |  | `e2e/specs/oper/oper.spec.ts:362` |
 
 ### T535–T542 ARIA and Focus Visibility
 
 | ID | Test | Smoke | Landscape | Location |
 | :--- | :--- | :---: | :---: | :--- |
-| T535 | login form inputs have aria-label attributes |  |  | `e2e/specs/oper/oper.spec.ts:352` |
-| T536 | guest button has descriptive aria-label |  |  | `e2e/specs/oper/oper.spec.ts:359` |
-| T537 | chat send button has aria-label |  |  | `e2e/specs/oper/oper.spec.ts:367` |
-| T538 | chat message input has aria-label |  |  | `e2e/specs/oper/oper.spec.ts:376` |
-| T539 | transcript navigation buttons have aria-labels |  |  | `e2e/specs/oper/oper.spec.ts:385` |
-| T540 | profiles intent panel has aria-label on textarea |  |  | `e2e/specs/oper/oper.spec.ts:396` |
-| T541 | profiles edit and delete buttons have aria-labels |  |  | `e2e/specs/oper/oper.spec.ts:404` |
-| T542 | confirm dialog has role=dialog and aria-labelledby |  |  | `e2e/specs/oper/oper.spec.ts:413` |
+| T535 | login form inputs have aria-label attributes |  |  | `e2e/specs/oper/oper.spec.ts:373` |
+| T536 | guest button has descriptive aria-label |  |  | `e2e/specs/oper/oper.spec.ts:380` |
+| T537 | chat send button has aria-label |  |  | `e2e/specs/oper/oper.spec.ts:388` |
+| T538 | chat message input has aria-label |  |  | `e2e/specs/oper/oper.spec.ts:397` |
+| T539 | transcript navigation buttons have aria-labels |  |  | `e2e/specs/oper/oper.spec.ts:406` |
+| T540 | profiles intent panel has aria-label on textarea |  |  | `e2e/specs/oper/oper.spec.ts:417` |
+| T541 | profiles edit and delete buttons have aria-labels |  |  | `e2e/specs/oper/oper.spec.ts:425` |
+| T542 | confirm dialog has role=dialog and aria-labelledby |  |  | `e2e/specs/oper/oper.spec.ts:434` |
 
 ### Ungrouped
 
