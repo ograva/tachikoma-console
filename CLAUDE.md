@@ -51,6 +51,14 @@ This is the owner's working sequence (source: `.github/agents/cohorts-flow.md`).
 - **PREFIX codes are canonical.** Module prefixes from the PRD (`AUTH`, `AGNT`, `CHAT`, `ORCH`, `SYNC`, `OPER`) key every story, shard, wireframe, test and GitHub label.
 - **Shard status lifecycle:** `Not Started` → `In Progress` → `Ready for Review` → `Completed` → `Superseded`. `BACKLOG.md` currently writes `Done`, which the Athena scripts accept as an alias of `Completed`.
 
+## Agent Status Tracking
+`docs/context/AGENT_STATUS.md` is the live record of delegated agent work. Read it first when resuming a session.
+- **Before spawning or resuming an agent:** add or update its row in *Active* (ID `W-##`, workstream, agent, phase, status `In Progress`, start date).
+- **When an agent reports back:** move the row to *Completed* with its result and commit hash(es), or mark it `Blocked` with the reason. Commit the status change together with that agent's work.
+- **Agents that stop early** (usage limit, crash): mark the row `Paused` with the reason and note where the uncommitted work is (worktree path or backup patch).
+- **Follow-ups an agent raises but nobody owns yet** go in *Open follow-ups*. Don't leave them only in chat.
+- **Before ending a session:** make sure no row is stale, and list anything still `In Progress` or `Paused` in the final summary.
+
 ## Repo Reality
 The agent specs exist in three places, with one source of truth:
 - `.github/agents/<name>.agent.md`: the **full spec** and the single source of truth (also used by GitHub Copilot).
