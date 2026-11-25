@@ -10,7 +10,7 @@
 
 | Version | Date | Author | Summary of Changes |
 | :---- | :---- | :---- | :---- |
-| v1.2 | 2026-11-25 | Mary | Firebase AI Logic migration: BYOK replaced by zero-setup managed AI access (owner decisions D1–D8); cost guardrail on the Spark free tier; risks updated for the shared project quota and the loss of persona temperature; stale constraints corrected (Angular 20, CONSTRAINTS.md exists, cross-device sync shipped). |
+| v1.2 | 2026-11-25 | Mary | Private release stage (owner and invited testers; no public launch yet). Firebase AI Logic migration: BYOK replaced by zero-setup managed AI access (owner decisions D1–D8); cost guardrail on the Spark free tier; risks updated for the shared project quota and the loss of persona temperature; stale constraints corrected (Angular 20, CONSTRAINTS.md exists, cross-device sync shipped). |
 | v1.1 | 2026-05-28 | Mary | Expanded KPIs, quantified pain, deepened features, clarified constraints, and added open questions. |
 | v1.0 | 2026-05-28 | Mary | Initial draft capturing the core multi-agent personality framework. |
 
@@ -65,6 +65,7 @@ Existing multi-agent stacks are often backend-heavy and slow to iterate. SAC clo
   * *Metric:* <= 5% of rounds per week end in a quota-throttled failed-step card (tracked from ORCH-004 failure codes for quota/429).
   * *Baseline:* New with the migration. Previously every user paid for their own key (BYOK), so the project had no AI cost and no shared quota.
   * *Note:* Throttling under heavy use is an accepted trade-off. Moving to Blaze (paid) is a later, explicit owner decision with its own spend ceiling.
+  * *Release stage (v1.2):* **private.** SAC is not open to the general public yet: the users are the owner and invited testers. The free-tier quota and Goal 5 are sized for that audience. A public launch is a separate, explicit owner decision that must revisit Goal 5, Risk 1 and Risk 4 first.
 
 ### **5\. High-Level Feature Areas**
 
@@ -90,6 +91,7 @@ Existing multi-agent stacks are often backend-heavy and slow to iterate. SAC clo
   * Multi-user collaboration, organization workspaces, and role-based access controls.
   * Bring-your-own Gemini API key (removed in v1.2: Firebase AI Logic has no supported BYOK path, and keeping both would mean two AI stacks to build and test).
   * Paid AI tier or linking a billing account (Blaze). This is a later, explicit owner decision.
+  * Public launch / general availability. v1 runs as a private release for the owner and invited testers.
   * _Correction (v1.2): accounts and cross-device sync were listed here in v1.1 but have since shipped (AUTH, SYNC modules)._
   * Retrieval-augmented generation, vector databases, and document ingestion pipelines.
   * Voice, avatar streaming, and multimodal real-time interactions.
@@ -123,13 +125,14 @@ Existing multi-agent stacks are often backend-heavy and slow to iterate. SAC clo
 
 * **Risk 4: Abuse of a keyless, guest-accessible AI endpoint (added v1.2)**
   * *Description:* Without user keys, the app's own quota is the target. Scripted clients or abusive guests could drain it.
-  * *Likelihood:* Medium | *Impact:* High
+  * *Likelihood:* Low while the release is private (Medium after a public launch) | *Impact:* High
   * *Mitigation:* App Check enforcement with limited-use tokens (replay protection), per-user limits tied to a Firebase uid, and restricting the web API key to the app's domain and the required APIs.
 
 * **Open Questions:**
   * Which single provider/model combination is the default for launch benchmarking?
   * What prompt and data handling is acceptable now that AI calls go through a managed Firebase proxy rather than the user's own key? (Reframed in v1.2.)
   * Should guests get a lower per-user limit than signed-in users once usage data exists?
+  * Before a public launch: what gates access (invite list, sign-in only, waitlist), and do the free-tier quota and Goal 5 still hold?
 
 ### **9\. Timeline & Milestones**
 
