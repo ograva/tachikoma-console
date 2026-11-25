@@ -6,6 +6,7 @@
 | **Scope** | Every E2E failure under the two-layout Playwright config, plus 2 e2e type errors and 1 failing unit test |
 | **Config** | `playwright.config.ts`: `portrait` (390x844, Pixel 5 chromium, mobile and touch; runs all tests not tagged `@landscape`) and `landscape` (1280x800 Desktop Chrome; runs only `@landscape`) |
 | **Environment** | Firebase emulators (auth, firestore, storage), `ng serve --configuration local`, 1 worker |
+| **Status** | TEST groups fixed or deferred on 2026-11-25; see "Stabilisation status" below |
 | **Rule** | Triage only. Nothing was fixed apart from the layout config, the `@landscape` tags, removing the T406 viewport override, and keeping SYNC green (T400/T404 fail-fast with an updated `test.fail` reason; new T428 regression guard) |
 
 ## Before / after counts
@@ -27,6 +28,56 @@ Other checks:
 - `npx tsc --noEmit -p e2e/tsconfig.json`: 2 errors (`e2e/specs/agnt/agnt.spec.ts:57`).
 
 Every test that was unexpected under the new config was also unexpected under the old one, so the layout change caused no regressions.
+
+## Stabilisation status (TEST groups, 2026-11-25)
+
+Quinn fixed the TEST-side groups in an isolated worktree based on `3e44871`. That worktree does **not** contain Athena's APP fixes (A1, A4, A5, A6, A7 are fixed on main), so the remaining A1 and A5 failures below are expected there. No assertion was weakened, and no `skip`, `fixme` or new `test.fail` was added.
+
+| Group | Status | What changed |
+| :--- | :--- | :--- |
+| T1 | **Fixed** | `closeAutoOpenedNewChatSelector` moved to `e2e/helpers/chat.helper.ts` (exported from `index.ts`, together with `openChatHistoryDrawer`). It is used by CHAT T201–T205 and SYNC T400/T404. |
+| T2 | **Fixed** (non-key tests only) | The CHAT `beforeEach` suppresses the explainer before `goto('/tachikoma')` (fixes T204). AUTH T012/T014 are deferred with T5 (see below). |
+| T3 | **Fixed** | AUTH T020–T024 use `sync-dialog`, `sync-option-*` and `sync-skip-btn`. Each test uses a unique emulator user. |
+| T4 | **Fixed** | AUTH T005/T006 seed a local chat, sign in a unique user, call `resolveSyncDialog(page, 'skip')` and log out through `shell-header-profile-btn` → `shell-profile-menu-logout-btn`. Seeding the chat keeps the dialog deterministic with or without the A5 fix. The `signOut` helper uses the same ids. |
+| T5 | **Deferred: Firebase AI Logic migration** | AUTH T010–T014 (API-credential tests) are untouched and still failing (T011, T012, T014). They are to be rewritten after the migration from the `@google/genai` BYOK key. |
+| T6 | **Fixed** | OPER T500, T501, T504, T506, T509, T510, T511 (`@landscape`) now target `chat-status-bar`, `-model`, `-tpm`, `-ctx`, `-rpm` and `-processing`. T500 was retitled "metrics are visible in the status bar". T509 asserts the request meter against the free-tier limit (`RPM: n/15`); **the status bar has no daily-quota (20/day) meter**, which is an as-built gap for Jason/Eunice. The OPER `beforeEach` now installs `mockGeminiApi` before the reload, so the model-detail fetch on load is mocked (closes the latent gap from hypothesis 5). |
+| T7 | **Fixed** | OPER T507/T508 create a real near-limit state: `mockGeminiApi(…, { inputTokenLimit: 1000, countTokens: 850 })`, reload, send one round, then assert that the banner becomes visible (85% ≥ 80%) and has `aria-live="polite"` and `role="alert"`. |
+| T8 | **Fixed** | OPER T514/T515 wait for the outgoing `:generateContent` request (`page.waitForRequest`) and assert on its body. T515 also asserts the compressed form (`MODERATOR (Moderator): Summary0`). Other Gemini calls `route.fallback()` to the mock. |
+| T9 | **Fixed** | CHAT T206–T210 open the drawer (`openChatHistoryDrawer`) and use `chat-history-edit-btn` / `chat-history-delete-btn` and the `chat-edit-chat-*` ids. T208 also checks the description. T209 checks that the row is gone and that the remaining chat is kept. T207 also opens the drawer first. |
+| T10 | **Fixed** | CHAT T220 scrolls to the top, waits for `chat-jump-latest-btn` to be visible, clicks without `force`, then uses `expect.poll` on the bottom position. |
+| T11 | **Fixed** | ORCH T300 is now `@landscape` and asserts that `chat-status-processing` appears and then clears. Replies are delayed with the new `delayMs` mock option. New portrait equivalent **T328** (`Source: Quinn`) asserts `chat-processing-indicator` in the transcript feed. |
+| T12 | **Fixed** | AGNT T101 uses `profiles-new-name-input`, `profiles-new-role-select` and `profiles-new-plaintext-input`, then asserts on `profiles-card-name`. T114 uses `profiles-new-mode-toggle` and `profiles-new-sys-role-input`. |
+| T13 | **Fixed** | Deleted the no-op line in AGNT T103 (`fill` already clears the field). `npx tsc --noEmit -p e2e/tsconfig.json` is clean. |
+| T14 | **Fixed** | The unit fixture uses `models/gemini-pro-latest` (in `validModels`, not the default) and guards that it differs from `DEFAULTS.model`. Unit tests: 250 / 250 pass. |
+| SYNC T400/T404 | **Fixed** (A3 workaround) | Seeded an API key (the tests are about local-first saving), removed `test.fail`, switched to the `chat-new-chat-*` ids. T400 passes. T404 is still intermittently blocked by A1 in the worktree. T428 was not touched. |
+
+### Counts after the TEST fixes (worktree, without the APP fixes)
+
+Full run: `PLAYWRIGHT_BASE_URL=http://127.0.0.1:4300 npx playwright test --reporter=json` (both projects, 158 tests: T328 was added).
+
+| Module | After layout change: expected / unexpected | After TEST fixes: expected / unexpected |
+| :--- | :--- | :--- |
+| AUTH | 7 / 10 | 13 / 4 |
+| AGNT | 29 / 2 | 31 / 0 |
+| CHAT | 12 / 10 | 22 / 0 |
+| ORCH | 23 / 2 | 25 / 1 (26 tests) |
+| SYNC | 25 / 0 (T400/T404 as `test.fail`) | 24 / 1 (T400/T404 are real tests now; T428 still `test.fail`) |
+| OPER | 26 / 11 | 36 / 1 |
+| **Total** | **122 / 35** (157) | **151 / 7** (158) |
+
+Stability rerun of every changed test (53 tests): 50 expected / 3 unexpected. Those 3 are the same failures as in the full run (T024, T510, T404). Unit tests: 250 / 250 pass. `tsc` (e2e): 0 errors. `test:registry:check`: up to date.
+
+Remaining failures:
+
+| Test | Project | Classification | Evidence |
+| :--- | :--- | :--- | :--- |
+| AUTH T011, T012, T014 | portrait | Deferred: Firebase AI Logic migration | T5/A2, untouched by decision |
+| AUTH T024 | portrait | Blocked by A5 (fixed on main) | `dialog "Sync Your Data"` appears with no local data |
+| ORCH T306 | portrait | Blocked by A1 (fixed on main) | 2 × `dialog "Save API Key to Profile?"` in the snapshot |
+| OPER T510 | landscape | Blocked by A1 (fixed on main) | 2 × `dialog "Save API Key to Profile?"`; its backdrop intercepts `chat-send-btn` |
+| SYNC T404 | portrait | Blocked by A1 (fixed on main) | 2 × `dialog "Save API Key to Profile?"`; its backdrop intercepts `chat-new-chat-start-btn` |
+
+None is unexpected. CHAT T201–T205, T207 and OPER T504, listed earlier as "will block after the TEST fixes" by A1, passed in both runs: the A1 dialog is timing-dependent.
 
 ## Hypotheses
 
