@@ -6,7 +6,7 @@
 | **Module** | SYNC - Persistence, Offline Continuity, and Cross-Device Recovery |
 | **Story Ref** | SYNC-002 |
 | **Priority** | High |
-| **Status** | Ready for Review |
+| **Status** | Completed |
 | **GitHub Issue** | #58 |
 | **Complexity** | M |
 | **Depends On** | SYNC-001, AUTH-003 |
@@ -17,14 +17,14 @@ Implement deterministic cross-device restore for authenticated users using cloud
 
 ## Acceptance Criteria
 
-- [ ] Authenticated users can load cloud-backed chats, profiles, and settings on a new device.
-- [ ] Restore logic preserves timestamps required for conflict resolution.
-- [ ] Encrypted values are decrypted only after authorized retrieval and valid user context.
+- [x] Authenticated users can load cloud-backed chats, profiles, and settings on a new device.
+- [x] Restore logic preserves timestamps required for conflict resolution.
+- [x] Encrypted values are decrypted only after authorized retrieval and valid user context.
 
 ## Test Coverage
 
-- [ ] Unit: Restore merge and decrypt flows with timestamp and strategy branch coverage.
-- [ ] E2E: Login on second device and restore path with strategy-aware results (T405-T413) in `e2e/specs/sync/sync.spec.ts`.
+- [x] Unit: Restore merge and decrypt flows with timestamp and strategy branch coverage.
+- [x] E2E: Login on second device and restore path with strategy-aware results (T405-T413) in `e2e/specs/sync/sync.spec.ts`.
 
 ## Dev Notes
 
@@ -41,3 +41,18 @@ Reopened from `Done` by owner decision after Quinn's `/gate` FAIL (commit 901973
 - **Medium:** restored chats come back oldest-first (T407).
 
 Exit: Athena fixes the defects and removes the `test.fail()` markers, then Quinn re-runs `/gate`.
+
+## Gate (2026-11-25)
+
+**Verdict: PASS** (Quinn, Phase 10, re-gate on HEAD 2ec21d1 after A4/A5/A7 in 66c609a). Status set to `Completed`.
+
+- ACs: restore of chats, agents and settings on a new device (T405, T408), timestamps kept (T406, unit), decryption only for the signed-in user (T427, `UserProfileService.fromCloud` unit cases).
+- Runs: `npx playwright test e2e/specs/sync` 25 passed / 0 failed (no `test.fail` left; T428 passes for real); SYNC unit specs 203/203; full unit suite 271/271; `npm run test:registry:check` up to date; emulator Firestore scan 37 docs, 0 `nullValue` (DAT-302).
+- Previous High (A4: merge overwrote cloud-edited default agents) fixed by the shared rule `cloudCopyWins` / `mergeSyncRecords` / `yieldsToCloud`. Tie-rule inconsistency and `photoURL: null` fixed.
+- Residual, non-blocking:
+  - **Medium:** a default agent or chat deleted on one device comes back from another device's merge or whole-set upload (no tombstones). Product decision for Jason.
+  - **Medium:** if "Use Local Data" is clicked before the cloud profile load (B) finishes, the pre-sign-in local profile is laid over the cloud settings (Flow E11).
+  - **Medium (SYNC-001 write path):** `AgentProfileService.syncToCloud` uploads every profile on any create or update, bypassing the merge rule, so a stale copy of another agent can overwrite a newer edit made on another device.
+  - **Low:** `firstLogin` is set after the auth listener fires; the deferral relies on microtask ordering (no failing test).
+  - **Low:** `FirestoreService.saveBatch` writes without `sanitizeForFirestore` (no callers).
+  - **Low / accepted:** cloud wins equal-`updatedAt` ties even when content differs; a default deleted locally before first sign-in is restored from the cloud; "Use Local Data" cannot clear a cloud API key (deferred to the Firebase AI Logic migration).

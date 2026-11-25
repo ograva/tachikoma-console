@@ -8,7 +8,7 @@ Last updated: 2026-11-25
 
 | ID | Workstream | Agent | Phase | Status | Started | Commit(s) | Blocked by / next step |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| W-13 | Re-gate SYNC-002 (A4 fixed; T428 passes) | Quinn | 10 | In Progress | 2026-11-25 | — | /audit + /gate on HEAD 2ec21d1 |
+| — | No agent work running. | | | | | | |
 
 ## Next up (owner-approved or proposed)
 
@@ -25,7 +25,11 @@ Last updated: 2026-11-25
 | A6 rules 4, 5, 7: 44px touch targets, aria-labels, reduced motion on history actions | Eunice, Wireframe_Chat v1.1 | Athena |
 | New-chat dialog START CHAT below the viewport on desktop landscape (1280×720) | Quinn, earlier SYNC run | Eunice → Athena |
 | No daily-quota meter in the status bar (T509 asserts RPM instead) | Quinn, stabilisation | Jason/Eunice (may be superseded by the migration) |
-| Default agent deleted on one device returns after merge; ties now go to the cloud | Athena risks, A4 | Jason (product decision) |
+| No tombstones: a default or custom agent, or a chat, deleted on one device comes back via merge or whole-set uploads. Ties go to the cloud (by design). | Athena risks A4; Quinn W-13 | Jason (product decision) |
+| N1 (Medium): `AgentProfileService.syncToCloud` blind-uploads the whole agent set on any create, update or reset, bypassing the merge rule; reset leaves custom agents in the cloud | Quinn W-13 | Poe → Athena (SYNC hardening shard); Watson if the sync design changes |
+| (c) (Medium): Use Local Data can overlay the pre-sign-in local profile on the cloud settings if clicked before the cloud profile loads (Flow E11) | Quinn W-13 | Poe → Athena (same shard) |
+| N2 (Low): `FirestoreService.saveBatch` writes without `sanitizeForFirestore`; no callers, so delete or sanitize it | Quinn W-13 | Poe → Athena (same shard) |
+| (b) (Low): `firstLogin` is set after the auth listener fires; the restore deferral relies on microtask ordering | Quinn W-13 | Poe → Athena (same shard) |
 | Offline cold start no longer E2E-tested (needs a production-build target) | Quinn, T414 | Owner decision |
 | AUTH T010–T014, STABILISATION A2/A3/T5 | Deferred | Firebase AI Logic migration |
 
@@ -33,6 +37,7 @@ Last updated: 2026-11-25
 
 | ID | Workstream | Agent | Result | Commit(s) |
 | :--- | :--- | :--- | :--- | :--- |
+| W-13 | Re-gate SYNC-002 | Quinn | **Gate PASS**: SYNC-002 Completed. E2E sync 25/25, unit 271/271, 0 nulls in emulator Firestore. Flow_RestoreAcrossDevices v1.2 | (this commit) |
 | W-12 | Full-suite verification of merged stabilisation code | main session | **Stable baseline:** build pass; unit 271/271; e2e tsc clean; E2E 155 expected / 3 unexpected (only AUTH T011, T012, T014, deferred to the migration) | a6e814a |
 | W-11 | Stabilisation TEST fixes T1–T4, T6–T14, SYNC T400/T404 | Quinn | 151/158 in worktree; merged | a6e814a |
 | W-10 | A5 test updates (no sync dialog on fresh devices; T405–T408, T413) | main session | SYNC 25/25 ×2 | db6131e |

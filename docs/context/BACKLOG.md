@@ -23,7 +23,7 @@
 | SYNC-001 | Save locally before cloud sync | SYNC | High | Done | M | SYNC-001 | [SYNC-001](../shards/SYNC/SYNC-001-save-locally-before-cloud-sync.md) (#55) |
 | SYNC-004 | Use dedicated Firestore database isolation | SYNC | High | Done | M | SYNC-004 | [SYNC-004](../shards/SYNC/SYNC-004-use-firestore-app-namespace.md) (#56) |
 | SYNC-003 | Support offline-first operation | SYNC | Medium | Done | M | SYNC-003 | [SYNC-003](../shards/SYNC/SYNC-003-support-offline-first-operation.md) (#57) |
-| SYNC-002 | Restore data across devices | SYNC | High | Ready for Review | M | SYNC-002 | [SYNC-002](../shards/SYNC/SYNC-002-restore-data-across-devices.md) (#58) |
+| SYNC-002 | Restore data across devices | SYNC | High | Done | M | SYNC-002 | [SYNC-002](../shards/SYNC/SYNC-002-restore-data-across-devices.md) (#58) |
 | OPER-001 | Show token and cost estimates | OPER | High | Done | M | OPER-001 | [OPER-001](../shards/OPER/OPER-001-show-token-and-cost-estimates.md) (#59) |
 | OPER-002 | Stop at soft and hard token limits | OPER | High | Done | M | OPER-002 | [OPER-002](../shards/OPER/OPER-002-stop-at-soft-and-hard-token-limits.md) (#60) |
 | OPER-003 | Prevent context overflow | OPER | High | Done | L | OPER-003 | [OPER-003](../shards/OPER/OPER-003-prevent-context-overflow.md) (#61) |
