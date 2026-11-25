@@ -41,10 +41,11 @@ This is the owner's working sequence (source: `.github/agents/cohorts-flow.md`).
 - **Change of direction:** re-enter at Phase 1 (Mary). A brief at v2.0 or later triggers a Watson ADL entry.
 - **Implementation deviates from `Architecture.md`:** Athena stops and hands off with "Technical Pivot Required" to Watson. Watson runs `/log-decision`, then Phase 9 resumes.
 - **Missing wireframe or `data-test-id` (a Design Gap):** go back to Eunice before implementing or testing that element.
+- **Feature shipped outside the pipeline:** run `/backfill <feature>`. It writes the missing layers as built (Jason → Watson and Eunice → Poe → Quinn) after one plan approval.
 - **Scope change mid-sprint:** Poe marks the affected shards `Superseded` and creates replacement shards. Files are never deleted.
 
 **Operating rules:**
-- **Converse vs Delegate.** Subagents can't ask questions mid-task. Run interactive phases in the main session with the slash commands `/mary` (Phase 1), `/jason` (Phase 2), `/align` (Phase 4, Jason ⇄ Watson) and `/eunice` (Phase 6). Each loads that persona from `.claude/agents/<name>.md`. `/cohort` reports each module's phase and the next handoff. Run self-contained deliverables (tech spec, stories, shards, test plans, shard implementation) by spawning the subagent of that name.
+- **Converse vs Delegate.** Subagents can't ask questions mid-task. Run interactive phases in the main session with the slash commands `/mary` (Phase 1), `/jason` (Phase 2), `/align` (Phase 4, Jason ⇄ Watson) and `/eunice` (Phase 6). Each loads that persona from `.claude/agents/<name>.md`. `/cohort` reports each module's phase and the next handoff. `/backfill <feature>` retrofits a shipped feature into the cohort. Run self-contained deliverables (tech spec, stories, shards, test plans, shard implementation) by spawning the subagent of that name.
 - **The owner approves every phase transition.** Finish a phase, report its artifact and the exit-gate status, and propose the next handoff. Don't chain into the next phase unprompted.
 - **Missing upstream artifacts block work.** If a phase's inputs don't exist (for example, sharding UI work with no wireframe), say which artifact is missing and ask whether to produce it or proceed without it.
 - **Precedence when documents conflict:** `CONSTRAINTS.md` > `DECISION_LOG.md` > `Architecture.md` > `PRD.md` > shard > story. Record conflicts; never silently resolve them.
