@@ -8,13 +8,13 @@ Last updated: 2026-11-25
 
 | ID | Workstream | Agent | Phase | Status | Started | Commit(s) | Blocked by / next step |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| W-12 | Full-suite verification of merged stabilisation code (build, unit, both E2E layouts) | main session | 10 | In Progress | 2026-11-25 | a6e814a (code under test) | Expect only AUTH T011/T012/T014 (deferred) to fail. Results go into the next update. |
+| — | No agent work running. | | | | | | |
 
 ## Next up (owner-approved or proposed)
 
 | ID | Workstream | Agent | Phase | Status | Depends on |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| W-13 | Re-gate SYNC-002 (A4 fixed; T428 passes) | Quinn | 10 | Proposed | W-12 green |
+| W-13 | Re-gate SYNC-002 (A4 fixed; T428 passes) | Quinn | 10 | Proposed | W-12 green ✅ |
 | W-14 | Migration spike: `firebase/ai` + @angular/fire, App Check debug token, temperature support (D5), proxy host for mocks | Athena | 9 (spike) | Awaiting owner | Owner decisions D1–D8 and console tasks (`docs/context/MIGRATION_FIREBASE_AI_LOGIC.md` §4, §7) |
 | W-15 | Architecture backfill: roundtable/status bar (CHAT-005, OPER-007) and the new sync design (SyncTarget, single-document collections, shared conflict rule) | Watson | 3–4 | Proposed | None |
 | W-16 | Shards: back-fill CHAT-005 and OPER-007; follow-up bug shards (below) | Poe | 7 | Proposed | W-15 |
@@ -34,6 +34,7 @@ Last updated: 2026-11-25
 
 | ID | Workstream | Agent | Result | Commit(s) |
 | :--- | :--- | :--- | :--- | :--- |
+| W-12 | Full-suite verification of merged stabilisation code | main session | **Stable baseline:** build pass; unit 271/271; e2e tsc clean; E2E 155 expected / 3 unexpected (only AUTH T011, T012, T014, deferred to the migration) | a6e814a |
 | W-11 | Stabilisation TEST fixes T1–T4, T6–T14, SYNC T400/T404 | Quinn | 151/158 in worktree; merged | a6e814a |
 | W-10 | A5 test updates (no sync dialog on fresh devices; T405–T408, T413) | main session | SYNC 25/25 ×2 | db6131e |
 | W-09 | Stabilisation APP fixes A4, A1, A5, A6, A7 | Athena | Unit 270/1; T428 passes | 66c609a |
