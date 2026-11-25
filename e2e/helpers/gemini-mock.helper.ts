@@ -31,6 +31,16 @@ function buildGenerateResponse(reply: MockResponse): object {
   };
 }
 
+/** Optional knobs for {@link mockGeminiApi}. Defaults reproduce the original behaviour. */
+export interface MockGeminiOptions {
+  /** `inputTokenLimit` reported by the model detail fetch (drives the CTX meter and the soft/hard limits). */
+  inputTokenLimit?: number;
+  /** `totalTokens` returned by every countTokens call (added to the conversation context per request). */
+  countTokens?: number;
+  /** Delay before each generateContent reply, so transient "processing" UI stays observable. */
+  delayMs?: number;
+}
+
 /** Build a Gemini countTokens response body. */
 function buildCountTokensResponse(tokenCount = 100): object {
   return { totalTokens: tokenCount };
@@ -49,8 +59,8 @@ function buildModelsListResponse(): object {
 }
 
 /** Build a Gemini model detail response. */
-function buildModelDetailResponse(): object {
-  return { name: 'models/gemini-3.5-flash', inputTokenLimit: 1048576, outputTokenLimit: 8192 };
+function buildModelDetailResponse(inputTokenLimit = 1048576): object {
+  return { name: 'models/gemini-3.5-flash', inputTokenLimit, outputTokenLimit: 8192 };
 }
 
 /**
@@ -59,10 +69,15 @@ function buildModelDetailResponse(): object {
  * @param page - The Playwright page to intercept on
  * @param replies - Ordered queue of text replies returned per generateContent call.
  *                  When the queue is exhausted, returns the last reply repeatedly.
+ * @param options - Optional model limits, token counts and reply delay.
+ *
+ * Install it before the page loads (or reload after installing it) when a test depends on the
+ * model detail fetch made on load, e.g. `inputTokenLimit`.
  */
 export async function mockGeminiApi(
   page: Page,
-  replies: MockResponse[] = [{ text: 'Mock response.' }]
+  replies: MockResponse[] = [{ text: 'Mock response.' }],
+  options: MockGeminiOptions = {}
 ): Promise<void> {
   let callIndex = 0;
 
@@ -77,13 +92,13 @@ export async function mockGeminiApi(
 
     // Single model detail — used by initializeModelMetrics
     if (url.match(/\/models\/[^:?]+\?key=/)) {
-      await route.fulfill({ json: buildModelDetailResponse() });
+      await route.fulfill({ json: buildModelDetailResponse(options.inputTokenLimit) });
       return;
     }
 
     // Count tokens
     if (url.includes(':countTokens')) {
-      await route.fulfill({ json: buildCountTokensResponse() });
+      await route.fulfill({ json: buildCountTokensResponse(options.countTokens) });
       return;
     }
 
@@ -91,6 +106,7 @@ export async function mockGeminiApi(
     if (url.includes(':generateContent')) {
       const reply = replies[Math.min(callIndex, replies.length - 1)];
       callIndex++;
+      if (options.delayMs) await new Promise((resolve) => setTimeout(resolve, options.delayMs));
       await route.fulfill({ json: buildGenerateResponse(reply) });
       return;
     }

@@ -34,11 +34,9 @@ export async function continueAsGuest(page: Page): Promise<void> {
 
 /** Sign out via the header profile menu. */
 export async function signOut(page: Page): Promise<void> {
-  // Open profile menu in header
-  const profileBtn = page.locator('button[aria-label="Profile"], button mat-icon:text("account_circle")').first();
-  await profileBtn.click();
-  const logoutBtn = page.locator('button', { hasText: /logout|sign out/i }).first();
-  await logoutBtn.click();
+  // Open the profile menu in the shell header, then Logout
+  await page.locator('[data-test-id="shell-header-profile-btn"]').click();
+  await page.locator('[data-test-id="shell-profile-menu-logout-btn"]').click();
   await page.waitForURL(/authentication/, { timeout: 8_000 });
 }
 
