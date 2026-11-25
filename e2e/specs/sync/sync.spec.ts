@@ -201,10 +201,11 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
       });
 
       await signInWithEmail(page, user.email, user.password);
-      await resolveSyncDialog(page, 'skip');
+      // A5: a fresh device holding only the untouched default agents gets no sync dialog; the restore runs directly.
 
       await expect.poll(async () => (await readLocalChats(page)).map((c) => c.title).sort(), { timeout: 10_000 })
         .toEqual(['Restored From Cloud A', 'Restored From Cloud B']);
+      await expect(page.locator('[data-test-id="sync-dialog"]'), 'A5: no sync dialog on a fresh device without user data').toHaveCount(0);
 
       await openChatHistory(page);
       const titles = page.locator('[data-test-id="chat-history-item-title"]');
@@ -230,9 +231,10 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
       });
 
       await signInWithEmail(page, user.email, user.password);
-      await resolveSyncDialog(page, 'skip');
+      // A5: a fresh device holding only the untouched default agents gets no sync dialog; the restore runs directly.
 
       await expect.poll(async () => (await readLocalChats(page)).length, { timeout: 10_000 }).toBe(1);
+      await expect(page.locator('[data-test-id="sync-dialog"]'), 'A5: no sync dialog on a fresh device without user data').toHaveCount(0);
       const [restored] = await readLocalChats(page);
       expect(restored.id).toBe(id);
       expect(restored.createdAt).toBe(createdAt);
@@ -268,8 +270,9 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
       }
 
       await signInWithEmail(page, user.email, user.password);
-      await resolveSyncDialog(page, 'skip');
+      // A5: a fresh device holding only the untouched default agents gets no sync dialog; the restore runs directly.
       await expect.poll(async () => (await readLocalChats(page)).length, { timeout: 10_000 }).toBe(3);
+      await expect(page.locator('[data-test-id="sync-dialog"]'), 'A5: no sync dialog on a fresh device without user data').toHaveCount(0);
 
       // Device A shows newest first (ChatStorageService.createChat prepends), so the restored device must too.
       await openChatHistory(page);
@@ -291,7 +294,7 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
       try {
         const pageA = await deviceA.newPage();
         await signInWithEmail(pageA, user.email, user.password);
-        await resolveSyncDialog(pageA, 'skip');
+        // A5: device A is also a fresh device holding only untouched default agents, so no sync dialog appears.
         await pageA.evaluate((key) => {
           const profiles = JSON.parse(localStorage.getItem(key) || '[]');
           const now = Date.now();
@@ -302,15 +305,17 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
         await pageA.locator('[data-test-id="profile-sync-agents-btn"]').click();
         await expect.poll(async () => (await getEmulatorFirestoreDocs<any>(user.uid, 'agent_profiles')).map((p) => p.id), { timeout: 15_000 })
           .toContain('agent_t408_custom');
+        await expect(pageA.locator('[data-test-id="sync-dialog"]'), 'A5: no sync dialog on a fresh device without user data').toHaveCount(0);
       } finally {
         await deviceA.close();
       }
 
       // ── Device B: fresh context, same user.
       await signInWithEmail(page, user.email, user.password);
-      await resolveSyncDialog(page, 'skip');
+      // A5: a fresh device holding only the untouched default agents gets no sync dialog; the restore runs directly.
       await expect.poll(async () => page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '[]').map((p: any) => p.name), AGENT_PROFILES_KEY), { timeout: 10_000 })
         .toContain('SECTION-9-T408');
+      await expect(page.locator('[data-test-id="sync-dialog"]'), 'A5: no sync dialog on a fresh device without user data').toHaveCount(0);
 
       await page.goto('/tachikoma-profiles');
       await expect(page.locator('[data-test-id="profiles-card-name"]').filter({ hasText: 'SECTION-9-T408' })).toBeVisible();
@@ -438,11 +443,12 @@ test.describe('SYNC — Persistence, Offline Continuity, Cross-Device Recovery',
       page.on('pageerror', (err) => pageErrors.push(err.message));
 
       await signInWithEmail(page, user.email, user.password);
-      await resolveSyncDialog(page, 'skip');
+      // A5: a fresh device holding only the untouched default agents gets no sync dialog; the restore runs directly.
 
       await openChatHistory(page);
       await expect(page.locator('[data-test-id="chat-history-empty"]')).toBeVisible();
       await expect(page.locator('[data-test-id="chat-history-item"]')).toHaveCount(0);
+      await expect(page.locator('[data-test-id="sync-dialog"]'), 'A5: no sync dialog on a fresh device without user data').toHaveCount(0);
 
       await page.goto('/tachikoma-profiles');
       await expect(page.locator('[data-test-id="profiles-card-name"]').filter({ hasText: 'LOGIKOMA' })).toBeVisible();
