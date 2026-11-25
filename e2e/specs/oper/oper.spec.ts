@@ -33,19 +33,28 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       localStorage.setItem('tachikoma_current_chat_id', 'oper-chat');
       localStorage.setItem('tachikoma_agent_profiles', JSON.stringify(agents));
     });
+    await mockGeminiApi(page);
     await page.reload();
     await suppressExplainerDialog(page);
   });
 
   // ══ OPER-001: Token and Cost Estimates (T500-T506) ════════════════════════
+  // The header metrics dashboard was retired; per-model metrics now live in the status bar segments
+  // (Wireframe_ChatRoundtable.md, Status Bar: chat-status-model, -tpm, -ctx, -rpm).
 
   test.describe('T500-T506 Token and Cost Visibility', () => {
-    test('T500 metrics dashboard is visible in the header @smoke @landscape', async ({ page }) => {
-      await expect(page.locator('.metrics-dashboard')).toBeVisible({ timeout: 5_000 });
+    test('T500 metrics are visible in the status bar @smoke @landscape', async ({ page }) => {
+      await expect(page.locator('[data-test-id="chat-status-bar"]')).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-test-id="chat-status-tpm"]')).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-test-id="chat-status-ctx"]')).toBeVisible();
+      await expect(page.locator('[data-test-id="chat-status-rpm"]')).toBeVisible();
     });
 
     test('T501 per-model metrics section is present @landscape', async ({ page }) => {
-      await expect(page.locator('.model-group, .model-metrics').first()).toBeVisible({ timeout: 5_000 });
+      // The status bar reports the metrics of the first model in use (both seeded agents use gemini-3.5-flash)
+      await expect(page.locator('[data-test-id="chat-status-model"]')).toHaveText(/GEMINI-3\.5-FLASH/, { timeout: 5_000 });
+      await expect(page.locator('[data-test-id="chat-status-tpm"]')).toHaveText(/TPM: \S+\/\S+/);
+      await expect(page.locator('[data-test-id="chat-status-ctx"]')).toHaveText(/CTX: \d+%/);
     });
 
     test('T502 token/cost estimate is tracked after a round', async ({ page }) => {
@@ -84,16 +93,18 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
     test('T504 daily request counter increments after each round @landscape', async ({ page }) => {
       await mockGeminiApi(page, [{ text: 'A' }, { text: 'B' }]);
 
-      const before = await page.locator('.meter-info', { hasText: '/' }).first().textContent();
+      const rpm = page.locator('[data-test-id="chat-status-rpm"]');
+      await expect(rpm).toHaveText(/RPM: 0\//, { timeout: 5_000 });
+      const before = (await rpm.textContent())?.trim();
 
       await page.locator('[data-test-id="chat-message-input"]').fill('Counter test');
       await page.locator('[data-test-id="chat-send-btn"]').click();
 
       await expect(page.locator('[data-test-id="chat-agent-message"]').first()).toBeVisible({ timeout: 15_000 });
 
-      const after = await page.locator('.meter-info', { hasText: '/' }).first().textContent();
       // Counter should have changed
-      expect(after).not.toBe(before);
+      await expect(rpm).not.toHaveText(before ?? '', { timeout: 5_000 });
+      await expect(rpm).toHaveText(/RPM: [1-9]\d*\//);
     });
 
     test('T505 token metrics do not block orchestration execution', async ({ page }) => {
@@ -110,10 +121,8 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
     });
 
     test('T506 formatTokenCount renders M suffix for large counts @landscape', async ({ page }) => {
-      // We test the display by checking the metrics dashboard text format
-      // For model with 1M token limit, the display should show "xM" or "xK"
-      const metricsText = await page.locator('.metrics-dashboard').textContent();
-      expect(metricsText).toMatch(/[KM]/); // Should have K or M formatting
+      // The TPM budget (4,000,000 tokens/min) is rendered with formatTokenCount, which uses the M suffix
+      await expect(page.locator('[data-test-id="chat-status-tpm"]')).toHaveText(/\/\d+(\.\d)?M\b/, { timeout: 5_000 });
     });
   });
 
@@ -121,53 +130,65 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
 
   test.describe('T507-T513 Soft and Hard Token Limits', () => {
     test('T507 soft limit warning banner appears when context approaches limit', async ({ page }) => {
-      // Inject near-limit context token count into the component state
-      await page.evaluate(() => {
-        // Access Angular component — inject high context token counts
-        const el = document.querySelector('app-tachikoma-chat') as any;
-        if (el?.__ngContext__) {
-          // This is a best-effort check; the banner is controlled by contextSoftWarning signal
-        }
-      });
+      // Near-limit context: a 1,000-token model window and 850 counted input tokens per request (85% after
+      // the first request, so the soft limit (80%) is crossed during the first round).
+      await mockGeminiApi(page, [{ text: 'Near the limit.' }, { text: 'Synthesis.' }], { inputTokenLimit: 1_000, countTokens: 850 });
+      await page.reload();
 
-      // The soft limit banner element should exist in the DOM
-      // (it appears when contextSoftWarning signal is set)
-      await expect(page.locator('[data-test-id="chat-soft-limit-banner"]')).toBeAttached();
+      const banner = page.locator('[data-test-id="chat-soft-limit-banner"]');
+      await expect(banner).toHaveCount(0);
+
+      await page.locator('[data-test-id="chat-message-input"]').fill('Fill the context window');
+      await page.locator('[data-test-id="chat-send-btn"]').click();
+
+      await expect(banner).toBeVisible({ timeout: 15_000 });
+      await expect(banner).toContainText('gemini-3.5-flash');
     });
 
     test('T508 soft limit banner has ARIA live region for screen readers', async ({ page }) => {
+      await mockGeminiApi(page, [{ text: 'Near the limit.' }, { text: 'Synthesis.' }], { inputTokenLimit: 1_000, countTokens: 850 });
+      await page.reload();
+
+      await page.locator('[data-test-id="chat-message-input"]').fill('Fill the context window');
+      await page.locator('[data-test-id="chat-send-btn"]').click();
+
       const banner = page.locator('[data-test-id="chat-soft-limit-banner"]');
-      await expect(banner).toBeAttached();
-      const ariaLive = await banner.getAttribute('aria-live');
-      expect(ariaLive).toBe('polite');
+      await expect(banner).toBeVisible({ timeout: 15_000 });
+      await expect(banner).toHaveAttribute('aria-live', 'polite');
+      await expect(banner).toHaveAttribute('role', 'alert');
     });
 
     test('T509 daily quota meter shows progress towards free tier limit @landscape', async ({ page }) => {
-      const meterBar = page.locator('.meter-bar').first();
-      await expect(meterBar).toBeVisible({ timeout: 5_000 });
+      // The status bar request meter shows usage against the tier limit; a guest is on the free tier (15 RPM).
+      // Note: the retired header dashboard also showed the 20-requests/day quota; the status bar has no daily meter.
+      await expect(page.locator('[data-test-id="chat-status-rpm"]')).toHaveText(/RPM: 0\/15\b/, { timeout: 5_000 });
     });
 
     test('T510 meter bar shows warning class when approaching limit @landscape', async ({ page }) => {
       test.setTimeout(120_000);
-      // Set daily request count to near-limit in the component
       await mockGeminiApi(page, Array(17).fill({ text: 'Request.' }));
 
-      // Make multiple requests to approach the 20-request free tier
-      for (let i = 0; i < 16; i++) {
+      const rpm = page.locator('[data-test-id="chat-status-rpm"]');
+      const processing = page.locator('[data-test-id="chat-status-processing"]');
+      const rpmCount = async () => Number((await rpm.textContent())?.match(/RPM: (\d+)\//)?.[1] ?? 0);
+
+      // Run rounds until more than 80% of the 15-RPM free tier is used (13+ requests in the last minute)
+      for (let i = 0; i < 10 && (await rpmCount()) < 13; i++) {
         await page.locator('[data-test-id="chat-message-input"]').fill(`Request ${i}`);
         await page.locator('[data-test-id="chat-send-btn"]').click();
-        await expect(page.locator('[data-test-id="chat-agent-message"]').last()).toBeVisible({ timeout: 15_000 });
+        await expect(processing).toBeVisible({ timeout: 10_000 });
+        await expect(processing).toHaveCount(0, { timeout: 30_000 });
       }
+      expect(await rpmCount()).toBeGreaterThanOrEqual(13);
 
-      // At 16/20 requests (80%), meter should show warning class
-      const meterBar = page.locator('.meter-bar').first();
-      const classes = await meterBar.getAttribute('class');
-      expect(classes).toMatch(/warning|danger/);
+      // Above 80% of the limit the RPM segment carries the warning (or danger) class
+      await expect(rpm).toHaveClass(/status-warn|status-danger/);
     });
 
     test('T511 rate limit per minute is shown in metrics @landscape', async ({ page }) => {
-      const rpmInfo = page.locator('.meter-info, .metrics-dashboard');
-      await expect(rpmInfo.first()).toBeVisible({ timeout: 5_000 });
+      const rpmInfo = page.locator('[data-test-id="chat-status-rpm"]');
+      await expect(rpmInfo).toBeVisible({ timeout: 5_000 });
+      await expect(rpmInfo).toHaveText(/RPM: \d+\/\d+/);
     });
   });
 
@@ -197,26 +218,25 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       await suppressExplainerDialog(page);
 
       // Capture what gets sent to the API
-      let historyInPrompt = '';
       await page.route('https://generativelanguage.googleapis.com/**', async (route) => {
         if (route.request().url().includes(':generateContent')) {
-          const body = route.request().postDataJSON();
-          historyInPrompt = JSON.stringify(body);
           await route.fulfill({ json: {
             candidates: [{ content: { parts: [{ text: 'Context window test.' }], role: 'model' }, finishReason: 'STOP', index: 0 }],
             usageMetadata: { promptTokenCount: 200, candidatesTokenCount: 50, totalTokenCount: 250 },
           }});
         } else {
-          await route.continue();
+          await route.fallback(); // other Gemini calls go to the beforeEach mock
         }
       });
 
+      const generateRequest = page.waitForRequest((req) => req.url().includes(':generateContent'), { timeout: 15_000 });
       await page.locator('[data-test-id="chat-message-input"]').fill('Context overflow test');
       await page.locator('[data-test-id="chat-send-btn"]').click();
-      await expect(page.locator('[data-test-id="chat-agent-message"]').first()).toBeVisible({ timeout: 15_000 });
+      // Wait for the outgoing request: the seeded transcript already shows agent messages
+      const sent = JSON.stringify((await generateRequest).postDataJSON());
 
       // The prompt should contain "CONVERSATION HISTORY" for the old rounds
-      expect(historyInPrompt).toContain('CONVERSATION HISTORY');
+      expect(sent).toContain('CONVERSATION HISTORY');
     });
 
     test('T515 older rounds are compressed to moderator-only in context', async ({ page }) => {
@@ -233,26 +253,27 @@ test.describe('OPER — Cost, Limits, and Runtime Transparency', () => {
       await page.reload();
       await suppressExplainerDialog(page);
 
-      let promptText = '';
       await page.route('https://generativelanguage.googleapis.com/**', async (route) => {
         if (route.request().url().includes(':generateContent')) {
-          const body = route.request().postDataJSON();
-          promptText = JSON.stringify(body);
           await route.fulfill({ json: {
             candidates: [{ content: { parts: [{ text: 'Windowed.' }], role: 'model' }, finishReason: 'STOP', index: 0 }],
             usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 20, totalTokenCount: 120 },
           }});
         } else {
-          await route.continue();
+          await route.fallback(); // other Gemini calls go to the beforeEach mock
         }
       });
 
+      const generateRequest = page.waitForRequest((req) => req.url().includes(':generateContent'), { timeout: 15_000 });
       await page.locator('[data-test-id="chat-message-input"]').fill('Compression test');
       await page.locator('[data-test-id="chat-send-btn"]').click();
-      await expect(page.locator('[data-test-id="chat-agent-message"]').first()).toBeVisible({ timeout: 15_000 });
+      // Wait for the outgoing request: the seeded transcript already shows agent messages
+      const sent = JSON.stringify((await generateRequest).postDataJSON());
 
       // Older rounds should be compressed — prompt should mention "CONVERSATION HISTORY" not individual chatter messages for old rounds
-      expect(promptText).toContain('CONVERSATION HISTORY');
+      expect(sent).toContain('CONVERSATION HISTORY');
+      // Compressed rounds keep only the user prompt and the moderator synthesis
+      expect(sent).toContain('MODERATOR (Moderator): Summary0');
     });
 
     test('T516 long conversation stays responsive (no O(n²) growth)', async ({ page }) => {

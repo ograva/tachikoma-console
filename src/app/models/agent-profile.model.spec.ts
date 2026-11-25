@@ -31,8 +31,9 @@ describe('AgentProfileModel', () => {
     });
 
     it('should preserve an explicitly set model', () => {
-      const result = AgentProfileModel.normalize({ ...BASE, model: 'models/gemini-1.5-pro' });
-      expect(result.model).toBe('models/gemini-1.5-pro');
+      const result = AgentProfileModel.normalize({ ...BASE, model: 'models/gemini-pro-latest' });
+      expect(result.model).not.toBe(AgentProfileModel.DEFAULTS.model);
+      expect(result.model).toBe('models/gemini-pro-latest');
     });
 
     it('should fill missing silenceProtocol with "standard"', () => {

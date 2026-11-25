@@ -45,18 +45,24 @@ test.describe('ORCH — Multi-Agent Conversation Protocol', () => {
   // ══ ORCH-001: Round-Robin Agent Cycles (T300-T307) ════════════════════════
 
   test.describe('T300-T307 Round-Robin Execution', () => {
-    test('T300 submitting a message triggers agent processing indicators', async ({ page }) => {
+    test('T300 submitting a message triggers agent processing indicators @landscape', async ({ page }) => {
+      // Replies are delayed so the transient processing state stays observable
       await mockGeminiApi(page, [
         { text: 'Logical analysis here.' },
         { text: 'Philosophical perspective.' },
         { text: 'Synthesis of both views.' },
-      ]);
+      ], { delayMs: 1_500 });
+
+      const processing = page.locator('[data-test-id="chat-status-processing"]');
+      await expect(processing).toHaveCount(0);
 
       await page.locator('[data-test-id="chat-message-input"]').fill('Explain the trolley problem.');
       await page.locator('[data-test-id="chat-send-btn"]').click();
 
-      // Processing panel should appear while agents respond
-      await expect(page.locator('.neural-activity, .status-panel, [class*="neural"]')).toBeVisible({ timeout: 5_000 });
+      // The status bar shows PROCESSING while agents respond, and clears it when the round ends
+      await expect(processing).toBeVisible({ timeout: 5_000 });
+      await expect(processing).toContainText('PROCESSING');
+      await expect(processing).toHaveCount(0, { timeout: 20_000 });
     });
 
     test('T301 all chatter agents produce responses in transcript', async ({ page }) => {
@@ -480,6 +486,29 @@ test.describe('ORCH — Multi-Agent Conversation Protocol', () => {
 
       // Input should be usable again
       await expect(page.locator('[data-test-id="chat-message-input"]')).toBeEditable({ timeout: 5_000 });
+    });
+  });
+
+  // ══ ORCH-001 portrait equivalent of T300 ═════════════════════════════════
+  // Source: Quinn. T300 covers the status bar (landscape); the portrait feed has its own typing indicator.
+
+  test.describe('T328 Portrait Processing Indicator', () => {
+    test('T328 submitting a message shows the transcript typing indicator in portrait', async ({ page }) => {
+      await mockGeminiApi(page, [
+        { text: 'Logical analysis here.' },
+        { text: 'Philosophical perspective.' },
+        { text: 'Synthesis of both views.' },
+      ], { delayMs: 1_500 });
+
+      const indicator = page.locator('[data-test-id="chat-processing-indicator"]');
+      await expect(indicator).toHaveCount(0);
+
+      await page.locator('[data-test-id="chat-message-input"]').fill('Explain the trolley problem.');
+      await page.locator('[data-test-id="chat-send-btn"]').click();
+
+      await expect(indicator).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-test-id="chat-agent-message"]')).toHaveCount(3, { timeout: 20_000 });
+      await expect(indicator).toHaveCount(0, { timeout: 5_000 });
     });
   });
 });

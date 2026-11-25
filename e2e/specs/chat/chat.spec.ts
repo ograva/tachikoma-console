@@ -3,8 +3,14 @@ import {
   continueAsGuest,
   suppressExplainerDialog,
   seedApiKey,
-  clearLocalStorage,
+  closeAutoOpenedNewChatSelector,
+  openChatHistoryDrawer,
 } from '../../helpers';
+
+/** Read `tachikoma_chat_sessions` from the page. */
+async function readLocalChats(page: import('@playwright/test').Page): Promise<any[]> {
+  return page.evaluate(() => JSON.parse(localStorage.getItem('tachikoma_chat_sessions') || '[]'));
+}
 
 /**
  * CHAT-001: Start a New Chat with Context (T200-T205)
@@ -16,8 +22,9 @@ test.describe('CHAT — Chat Session Lifecycle', () => {
   test.beforeEach(async ({ page }) => {
     await continueAsGuest(page);
     await seedApiKey(page);
-    await page.goto('/tachikoma');
+    // Suppress the first-visit explainer BEFORE the chat page loads, so it never opens.
     await suppressExplainerDialog(page);
+    await page.goto('/tachikoma');
   });
 
   // ══ CHAT-001: Start a New Chat (T200-T205) ════════════════════════════════
@@ -25,60 +32,69 @@ test.describe('CHAT — Chat Session Lifecycle', () => {
   test.describe('T200-T205 New Chat Creation', () => {
     test('T200 new chat dialog opens with agent roster @smoke', async ({ page }) => {
       // When no chat exists the app auto-opens the agent selector on load
-      await expect(page.locator('.agent-selector-dialog')).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('[data-test-id="chat-new-chat-dialog"]')).toBeVisible({ timeout: 8_000 });
     });
 
     test('T201 roster shows all available agents', async ({ page }) => {
-      // Trigger new chat dialog
-      await page.locator('button[matTooltip="New Chat"], button mat-icon:text("add")').first().click();
-      const agentItems = page.locator('.agent-item, .agent-selector .agent');
+      await closeAutoOpenedNewChatSelector(page);
+      await page.locator('[data-test-id="chat-header-new-chat-btn"]').click();
+      const agentItems = page.locator('[data-test-id="chat-new-chat-agent-option"]');
       await expect(agentItems.first()).toBeVisible({ timeout: 5_000 });
-      expect(await agentItems.count()).toBeGreaterThan(0);
+      // Every agent profile saved locally is offered in the roster
+      const profiles = await page.evaluate(() => JSON.parse(localStorage.getItem('tachikoma_agent_profiles') || '[]'));
+      expect(profiles.length).toBeGreaterThan(0);
+      await expect(agentItems).toHaveCount(profiles.length);
     });
 
     test('T202 creating chat requires at least one agent selected', async ({ page }) => {
-      await page.locator('button mat-icon:text("add")').first().click();
-      const dialog = page.locator('.agent-selector-dialog');
+      await closeAutoOpenedNewChatSelector(page);
+      await page.locator('[data-test-id="chat-header-new-chat-btn"]').click();
+      const dialog = page.locator('[data-test-id="chat-new-chat-dialog"]');
       await expect(dialog).toBeVisible({ timeout: 5_000 });
 
       // Deselect all agents
-      await dialog.locator('button', { hasText: /clear all/i }).click();
+      await page.locator('[data-test-id="chat-new-chat-clear-all-btn"]').click();
 
-      // Try to start — should show validation feedback (dialog stays open or alert shown)
-      await dialog.locator('button', { hasText: /start chat/i }).click();
+      // Try to start: the app rejects it with a browser alert and keeps the dialog open
+      let alertMessage = '';
+      page.once('dialog', async (d) => { alertMessage = d.message(); await d.dismiss(); });
+      await page.locator('[data-test-id="chat-new-chat-start-btn"]').click();
 
-      // Dialog should still be visible or an error should appear
-      const stillOpen = await dialog.isVisible();
-      const errorVisible = await page.locator('mat-dialog-container, [role="alert"]').isVisible();
-      expect(stillOpen || errorVisible).toBeTruthy();
+      await expect.poll(() => alertMessage, { timeout: 5_000 }).toMatch(/select at least one agent/i);
+      await expect(dialog).toBeVisible();
+      expect(await readLocalChats(page)).toHaveLength(0);
     });
 
     test('T203 chat title input is available in new chat dialog', async ({ page }) => {
-      await page.locator('button mat-icon:text("add")').first().click();
-      await expect(page.locator('input[name="new-chat-title-field"]')).toBeVisible({ timeout: 5_000 });
+      await closeAutoOpenedNewChatSelector(page);
+      await page.locator('[data-test-id="chat-header-new-chat-btn"]').click();
+      await expect(page.locator('[data-test-id="chat-new-chat-title-input"]')).toBeVisible({ timeout: 5_000 });
     });
 
     test('T204 chat description input is available in new chat dialog', async ({ page }) => {
-      await page.locator('button mat-icon:text("add")').first().click();
-      await expect(page.locator('textarea[name="new-chat-description-field"]')).toBeVisible({ timeout: 5_000 });
+      await closeAutoOpenedNewChatSelector(page);
+      await page.locator('[data-test-id="chat-header-new-chat-btn"]').click();
+      await expect(page.locator('[data-test-id="chat-new-chat-description-input"]')).toBeVisible({ timeout: 5_000 });
     });
 
     test('T205 chat description persists after creation', async ({ page }) => {
-      await page.locator('button mat-icon:text("add")').first().click();
-      const dialog = page.locator('.agent-selector-dialog');
+      await closeAutoOpenedNewChatSelector(page);
+      await page.locator('[data-test-id="chat-header-new-chat-btn"]').click();
+      const dialog = page.locator('[data-test-id="chat-new-chat-dialog"]');
       await expect(dialog).toBeVisible({ timeout: 5_000 });
 
-      await dialog.locator('input[name="new-chat-title-field"]').fill('Test Chat With Desc');
-      await dialog.locator('textarea[name="new-chat-description-field"]').fill('A test context description');
-      await dialog.locator('button', { hasText: /start chat/i }).click();
+      await page.locator('[data-test-id="chat-new-chat-title-input"]').fill('Test Chat With Desc');
+      await page.locator('[data-test-id="chat-new-chat-description-input"]').fill('A test context description');
+      await page.locator('[data-test-id="chat-new-chat-start-btn"]').click();
 
       // Wait for dialog to close
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
       // Verify the description is stored
-      const sessions = await page.evaluate(() => JSON.parse(localStorage.getItem('tachikoma_chat_sessions') || '[]'));
-      const chat = sessions.find((s: any) => s.title === 'Test Chat With Desc');
-      expect(chat?.description).toBe('A test context description');
+      await expect.poll(async () => {
+        const chat = (await readLocalChats(page)).find((s: any) => s.title === 'Test Chat With Desc');
+        return chat?.description;
+      }, { timeout: 5_000 }).toBe('A test context description');
     });
   });
 
@@ -96,11 +112,9 @@ test.describe('CHAT — Chat Session Lifecycle', () => {
         localStorage.setItem('tachikoma_current_chat_id', 'test-hist-1');
       });
       await page.reload();
-      await suppressExplainerDialog(page);
 
-      // Open history drawer
-      await page.locator('button[matTooltip*="history"], button mat-icon:text("history"), .toggle-btn').first().click();
-      await expect(page.locator('[data-test-id="chat-history-item"]').first()).toBeVisible({ timeout: 5_000 });
+      await openChatHistoryDrawer(page);
+      await expect(page.locator('[data-test-id="chat-history-item"]', { hasText: 'History Test Chat' })).toBeVisible({ timeout: 5_000 });
     });
 
     test('T207 switching chats loads the correct session', async ({ page }) => {
@@ -113,11 +127,13 @@ test.describe('CHAT — Chat Session Lifecycle', () => {
         localStorage.setItem('tachikoma_current_chat_id', 'chat-a');
       });
       await page.reload();
-      await suppressExplainerDialog(page);
+      await expect(page.locator('[data-test-id="chat-user-message"]', { hasText: 'Alpha message' })).toBeVisible({ timeout: 5_000 });
 
       // Switch to Beta chat via history
+      await openChatHistoryDrawer(page);
       await page.locator('[data-test-id="chat-history-item"]', { hasText: 'Chat Beta' }).click();
-      await expect(page.locator('.msg-content, .user-bubble', { hasText: 'Beta message' })).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-test-id="chat-user-message"]', { hasText: 'Beta message' })).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-test-id="chat-user-message"]', { hasText: 'Alpha message' })).toHaveCount(0);
     });
 
     test('T208 edit chat metadata dialog saves title and description', async ({ page }) => {
@@ -129,20 +145,23 @@ test.describe('CHAT — Chat Session Lifecycle', () => {
         localStorage.setItem('tachikoma_current_chat_id', 'edit-me');
       });
       await page.reload();
-      await suppressExplainerDialog(page);
 
-      // Open edit dialog for this chat in history
-      const editBtn = page.locator('.edit-chat-btn').first();
-      await editBtn.click({ force: true });
+      // Open the edit dialog for this chat from the history drawer
+      await openChatHistoryDrawer(page);
+      const row = page.locator('[data-test-id="chat-history-item"]', { hasText: 'Before Edit' });
+      await row.locator('[data-test-id="chat-history-edit-btn"]').click();
 
-      await expect(page.locator('.agent-selector-dialog', { hasText: /edit chat/i })).toBeVisible({ timeout: 5_000 });
-      const titleInput = page.locator('input[name="chat-title-edit-field"]');
-      await titleInput.fill('After Edit');
-      await page.locator('button', { hasText: /save changes/i }).click();
+      const editDialog = page.locator('[data-test-id="chat-edit-chat-dialog"]');
+      await expect(editDialog).toBeVisible({ timeout: 5_000 });
+      await page.locator('[data-test-id="chat-edit-chat-title-input"]').fill('After Edit');
+      await page.locator('[data-test-id="chat-edit-chat-description-input"]').fill('Edited description');
+      await page.locator('[data-test-id="chat-edit-chat-save-btn"]').click();
+      await expect(editDialog).not.toBeVisible({ timeout: 5_000 });
 
-      const sessions = await page.evaluate(() => JSON.parse(localStorage.getItem('tachikoma_chat_sessions') || '[]'));
-      const updated = sessions.find((s: any) => s.id === 'edit-me');
-      expect(updated?.title).toBe('After Edit');
+      await expect.poll(async () => {
+        const updated = (await readLocalChats(page)).find((s: any) => s.id === 'edit-me');
+        return { title: updated?.title, description: updated?.description };
+      }, { timeout: 5_000 }).toEqual({ title: 'After Edit', description: 'Edited description' });
     });
 
     test('T209 deleting a chat removes it from history', async ({ page }) => {
@@ -154,14 +173,16 @@ test.describe('CHAT — Chat Session Lifecycle', () => {
         localStorage.setItem('tachikoma_current_chat_id', 'del-me');
       });
       await page.reload();
-      await suppressExplainerDialog(page);
 
-      // Delete the current chat via a delete button in history
-      const deleteBtn = page.locator('.delete-chat-btn, button mat-icon:text("delete")').first();
-      await deleteBtn.click({ force: true });
+      // Delete the current chat from its history row
+      await openChatHistoryDrawer(page);
+      const row = page.locator('[data-test-id="chat-history-item"]', { hasText: 'Delete Me' });
+      await row.locator('[data-test-id="chat-history-delete-btn"]').click();
 
-      const sessions = await page.evaluate(() => JSON.parse(localStorage.getItem('tachikoma_chat_sessions') || '[]'));
-      expect(sessions.some((s: any) => s.id === 'del-me')).toBeFalsy();
+      await expect(row).toHaveCount(0, { timeout: 5_000 });
+      await expect(page.locator('[data-test-id="chat-history-item"]', { hasText: 'Keep Me' })).toBeVisible();
+      await expect.poll(async () => (await readLocalChats(page)).map((s: any) => s.id), { timeout: 5_000 })
+        .toEqual(['keep-me']);
     });
 
     test('T210 switching to deleted chat falls back to next available', async ({ page }) => {
@@ -172,13 +193,14 @@ test.describe('CHAT — Chat Session Lifecycle', () => {
         localStorage.setItem('tachikoma_current_chat_id', 'only-chat');
       });
       await page.reload();
-      await suppressExplainerDialog(page);
 
-      const deleteBtn = page.locator('.delete-chat-btn, button mat-icon:text("delete")').first();
-      await deleteBtn.click({ force: true });
+      await openChatHistoryDrawer(page);
+      const row = page.locator('[data-test-id="chat-history-item"]', { hasText: 'Only Chat' });
+      await row.locator('[data-test-id="chat-history-delete-btn"]').click();
+      await expect(row).toHaveCount(0, { timeout: 5_000 });
 
       // The new chat dialog should open since no chats remain
-      await expect(page.locator('.agent-selector-dialog')).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('[data-test-id="chat-new-chat-dialog"]')).toBeVisible({ timeout: 8_000 });
     });
   });
 
@@ -294,17 +316,20 @@ test.describe('CHAT — Chat Session Lifecycle', () => {
     test('T220 clicking jump-to-latest scrolls feed to the bottom', async ({ page }) => {
       const chatFeed = page.locator('.chat-feed');
       await expect(chatFeed).toBeVisible();
+      expect(await chatFeed.evaluate((el) => el.scrollHeight > el.clientHeight)).toBeTruthy();
 
-      // Scroll to top first
-      await chatFeed.evaluate((el) => el.scrollTop = 0);
+      // Scroll to the top; the scroll interaction reveals the transcript nav
+      await chatFeed.evaluate((el) => { el.scrollTop = 0; el.dispatchEvent(new Event('scroll')); });
+      await expect.poll(() => chatFeed.evaluate((el) => el.scrollTop)).toBe(0);
 
-      await page.locator('[data-test-id="chat-jump-latest-btn"]').click({ force: true });
+      // Wait until the nav is interactive (no force): click() waits until the button receives pointer events
+      const jumpLatest = page.locator('[data-test-id="chat-jump-latest-btn"]');
+      await expect(jumpLatest).toBeVisible();
+      await jumpLatest.click();
 
-      // After clicking, scrollTop should be near scrollHeight
-      const isAtBottom = await chatFeed.evaluate((el) => {
-        return el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
-      });
-      expect(isAtBottom).toBeTruthy();
+      // After clicking, the feed should reach the bottom
+      await expect.poll(() => chatFeed.evaluate((el) => el.scrollTop + el.clientHeight >= el.scrollHeight - 10),
+        { timeout: 5_000 }).toBeTruthy();
     });
 
     test('T221 clicking jump-to-top scrolls feed to the top', async ({ page }) => {
