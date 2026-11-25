@@ -8,13 +8,12 @@ Last updated: 2026-11-25
 
 | ID | Workstream | Agent | Phase | Status | Started | Commit(s) | Blocked by / next step |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| — | No agent work running. | | | | | | |
+| W-13 | Re-gate SYNC-002 (A4 fixed; T428 passes) | Quinn | 10 | In Progress | 2026-11-25 | — | /audit + /gate on HEAD 2ec21d1 |
 
 ## Next up (owner-approved or proposed)
 
 | ID | Workstream | Agent | Phase | Status | Depends on |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| W-13 | Re-gate SYNC-002 (A4 fixed; T428 passes) | Quinn | 10 | Proposed | W-12 green ✅ |
 | W-14 | Migration spike: `firebase/ai` + @angular/fire, App Check debug token, temperature support (D5), proxy host for mocks | Athena | 9 (spike) | Awaiting owner | Owner decisions D1–D8 and console tasks (`docs/context/MIGRATION_FIREBASE_AI_LOGIC.md` §4, §7) |
 | W-15 | Architecture backfill: roundtable/status bar (CHAT-005, OPER-007) and the new sync design (SyncTarget, single-document collections, shared conflict rule) | Watson | 3–4 | Proposed | None |
 | W-16 | Shards: back-fill CHAT-005 and OPER-007; follow-up bug shards (below) | Poe | 7 | Proposed | W-15 |
